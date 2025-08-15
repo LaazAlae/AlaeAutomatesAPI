@@ -123,7 +123,7 @@
         <div class="section">
             <h3>🔧 API Configuration</h3>
             <label>API Base URL:</label>
-            <input type="text" id="apiUrl" class="api-url-input" value="http://localhost:5000" placeholder="https://your-app.railway.app">
+            <input type="text" id="apiUrl" class="api-url-input" value="http://localhost:8000" placeholder="https://your-app.railway.app">
             <button class="button" onclick="testConnection()">Test Connection</button>
             <div id="connectionStatus"></div>
         </div>
@@ -492,7 +492,7 @@
                 setTimeout(() => {
                     tester.log('Auto-testing localhost connection...', 'info');
                     testConnection();
-                }, 1000);
+                }, 2000); // Give API time to start
             }
         };
     </script>

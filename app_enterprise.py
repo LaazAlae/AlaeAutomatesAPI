@@ -567,10 +567,16 @@ if __name__ == '__main__':
     # Railway automatically sets PORT environment variable
     port = int(os.environ.get('PORT', 5000))
     
+    logger.info(f"Starting Statement Processing Enterprise API on port {port}")
+    logger.info("Available endpoints:")
+    for rule in app.url_map.iter_rules():
+        logger.info(f"  {rule.rule} [{', '.join(rule.methods)}]")
+    
     # Production settings for Railway with WebSocket support
     socketio.run(
         app,
         host='0.0.0.0',
         port=port,
-        debug=False
+        debug=False,
+        allow_unsafe_werkzeug=True  # Required for Railway deployment
     )

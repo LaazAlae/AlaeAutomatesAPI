@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Statement Processor Test</title>
+    <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 25px;
+            background-color: #f0f0f0;
+            border-radius: 12px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50, #45a049);
+            width: 0%;
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+        .log-entry {
+            margin-bottom: 5px;
+            padding: 2px 5px;
+        }
+        .log-info { color: #0066cc; }
+        .log-success { color: #009900; background: #f0fff0; }
+        .log-error { color: #cc0000; background: #fff0f0; }
+        .log-warning { color: #ff6600; background: #fff8f0; }
+        .button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        .button:hover { background: #0056b3; }
+        .button:disabled { background: #ccc; cursor: not-allowed; }
+        .success { color: #009900; }
+        .error { color: #cc0000; }
+        .warning { color: #ff6600; }
+        .question-item {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+        .answer-buttons {
+            margin-top: 10px;
+        }
+        .answer-button {
+            padding: 8px 16px;
+            margin: 0 5px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        .btn-yes { background: #28a745; color: white; }
+        .btn-no { background: #dc3545; color: white; }
+        .btn-skip { background: #6c757d; color: white; }
+        input[type="file"] {
+            padding: 10px;
+            border: 2px dashed #ddd;
+            border-radius: 5px;
+            width: 100%;
+            margin: 10px 0;
+        }
+        .api-url-input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Statement Processor Test Suite</h1>
+        <p>Test your API deployment like a real frontend implementation</p>
+
+        <!-- API Configuration -->
+        <div class="section">
+            <h3>🔧 API Configuration</h3>
+            <label>API Base URL:</label>
+            <input type="text" id="apiUrl" class="api-url-input" value="http://localhost:5000" placeholder="https://your-app.railway.app">
+            <button class="button" onclick="testConnection()">Test Connection</button>
+            <div id="connectionStatus"></div>
+        </div>
+
+        <!-- File Upload -->
+        <div class="section">
+            <h3>📁 File Upload</h3>
+            <label>PDF File:</label>
+            <input type="file" id="pdfFile" accept=".pdf">
+            <label>Excel File:</label>
+            <input type="file" id="excelFile" accept=".xlsx,.xls">
+            <button class="button" id="startBtn" onclick="startProcessing()" disabled>Start Processing</button>
+        </div>
+
+        <!-- Progress -->
+        <div class="section">
+            <h3>📊 Processing Progress</h3>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill">0%</div>
+            </div>
+            <div id="progressText">Ready to start...</div>
+            <div id="sessionInfo"></div>
+        </div>
+
+        <!-- Manual Review Questions -->
+        <div class="section" id="questionsSection" style="display: none;">
+            <h3>❓ Manual Review Required</h3>
+            <div id="questionsList"></div>
+            <button class="button" id="submitAnswersBtn" onclick="submitAnswers()" disabled>Submit All Answers</button>
+        </div>
+
+        <!-- Results -->
+        <div class="section">
+            <h3>📥 Results</h3>
+            <button class="button" id="downloadBtn" onclick="downloadResults()" disabled>Download Results</button>
+            <div id="resultsInfo"></div>
+        </div>
+
+        <!-- Real-time Log -->
+        <div class="section">
+            <h3>📋 Real-time Log</h3>
+            <div class="log" id="logContainer"></div>
+            <button class="button" onclick="clearLog()">Clear Log</button>
+        </div>
+    </div>
+
+    <script>
+        class StatementProcessorTester {
+            constructor() {
+                this.apiUrl = '';
+                this.socket = null;
+                this.sessionId = null;
+                this.questions = [];
+                this.answers = {};
+                
+                // Enable file selection
+                document.getElementById('pdfFile').onchange = this.checkFiles.bind(this);
+                document.getElementById('excelFile').onchange = this.checkFiles.bind(this);
+            }
+            
+            log(message, type = 'info') {
+                const timestamp = new Date().toLocaleTimeString();
+                const logContainer = document.getElementById('logContainer');
+                const entry = document.createElement('div');
+                entry.className = `log-entry log-${type}`;
+                entry.innerHTML = `[${timestamp}] ${message}`;
+                logContainer.appendChild(entry);
+                logContainer.scrollTop = logContainer.scrollHeight;
+                console.log(`[${type.toUpperCase()}] ${message}`);
+            }
+            
+            updateProgress(progress, message) {
+                const progressFill = document.getElementById('progressFill');
+                const progressText = document.getElementById('progressText');
+                
+                progressFill.style.width = `${progress}%`;
+                progressFill.textContent = `${progress}%`;
+                progressText.textContent = message;
+                
+                this.log(`Progress: ${progress}% - ${message}`, 'info');
+            }
+            
+            checkFiles() {
+                const pdfFile = document.getElementById('pdfFile').files[0];
+                const excelFile = document.getElementById('excelFile').files[0];
+                const startBtn = document.getElementById('startBtn');
+                
+                if (pdfFile && excelFile) {
+                    startBtn.disabled = false;
+                    this.log(`Files selected: ${pdfFile.name}, ${excelFile.name}`, 'success');
+                } else {
+                    startBtn.disabled = true;
+                }
+            }
+            
+            async testConnection() {
+                this.apiUrl = document.getElementById('apiUrl').value.trim();
+                const statusDiv = document.getElementById('connectionStatus');
+                
+                try {
+                    this.log(`Testing connection to: ${this.apiUrl}`, 'info');
+                    
+                    const response = await fetch(`${this.apiUrl}/health`, { 
+                        method: 'GET',
+                        mode: 'cors'
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        statusDiv.innerHTML = `<span class="success">✅ Connected! ${JSON.stringify(data)}</span>`;
+                        this.log('API connection successful', 'success');
+                        this.setupWebSocket();
+                        return true;
+                    } else {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+                } catch (error) {
+                    statusDiv.innerHTML = `<span class="error">❌ Connection failed: ${error.message}</span>`;
+                    this.log(`Connection failed: ${error.message}`, 'error');
+                    return false;
+                }
+            }
+            
+            setupWebSocket() {
+                if (this.socket) {
+                    this.socket.disconnect();
+                }
+                
+                try {
+                    this.socket = io(this.apiUrl);
+                    
+                    this.socket.on('connect', () => {
+                        this.log('WebSocket connected', 'success');
+                    });
+                    
+                    this.socket.on('disconnect', () => {
+                        this.log('WebSocket disconnected', 'warning');
+                    });
+                    
+                    this.socket.on('progress_update', (data) => {
+                        this.updateProgress(data.progress, data.message);
+                    });
+                    
+                    this.socket.on('questions_ready', (data) => {
+                        this.log(`Manual review needed: ${data.questions.length} questions`, 'warning');
+                        this.showQuestions(data.questions);
+                    });
+                    
+                    this.socket.on('processing_complete', (data) => {
+                        this.log('Processing completed!', 'success');
+                        this.updateProgress(100, 'Complete - Ready for download');
+                        
+                        if (data.download_ready) {
+                            document.getElementById('downloadBtn').disabled = false;
+                            document.getElementById('resultsInfo').innerHTML = 
+                                `<span class="success">✅ Results ready! Files: ${data.files_created ? data.files_created.join(', ') : 'Available'}</span>`;
+                        }
+                    });
+                    
+                    this.socket.on('processing_error', (data) => {
+                        this.log(`Processing error: ${data.error}`, 'error');
+                        this.updateProgress(0, `Error: ${data.error}`);
+                    });
+                    
+                } catch (error) {
+                    this.log(`WebSocket setup failed: ${error.message}`, 'error');
+                }
+            }
+            
+            async startProcessing() {
+                if (!this.apiUrl) {
+                    alert('Please test API connection first');
+                    return;
+                }
+                
+                const pdfFile = document.getElementById('pdfFile').files[0];
+                const excelFile = document.getElementById('excelFile').files[0];
+                
+                if (!pdfFile || !excelFile) {
+                    alert('Please select both PDF and Excel files');
+                    return;
+                }
+                
+                try {
+                    // Step 1: Create session
+                    this.log('Creating processing session...', 'info');
+                    const sessionResponse = await fetch(`${this.apiUrl}/api/v1/session`, {
+                        method: 'POST',
+                        mode: 'cors'
+                    });
+                    
+                    if (!sessionResponse.ok) {
+                        throw new Error(`Session creation failed: ${sessionResponse.status}`);
+                    }
+                    
+                    const sessionData = await sessionResponse.json();
+                    this.sessionId = sessionData.session_id;
+                    
+                    document.getElementById('sessionInfo').innerHTML = 
+                        `<strong>Session ID:</strong> ${this.sessionId.substring(0, 8)}...`;
+                    this.log(`Session created: ${this.sessionId}`, 'success');
+                    
+                    // Join WebSocket room
+                    if (this.socket && this.socket.connected) {
+                        this.socket.emit('join_session', { session_id: this.sessionId });
+                        this.log('Joined WebSocket room', 'info');
+                    }
+                    
+                    // Step 2: Upload files
+                    this.log('Uploading files...', 'info');
+                    const formData = new FormData();
+                    formData.append('pdf', pdfFile);
+                    formData.append('excel', excelFile);
+                    
+                    const uploadResponse = await fetch(`${this.apiUrl}/api/v1/session/${this.sessionId}/upload`, {
+                        method: 'POST',
+                        mode: 'cors',
+                        body: formData
+                    });
+                    
+                    if (!uploadResponse.ok) {
+                        throw new Error(`File upload failed: ${uploadResponse.status}`);
+                    }
+                    
+                    this.log('Files uploaded successfully', 'success');
+                    this.updateProgress(10, 'Files uploaded, starting processing...');
+                    
+                    // Step 3: Start processing
+                    const processResponse = await fetch(`${this.apiUrl}/api/v1/session/${this.sessionId}/process`, {
+                        method: 'POST',
+                        mode: 'cors'
+                    });
+                    
+                    if (!processResponse.ok) {
+                        throw new Error(`Processing start failed: ${processResponse.status}`);
+                    }
+                    
+                    this.log('Processing started - waiting for WebSocket updates...', 'success');
+                    document.getElementById('startBtn').disabled = true;
+                    
+                } catch (error) {
+                    this.log(`Processing failed: ${error.message}`, 'error');
+                    this.updateProgress(0, `Error: ${error.message}`);
+                }
+            }
+            
+            showQuestions(questions) {
+                this.questions = questions;
+                this.answers = {};
+                
+                const questionsSection = document.getElementById('questionsSection');
+                const questionsList = document.getElementById('questionsList');
+                
+                questionsSection.style.display = 'block';
+                questionsList.innerHTML = '';
+                
+                questions.forEach((question, index) => {
+                    const questionDiv = document.createElement('div');
+                    questionDiv.className = 'question-item';
+                    questionDiv.innerHTML = `
+                        <p><strong>Question ${index + 1}:</strong></p>
+                        <p>Company: <strong>${question.company_name}</strong></p>
+                        <p>Similar to: <strong>${question.similar_to}</strong> (${question.percentage} match)</p>
+                        <p>Are they the same company?</p>
+                        <div class="answer-buttons">
+                            <button class="answer-button btn-yes" onclick="tester.setAnswer('${question.company_name}', 'yes', ${index})">Yes - Same Company</button>
+                            <button class="answer-button btn-no" onclick="tester.setAnswer('${question.company_name}', 'no', ${index})">No - Different</button>
+                            <button class="answer-button btn-skip" onclick="tester.setAnswer('${question.company_name}', 'skip', ${index})">Skip</button>
+                        </div>
+                        <div id="answer-${index}" style="margin-top: 10px; font-weight: bold;"></div>
+                    `;
+                    questionsList.appendChild(questionDiv);
+                });
+                
+                this.log(`Showing ${questions.length} manual review questions`, 'info');
+            }
+            
+            setAnswer(companyName, answer, questionIndex) {
+                this.answers[companyName] = answer;
+                
+                const answerDiv = document.getElementById(`answer-${questionIndex}`);
+                const answerText = answer === 'yes' ? '✅ Same Company' : 
+                                 answer === 'no' ? '❌ Different Company' : 
+                                 '⏭️ Skipped';
+                answerDiv.innerHTML = `<span class="${answer === 'yes' ? 'success' : answer === 'no' ? 'error' : 'warning'}">${answerText}</span>`;
+                
+                this.log(`Answer set for "${companyName}": ${answer}`, 'info');
+                
+                // Check if all questions are answered
+                if (Object.keys(this.answers).length === this.questions.length) {
+                    document.getElementById('submitAnswersBtn').disabled = false;
+                    this.log('All questions answered - ready to submit', 'success');
+                }
+            }
+            
+            async submitAnswers() {
+                if (!this.sessionId || Object.keys(this.answers).length === 0) {
+                    alert('No answers to submit');
+                    return;
+                }
+                
+                try {
+                    this.log('Submitting answers...', 'info');
+                    
+                    const response = await fetch(`${this.apiUrl}/api/v1/session/${this.sessionId}/answers`, {
+                        method: 'POST',
+                        mode: 'cors',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ answers: this.answers })
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`Answer submission failed: ${response.status}`);
+                    }
+                    
+                    this.log('Answers submitted - finalizing processing...', 'success');
+                    this.updateProgress(80, 'Finalizing processing...');
+                    
+                    document.getElementById('submitAnswersBtn').disabled = true;
+                    document.getElementById('questionsSection').style.display = 'none';
+                    
+                } catch (error) {
+                    this.log(`Answer submission failed: ${error.message}`, 'error');
+                }
+            }
+            
+            downloadResults() {
+                if (!this.sessionId) {
+                    alert('No session to download from');
+                    return;
+                }
+                
+                this.log('Starting download...', 'info');
+                const downloadUrl = `${this.apiUrl}/api/v1/session/${this.sessionId}/download`;
+                
+                // Create temporary link for download
+                const link = document.createElement('a');
+                link.href = downloadUrl;
+                link.download = `statement_results_${this.sessionId.substring(0, 8)}.zip`;
+                link.click();
+                
+                this.log('Download initiated', 'success');
+            }
+        }
+        
+        // Global instance
+        const tester = new StatementProcessorTester();
+        
+        // Global functions for buttons
+        function testConnection() { return tester.testConnection(); }
+        function startProcessing() { return tester.startProcessing(); }
+        function submitAnswers() { return tester.submitAnswers(); }
+        function downloadResults() { return tester.downloadResults(); }
+        function clearLog() { 
+            document.getElementById('logContainer').innerHTML = '';
+            tester.log('Log cleared', 'info');
+        }
+        
+        // Auto-test connection on page load if localhost
+        window.onload = function() {
+            const urlInput = document.getElementById('apiUrl');
+            if (urlInput.value.includes('localhost')) {
+                // Auto-test localhost connection
+                setTimeout(() => {
+                    tester.log('Auto-testing localhost connection...', 'info');
+                    testConnection();
+                }, 1000);
+            }
+        };
+    </script>
+</body>
+</html>

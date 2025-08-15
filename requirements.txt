@@ -1,0 +1,32 @@
+# Core Flask dependencies
+Flask==3.0.0
+flask-cors==4.0.0
+flask-socketio==5.3.6
+
+# WebSocket support
+python-socketio==5.10.0
+eventlet==0.33.3
+
+# PDF processing - optimized versions
+PyMuPDF==1.24.13
+PyPDF2==3.0.1
+
+# Data processing - minimal versions for Railway
+pandas==2.2.3
+openpyxl==3.1.5
+
+# Session and state management
+redis==5.0.1
+
+# Production server (eventlet for WebSocket support)
+gunicorn==21.2.0
+
+# Security and validation
+Werkzeug==3.0.1
+
+# UUID for session management (built-in)
+# uuid - built-in module
+
+# Testing dependencies  
+python-socketio[client]==5.10.0
+requests==2.31.0

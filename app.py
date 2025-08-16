@@ -44,8 +44,11 @@ def after_request(response):
 @app.before_request
 def log_request():
     logger.info(f"📨 {request.method} {request.path} from {request.remote_addr}")
-    if request.json:
+    logger.info(f"📋 Content-Type: {request.content_type}")
+    if request.is_json and request.json:
         logger.info(f"📋 Request body: {json.dumps(request.json, indent=2)}")
+    elif request.method == 'POST' and request.content_type and 'multipart' in request.content_type:
+        logger.info(f"📋 Multipart form data with files: {list(request.files.keys())}")
 
 # Add OPTIONS handler for CORS preflight
 @app.route('/api/v1/session', methods=['OPTIONS'])
@@ -255,10 +258,21 @@ def get_questions(session_id):
 
 @app.route('/api/v1/session/<session_id>/answers', methods=['POST'])
 def submit_answers(session_id):
+    logger.info(f"📝 Answers submission for session: {session_id}")
+    
     if session_id not in sessions:
+        logger.error(f"❌ Session not found for answers: {session_id}")
         return jsonify({'error': 'Session not found'}), 404
     
-    answers = request.json.get('answers', {}) if request.json else {}
+    # Handle JSON payload safely
+    answers = {}
+    if request.is_json and request.json:
+        answers = request.json.get('answers', {})
+    elif request.form:
+        # Fallback to form data if not JSON
+        answers = dict(request.form)
+    
+    logger.info(f"📝 Received {len(answers)} answers for session {session_id}")
     
     # Apply answers to real statements
     session_data = sessions[session_id]
@@ -346,15 +360,16 @@ def get_session_status(session_id):
     })
 
 if __name__ == '__main__':
+    port = int(os.environ.get('PORT', 8000))
     print("🚀 REAL Statement Processing API")
-    print("Port: 9000")
+    print(f"Port: {port}")
     print("Processing: ACTUAL PDF + Excel files")
-    print("Health: http://localhost:9000/health")
+    print(f"Health: http://localhost:{port}/health")
     print("Uses: statement_processor.py for real processing")
     print("CORS enabled for browser testing")
     
     app.run(
         host='0.0.0.0',
-        port=9000,
-        debug=True
+        port=port,
+        debug=False  # Turn off debug in production
     )

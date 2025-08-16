@@ -27,8 +27,52 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Simple storage
+# Simple persistent storage for Railway multi-worker support
+import pickle
+import fcntl
+
 sessions = {}
+SESSION_FILE = '/tmp/sessions.pkl'
+
+def load_sessions():
+    """Load sessions from persistent storage"""
+    global sessions
+    try:
+        if os.path.exists(SESSION_FILE):
+            with open(SESSION_FILE, 'rb') as f:
+                fcntl.flock(f.fileno(), fcntl.LOCK_SH)
+                sessions = pickle.load(f)
+                fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+            logger.info(f"📂 Loaded {len(sessions)} sessions from persistent storage")
+        else:
+            sessions = {}
+            logger.info("📂 No persistent sessions found, starting fresh")
+    except Exception as e:
+        logger.error(f"❌ Failed to load sessions: {e}")
+        sessions = {}
+
+def save_sessions():
+    """Save sessions to persistent storage"""
+    try:
+        with open(SESSION_FILE, 'wb') as f:
+            fcntl.flock(f.fileno(), fcntl.LOCK_EX)
+            pickle.dump(sessions, f)
+            fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+        logger.debug(f"💾 Saved {len(sessions)} sessions to persistent storage")
+    except Exception as e:
+        logger.error(f"❌ Failed to save sessions: {e}")
+
+def debug_sessions(action, session_id=None):
+    """Debug helper to track session state"""
+    logger.info(f"🔍 SESSION DEBUG - {action}")
+    logger.info(f"📊 Total sessions: {len(sessions)}")
+    logger.info(f"🗂️  Session IDs: {list(sessions.keys())}")
+    if session_id:
+        logger.info(f"🎯 Looking for: {session_id}")
+        logger.info(f"✅ Found: {session_id in sessions}")
+
+# Load existing sessions on startup
+load_sessions()
 
 # Log startup
 logger.info("🚀 Statement Processing API starting up")
@@ -116,6 +160,9 @@ def get_logs():
 
 @app.route('/api/v1/session', methods=['POST'])
 def create_session():
+    # Load fresh sessions to get latest state
+    load_sessions()
+    
     session_id = str(uuid.uuid4())
     sessions[session_id] = {
         'status': 'created',
@@ -124,8 +171,13 @@ def create_session():
         'statements': [],
         'questions': []
     }
+    
+    # Save sessions persistently
+    save_sessions()
+    
     logger.info(f"🆕 Session created: {session_id}")
     logger.info(f"📊 Total active sessions: {len(sessions)}")
+    debug_sessions("AFTER_CREATE", session_id)
     
     return jsonify({
         'status': 'success',
@@ -134,11 +186,15 @@ def create_session():
 
 @app.route('/api/v1/session/<session_id>/upload', methods=['POST'])
 def upload_files(session_id):
+    # Load fresh sessions to get latest state from other workers
+    load_sessions()
+    
     logger.info(f"📤 Upload request for session: {session_id}")
-    logger.info(f"🔍 Available sessions: {list(sessions.keys())}")
+    debug_sessions("BEFORE_UPLOAD_CHECK", session_id)
     
     if session_id not in sessions:
         logger.error(f"❌ Session not found: {session_id}")
+        debug_sessions("SESSION_NOT_FOUND", session_id)
         return jsonify({'error': 'Session not found', 'session_id': session_id, 'available_sessions': list(sessions.keys())}), 404
     
     if 'pdf' not in request.files or 'excel' not in request.files:
@@ -170,6 +226,9 @@ def upload_files(session_id):
         }
         sessions[session_id]['status'] = 'files_uploaded'
         
+        # Save updated sessions
+        save_sessions()
+        
         logger.info(f"✅ Files uploaded successfully for session {session_id}")
         logger.info(f"📊 PDF size: {os.path.getsize(pdf_path)} bytes, Excel size: {os.path.getsize(excel_path)} bytes")
         
@@ -189,6 +248,8 @@ def upload_files(session_id):
 
 @app.route('/api/v1/session/<session_id>/process', methods=['POST'])
 def process_statements(session_id):
+    load_sessions()  # Load fresh session state
+    
     if session_id not in sessions:
         return jsonify({'error': 'Session not found'}), 404
     
@@ -227,6 +288,9 @@ def process_statements(session_id):
         sessions[session_id]['questions'] = questions
         sessions[session_id]['status'] = 'processed'
         
+        # Save updated sessions
+        save_sessions()
+        
         print(f"✅ REAL RESULTS: {len(statements)} statements, {len(questions)} questions")
         
         return jsonify({
@@ -240,10 +304,13 @@ def process_statements(session_id):
     except Exception as e:
         print(f"❌ Processing error: {e}")
         sessions[session_id]['status'] = 'error'
+        save_sessions()  # Save error state
         return jsonify({'error': f'Processing failed: {str(e)}'}), 500
 
 @app.route('/api/v1/session/<session_id>/questions', methods=['GET'])
 def get_questions(session_id):
+    load_sessions()  # Load fresh session state
+    
     if session_id not in sessions:
         return jsonify({'error': 'Session not found'}), 404
     
@@ -258,6 +325,7 @@ def get_questions(session_id):
 
 @app.route('/api/v1/session/<session_id>/answers', methods=['POST'])
 def submit_answers(session_id):
+    load_sessions()  # Load fresh session state
     logger.info(f"📝 Answers submission for session: {session_id}")
     
     if session_id not in sessions:
@@ -290,6 +358,9 @@ def submit_answers(session_id):
     sessions[session_id]['statements'] = statements
     sessions[session_id]['status'] = 'finalized'
     
+    # Save updated sessions
+    save_sessions()
+    
     return jsonify({
         'status': 'success',
         'message': 'Real answers applied to real statements!',
@@ -298,6 +369,8 @@ def submit_answers(session_id):
 
 @app.route('/api/v1/session/<session_id>/download', methods=['GET'])
 def download_results(session_id):
+    load_sessions()  # Load fresh session state
+    
     if session_id not in sessions:
         return jsonify({'error': 'Session not found'}), 404
     
@@ -344,6 +417,8 @@ Excel: {session_data['files']['excel_name']}
 
 @app.route('/api/v1/session/<session_id>/status', methods=['GET'])
 def get_session_status(session_id):
+    load_sessions()  # Load fresh session state
+    
     if session_id not in sessions:
         return jsonify({'error': 'Session not found'}), 404
     

@@ -717,11 +717,15 @@ class SessionManager {
                 console.error('🔧 Troubleshooting Info:', {
                     'API_URL': API_BASE_URL,
                     'Error': error.message,
+                    'Error_Stack': error.stack,
                     'Check_1': 'Verify Railway deployment is running',
                     'Check_2': 'Check CORS configuration',
                     'Logs_URL': `${API_BASE_URL}/logs`,
                     'Health_URL': `${API_BASE_URL}/health`
                 });
+                
+                // Show user-friendly error message
+                alert(`🔧 API Connection Failed\n\nError: ${error.message}\n\nAPI URL: ${API_BASE_URL}\n\nPlease check:\n1. Railway deployment is running\n2. Open browser console for details\n3. Try refreshing the page`);
             }
         }
 
@@ -1043,6 +1047,13 @@ class SessionManager {
             if (isLiveMode) {
                 testAPIConnection();
             }
+        });
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            detailedLog('🌐 Page loaded, testing API connection...', 'info');
+            showTab('overview');
+            testAPIConnection();
         });
     </script>
 </body>

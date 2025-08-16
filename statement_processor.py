@@ -9,7 +9,6 @@ Version: 3.0 - Production Ready
 """
 
 import fitz
-import pandas as pd
 import json
 import re
 import os
@@ -20,6 +19,7 @@ from datetime import datetime
 from pathlib import Path
 from difflib import get_close_matches, SequenceMatcher
 from PyPDF2 import PdfReader, PdfWriter
+from openpyxl import load_workbook
 from typing import Dict, List, Tuple, Optional, Set, Any
 
 
@@ -186,11 +186,18 @@ class StatementProcessor:
     def _load_dnm_companies(self) -> Tuple[List[str], Dict[str, str]]:
         """Load and pre-process DNM companies for O(1) lookups."""
         try:
-            df = pd.read_excel(self.excel_path, sheet_name='10-2018', skiprows=2)
-            companies = [
-                name for name in df.iloc[:, 0].dropna()
-                if str(name).strip() and not str(name).lower().startswith('name')
-            ]
+            # Load Excel file with openpyxl instead of pandas
+            workbook = load_workbook(self.excel_path, read_only=True)
+            worksheet = workbook['10-2018']
+            
+            companies = []
+            # Skip first 3 rows (2 header rows + 1 for 0-indexing)
+            for row in worksheet.iter_rows(min_row=4, max_col=1, values_only=True):
+                cell_value = row[0]
+                if cell_value and str(cell_value).strip() and not str(cell_value).lower().startswith('name'):
+                    companies.append(str(cell_value).strip())
+            
+            workbook.close()
             
             # Create normalized mapping for O(1) lookups
             normalized_map = {}

@@ -5,11 +5,8 @@ Flask==2.3.3
 PyMuPDF==1.23.5
 PyPDF2==3.0.1
 
-# Data processing
-pandas==2.1.1
+# Excel file reading
 openpyxl==3.1.2
-
-# Note: Using built-in difflib for string similarity
 
 # Production server
 gunicorn==21.2.0

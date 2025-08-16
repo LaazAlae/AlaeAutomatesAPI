@@ -27,6 +27,9 @@
                     <div id="apiStatus" class="status-indicator status-disconnected">
                         🔴 Disconnected
                     </div>
+                    <div id="apiUrl" style="font-size: 0.8rem; color: #666; margin-top: 5px;">
+                        🌐 API: Not connected
+                    </div>
                 </div>
                 <div>
                     <h3>Processing Mode</h3>
@@ -611,6 +614,21 @@ class SessionManager {
         let currentSessionId = null;
         let selectedFiles = { pdf: null, excel: null };
         let userAnswers = {};
+        
+        // API Configuration
+        const API_BASE_URL = 'https://web-production-7ca0.up.railway.app';
+        
+        // Enhanced logging function
+        function detailedLog(message, type = 'info', data = null) {
+            const timestamp = new Date().toLocaleTimeString();
+            console.log(`[${timestamp}] ${type.toUpperCase()}: ${message}`, data || '');
+            liveLog(message, type, data);
+            
+            // Also show critical errors in the UI
+            if (type === 'error') {
+                alert(`❌ Error: ${message}\n\nCheck console for details.`);
+            }
+        }
 
         // Mode toggle functionality
         function toggleMode() {
@@ -662,21 +680,48 @@ class SessionManager {
         // API connection test
         async function testAPIConnection() {
             const apiStatus = document.getElementById('apiStatus');
+            const apiUrl = document.getElementById('apiUrl');
+            
+            detailedLog(`Testing API connection to ${API_BASE_URL}`, 'info');
             
             try {
-                const response = await fetch('https://web-production-7ca0.up.railway.app/health');
+                const response = await fetch(`${API_BASE_URL}/health`);
                 if (response.ok) {
                     const data = await response.json();
                     apiStatus.innerHTML = '🟢 Connected to Real API';
                     apiStatus.className = 'status-indicator status-connected';
-                    liveLog('Connected to real processing API', 'success');
+                    apiUrl.innerHTML = `🌐 API: ${API_BASE_URL}`;
+                    
+                    detailedLog('✅ Connected to real processing API', 'success', data);
+                    
+                    // Test logs endpoint
+                    try {
+                        const logsResponse = await fetch(`${API_BASE_URL}/logs`);
+                        if (logsResponse.ok) {
+                            const logsData = await logsResponse.json();
+                            detailedLog(`📋 Logs endpoint available (${logsData.total_lines} total lines)`, 'info');
+                        }
+                    } catch (e) {
+                        detailedLog('📋 Logs endpoint not accessible', 'warning');
+                    }
                 } else {
-                    throw new Error('API not responding');
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
             } catch (error) {
-                apiStatus.innerHTML = '🔴 API Disconnected';
+                apiStatus.innerHTML = '🔴 API Connection Failed';
                 apiStatus.className = 'status-indicator status-disconnected';
-                liveLog('Failed to connect to API. Make sure the server is running on port 9000.', 'error');
+                apiUrl.innerHTML = `🌐 API: ${API_BASE_URL} (FAILED)`;
+                detailedLog(`❌ API connection failed: ${error.message}`, 'error');
+                
+                // Show troubleshooting info
+                console.error('🔧 Troubleshooting Info:', {
+                    'API_URL': API_BASE_URL,
+                    'Error': error.message,
+                    'Check_1': 'Verify Railway deployment is running',
+                    'Check_2': 'Check CORS configuration',
+                    'Logs_URL': `${API_BASE_URL}/logs`,
+                    'Health_URL': `${API_BASE_URL}/health`
+                });
             }
         }
 
@@ -749,15 +794,19 @@ class SessionManager {
                 
                 // 1. Create session
                 updateProgress(10, 'Creating session...');
-                const sessionResponse = await fetch('https://web-production-7ca0.up.railway.app/api/v1/session', {
+                const sessionResponse = await fetch(`${API_BASE_URL}/api/v1/session`, {
                     method: 'POST',
                     mode: 'cors'
                 });
                 const sessionData = await sessionResponse.json();
-                currentSessionId = sessionData.session_id;
                 
+                if (sessionData.status !== 'success') {
+                    throw new Error(`Session creation failed: ${sessionData.error || 'Unknown error'}`);
+                }
+                
+                currentSessionId = sessionData.session_id;
+                detailedLog(`✅ Session created: ${currentSessionId}`, 'success', sessionData);
                 showAPIResponse('Session Created', sessionData, 'POST /api/v1/session');
-                liveLog(`Session created: ${currentSessionId.substring(0, 8)}...`, 'success');
 
                 // 2. Upload files
                 updateProgress(30, 'Uploading files...');
@@ -765,19 +814,23 @@ class SessionManager {
                 formData.append('pdf', selectedFiles.pdf);
                 formData.append('excel', selectedFiles.excel);
 
-                const uploadResponse = await fetch(`https://web-production-7ca0.up.railway.app/api/v1/session/${currentSessionId}/upload`, {
+                const uploadResponse = await fetch(`${API_BASE_URL}/api/v1/session/${currentSessionId}/upload`, {
                     method: 'POST',
                     mode: 'cors',
                     body: formData
                 });
                 const uploadData = await uploadResponse.json();
                 
+                if (uploadData.status !== 'success') {
+                    throw new Error(`File upload failed: ${uploadData.error || 'Unknown error'}`);
+                }
+                
+                detailedLog(`✅ Files uploaded successfully`, 'success', uploadData);
                 showAPIResponse('Files Uploaded', uploadData, `POST /api/v1/session/{id}/upload`);
-                liveLog('Files uploaded successfully', 'success');
 
                 // 3. Process statements
                 updateProgress(60, 'Processing statements...');
-                const processResponse = await fetch(`https://web-production-7ca0.up.railway.app/api/v1/session/${currentSessionId}/process`, {
+                const processResponse = await fetch(`${API_BASE_URL}/api/v1/session/${currentSessionId}/process`, {
                     method: 'POST',
                     mode: 'cors'
                 });

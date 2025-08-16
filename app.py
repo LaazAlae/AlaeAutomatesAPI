@@ -9,13 +9,30 @@ import uuid
 import json
 import tempfile
 import os
+import logging
+import sys
 from datetime import datetime
 from statement_processor import StatementProcessor
 
 app = Flask(__name__)
 
+# Configure enterprise-grade logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s [%(levelname)s] %(name)s: %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stdout),
+        logging.FileHandler('api.log', mode='a')
+    ]
+)
+logger = logging.getLogger(__name__)
+
 # Simple storage
 sessions = {}
+
+# Log startup
+logger.info("🚀 Statement Processing API starting up")
+logger.info("📝 Logging configured - Check api.log for detailed logs")
 
 @app.after_request
 def after_request(response):
@@ -24,15 +41,34 @@ def after_request(response):
     response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
     return response
 
+@app.before_request
+def log_request():
+    logger.info(f"📨 {request.method} {request.path} from {request.remote_addr}")
+    if request.json:
+        logger.info(f"📋 Request body: {json.dumps(request.json, indent=2)}")
+
+# Add OPTIONS handler for CORS preflight
+@app.route('/api/v1/session', methods=['OPTIONS'])
+@app.route('/api/v1/session/<session_id>/upload', methods=['OPTIONS'])
+@app.route('/api/v1/session/<session_id>/process', methods=['OPTIONS'])
+@app.route('/api/v1/session/<session_id>/questions', methods=['OPTIONS'])
+@app.route('/api/v1/session/<session_id>/answers', methods=['OPTIONS'])
+@app.route('/api/v1/session/<session_id>/download', methods=['OPTIONS'])
+@app.route('/api/v1/session/<session_id>/status', methods=['OPTIONS'])
+def handle_options():
+    return '', 200
+
 @app.route('/health', methods=['GET'])
 def health():
+    logger.info("💚 Health check requested")
     return jsonify({
         'status': 'healthy',
         'service': 'REAL Statement Processing API',
         'processing': 'ACTUAL PDF PROCESSING',
-        'port': 9000,
+        'port': os.environ.get('PORT', 8000),
         'sessions': len(sessions),
-        'timestamp': datetime.now().isoformat()
+        'timestamp': datetime.now().isoformat(),
+        'active_sessions': list(sessions.keys())[:5] if sessions else []
     })
 
 @app.route('/', methods=['GET'])
@@ -41,8 +77,39 @@ def root():
         'service': 'REAL Statement Processing API',
         'status': 'running',
         'processing': 'Uses actual statement_processor.py',
-        'note': 'This processes your real PDF and Excel files!'
+        'note': 'This processes your real PDF and Excel files!',
+        'endpoints': {
+            'health': '/health',
+            'logs': '/logs',
+            'sessions': '/api/v1/session'
+        }
     })
+
+@app.route('/logs', methods=['GET'])
+def get_logs():
+    """Get recent API logs for debugging"""
+    try:
+        # Read last 100 lines of log file
+        with open('api.log', 'r') as f:
+            lines = f.readlines()
+            recent_logs = lines[-100:] if len(lines) > 100 else lines
+        
+        return jsonify({
+            'status': 'success',
+            'logs': recent_logs,
+            'total_lines': len(lines),
+            'showing': len(recent_logs)
+        })
+    except FileNotFoundError:
+        return jsonify({
+            'status': 'success',
+            'logs': ['Log file not found yet - API just started'],
+            'total_lines': 0,
+            'showing': 0
+        })
+    except Exception as e:
+        logger.error(f"❌ Failed to read logs: {str(e)}")
+        return jsonify({'error': f'Failed to read logs: {str(e)}'}), 500
 
 @app.route('/api/v1/session', methods=['POST'])
 def create_session():
@@ -54,6 +121,9 @@ def create_session():
         'statements': [],
         'questions': []
     }
+    logger.info(f"🆕 Session created: {session_id}")
+    logger.info(f"📊 Total active sessions: {len(sessions)}")
+    
     return jsonify({
         'status': 'success',
         'session_id': session_id
@@ -61,14 +131,21 @@ def create_session():
 
 @app.route('/api/v1/session/<session_id>/upload', methods=['POST'])
 def upload_files(session_id):
+    logger.info(f"📤 Upload request for session: {session_id}")
+    logger.info(f"🔍 Available sessions: {list(sessions.keys())}")
+    
     if session_id not in sessions:
-        return jsonify({'error': 'Session not found'}), 404
+        logger.error(f"❌ Session not found: {session_id}")
+        return jsonify({'error': 'Session not found', 'session_id': session_id, 'available_sessions': list(sessions.keys())}), 404
     
     if 'pdf' not in request.files or 'excel' not in request.files:
-        return jsonify({'error': 'Both PDF and Excel files required'}), 400
+        logger.error(f"❌ Missing files. Available: {list(request.files.keys())}")
+        return jsonify({'error': 'Both PDF and Excel files required', 'received_files': list(request.files.keys())}), 400
     
     pdf_file = request.files['pdf']
     excel_file = request.files['excel']
+    
+    logger.info(f"📄 Received files: PDF={pdf_file.filename}, Excel={excel_file.filename}")
     
     # Save real files temporarily
     try:
@@ -90,9 +167,13 @@ def upload_files(session_id):
         }
         sessions[session_id]['status'] = 'files_uploaded'
         
+        logger.info(f"✅ Files uploaded successfully for session {session_id}")
+        logger.info(f"📊 PDF size: {os.path.getsize(pdf_path)} bytes, Excel size: {os.path.getsize(excel_path)} bytes")
+        
         return jsonify({
             'status': 'success',
             'message': 'Real files uploaded and saved',
+            'session_id': session_id,
             'files': {
                 'pdf': {'name': pdf_file.filename, 'size': os.path.getsize(pdf_path)},
                 'excel': {'name': excel_file.filename, 'size': os.path.getsize(excel_path)}
@@ -100,7 +181,8 @@ def upload_files(session_id):
         })
         
     except Exception as e:
-        return jsonify({'error': f'File upload failed: {str(e)}'}), 500
+        logger.error(f"❌ File upload failed for session {session_id}: {str(e)}")
+        return jsonify({'error': f'File upload failed: {str(e)}', 'session_id': session_id}), 500
 
 @app.route('/api/v1/session/<session_id>/process', methods=['POST'])
 def process_statements(session_id):

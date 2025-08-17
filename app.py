@@ -431,13 +431,16 @@ Excel: {session_data['files']['excel_name']}
         zip_buffer = BytesIO()
         
         with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
-            # Add results file
-            zip_file.writestr('results.txt', results_content)
+            # Create logs folder in ZIP
+            zip_file.writestr('logs/', '')  # Create logs directory
             
-            # Add statements data as JSON
-            zip_file.writestr('statements.json', json.dumps(statements, indent=2))
+            # Add results file to logs folder
+            zip_file.writestr('logs/results.txt', results_content)
             
-            # Add split PDF files
+            # Add statements data as JSON to logs folder
+            zip_file.writestr('logs/statements.json', json.dumps(statements, indent=2))
+            
+            # Add split PDF files in root directory
             pdf_files = {
                 "DNM": "DNM.pdf",
                 "Foreign": "Foreign.pdf", 

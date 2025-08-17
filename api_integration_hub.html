@@ -10,31 +10,31 @@
     <div class="container">
         <!-- Header -->
         <div class="header">
-            <h1>🚀 Statement Processing API</h1>
-            <p>Complete Integration Hub & Testing Environment</p>
+            <h1>Statement Processing API</h1>
+            <p>Professional Integration Hub for PDF Statement Processing</p>
             
             <div class="mode-toggle">
-                <span class="mode-label" id="simLabel">📚 Documentation Mode</span>
-                <div class="toggle-switch" id="modeToggle" onclick="toggleMode()">
+                <span class="mode-label" id="simLabel">Documentation</span>
+                <div class="toggle-switch" id="modeToggle" onclick="toggleMode()" role="button" tabindex="0" aria-label="Toggle between documentation and live testing mode" onkeydown="if(event.key==='Enter'||event.key===' '){toggleMode()}">
                     <div class="toggle-slider"></div>
                 </div>
-                <span class="mode-label" id="realLabel">🔬 Live Testing Mode</span>
+                <span class="mode-label" id="realLabel">Live Testing</span>
             </div>
             
             <div class="api-info">
-                <div>
+                <div class="api-status-card">
                     <h3>API Status</h3>
                     <div id="apiStatus" class="status-indicator status-disconnected">
-                        🔴 Disconnected
+                        Disconnected
                     </div>
-                    <div id="apiUrl" style="font-size: 0.8rem; color: #666; margin-top: 5px;">
-                        🌐 API: Not connected
+                    <div id="apiUrl" class="api-url">
+                        API: Not connected
                     </div>
                 </div>
-                <div>
-                    <h3>Processing Mode</h3>
+                <div class="mode-status-card">
+                    <h3>Current Mode</h3>
                     <div id="processingMode" class="status-indicator status-processing">
-                        📚 Documentation
+                        Documentation
                     </div>
                 </div>
             </div>
@@ -43,7 +43,7 @@
         <!-- Documentation Mode Content -->
         <div id="documentationMode">
             <div class="card">
-                <h2>📖 Complete Integration Guide</h2>
+                <h2>API Integration Guide</h2>
                 
                 <div class="tab-container">
                     <div class="tab-buttons">
@@ -55,22 +55,33 @@
                     </div>
 
                     <div id="overview" class="tab-content active">
-                        <h3>🎯 What This API Does</h3>
-                        <p>The Statement Processing API processes financial PDF statements and categorizes them using an Excel DNM (Do Not Mail) list. It provides:</p>
+                        <h3>Overview</h3>
+                        <p class="overview-description">Processes financial PDF statements and categorizes them using an Excel DNM (Do Not Mail) list.</p>
                         
-                        <ul style="margin: 20px 0; padding-left: 30px;">
-                            <li><strong>PDF Text Extraction:</strong> Extracts company information from PDF statements</li>
-                            <li><strong>Company Matching:</strong> Fuzzy matches companies against your DNM list</li>
-                            <li><strong>Interactive Review:</strong> Prompts for manual review when similarity is unclear</li>
-                            <li><strong>Automated Sorting:</strong> Categorizes statements into DNM, Foreign, National Single/Multi</li>
-                            <li><strong>File Generation:</strong> Creates split PDFs and processing results</li>
-                        </ul>
-
-                        <div class="security-note">
-                            <strong>⚡ Performance:</strong> O(n) linear time complexity, optimized for large files. Memory efficient for Railway deployment.
+                        <div class="feature-grid">
+                            <div class="feature-item">
+                                <h4>PDF Processing</h4>
+                                <p>Extracts company information from PDF statements</p>
+                            </div>
+                            <div class="feature-item">
+                                <h4>Smart Matching</h4>
+                                <p>Fuzzy matches companies against your DNM list</p>
+                            </div>
+                            <div class="feature-item">
+                                <h4>Manual Review</h4>
+                                <p>Prompts for review when similarity is unclear</p>
+                            </div>
+                            <div class="feature-item">
+                                <h4>Auto Categorization</h4>
+                                <p>Sorts into DNM, Foreign, National Single/Multi</p>
+                            </div>
                         </div>
 
-                        <h3>🔄 Processing Flow</h3>
+                        <div class="security-note">
+                            <strong>Performance:</strong> O(n) linear time complexity, optimized for large files. Memory efficient for Railway deployment.
+                        </div>
+
+                        <h3>Processing Flow</h3>
                         <div class="integration-steps">
                             <div class="integration-step">
                                 <h4>Create Session</h4>
@@ -96,7 +107,7 @@
                     </div>
 
                     <div id="endpoints" class="tab-content">
-                        <h3>🌐 API Endpoints</h3>
+                        <h3>API Endpoints</h3>
                         
                         <div class="endpoint-card">
                             <span class="endpoint-method method-get">GET</span>
@@ -210,7 +221,7 @@ Contains:
                     </div>
 
                     <div id="workflow" class="tab-content">
-                        <h3>🔄 Integration Workflow</h3>
+                        <h3>Integration Workflow</h3>
                         
                         <div class="code-block" data-lang="JavaScript">
 // Complete workflow example
@@ -284,18 +295,29 @@ class StatementProcessor {
   }
 }</div>
 
-                        <h3>📱 Frontend Integration Tips</h3>
-                        <ul style="margin: 20px 0; padding-left: 30px;">
-                            <li><strong>CORS:</strong> API includes CORS headers for browser requests</li>
-                            <li><strong>File Uploads:</strong> Use FormData for multipart file uploads</li>
-                            <li><strong>Error Handling:</strong> Check response.ok before processing JSON</li>
-                            <li><strong>Session Management:</strong> Store session_id for the workflow duration</li>
-                            <li><strong>File Downloads:</strong> Use window.open() or create blob URLs</li>
-                        </ul>
+                        <h3>Frontend Integration Tips</h3>
+                        <div class="tip-grid">
+                            <div class="tip-item">
+                                <strong>CORS Support</strong>
+                                <p>API includes CORS headers for browser requests</p>
+                            </div>
+                            <div class="tip-item">
+                                <strong>File Uploads</strong>
+                                <p>Use FormData for multipart file uploads</p>
+                            </div>
+                            <div class="tip-item">
+                                <strong>Error Handling</strong>
+                                <p>Check response.ok before processing JSON</p>
+                            </div>
+                            <div class="tip-item">
+                                <strong>Session Management</strong>
+                                <p>Store session_id for workflow duration</p>
+                            </div>
+                        </div>
                     </div>
 
                     <div id="examples" class="tab-content">
-                        <h3>💻 React Integration Example</h3>
+                        <h3>React Integration Example</h3>
                         <div class="code-block" data-lang="React">
 import React, { useState } from 'react';
 
@@ -363,7 +385,7 @@ function StatementProcessor() {
   );
 }</div>
 
-                        <h3>🐍 Python Integration Example</h3>
+                        <h3>Python Integration Example</h3>
                         <div class="code-block" data-lang="Python">
 import requests
 
@@ -429,10 +451,10 @@ class StatementProcessorClient:
                     </div>
 
                     <div id="security" class="tab-content">
-                        <h3>🔒 Security & Best Practices</h3>
+                        <h3>Security & Best Practices</h3>
                         
                         <div class="security-note">
-                            <strong>🛡️ Security Features:</strong>
+                            <strong>Security Features:</strong>
                             <ul style="margin: 10px 0; padding-left: 20px;">
                                 <li>File type validation (PDF, Excel only)</li>
                                 <li>File size limits (50MB maximum)</li>
@@ -443,7 +465,7 @@ class StatementProcessorClient:
                             </ul>
                         </div>
 
-                        <h3>📋 Integration Checklist</h3>
+                        <h3>Integration Checklist</h3>
                         <div class="integration-steps">
                             <div class="integration-step">
                                 <h4>File Validation</h4>
@@ -520,14 +542,25 @@ class SessionManager {
                             </div>
                         </div>
 
-                        <h3>🚀 Production Deployment</h3>
-                        <ul style="margin: 20px 0; padding-left: 30px;">
-                            <li><strong>Environment:</strong> API is optimized for Railway deployment</li>
-                            <li><strong>Scaling:</strong> Stateless design allows horizontal scaling</li>
-                            <li><strong>Monitoring:</strong> Health check endpoint for load balancers</li>
-                            <li><strong>Logs:</strong> Structured logging for debugging</li>
-                            <li><strong>Performance:</strong> O(n) time complexity, memory efficient</li>
-                        </ul>
+                        <h3>Production Deployment</h3>
+                        <div class="deployment-grid">
+                            <div class="deployment-item">
+                                <strong>Railway Optimized</strong>
+                                <p>Designed for Railway deployment</p>
+                            </div>
+                            <div class="deployment-item">
+                                <strong>Horizontally Scalable</strong>
+                                <p>Stateless design for scaling</p>
+                            </div>
+                            <div class="deployment-item">
+                                <strong>Health Monitoring</strong>
+                                <p>Built-in health check endpoint</p>
+                            </div>
+                            <div class="deployment-item">
+                                <strong>Performance</strong>
+                                <p>O(n) complexity, memory efficient</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -536,46 +569,46 @@ class SessionManager {
         <!-- Live Testing Mode Content -->
         <div id="liveTestingMode" style="display: none;">
             <div class="card">
-                <h2>🔬 Live API Testing</h2>
+                <h2>Live API Testing</h2>
                 <p>Test the API with real files and see actual responses</p>
                 
                 <div class="api-info">
                     <div>
                         <h3>Test with Your Files</h3>
-                        <div class="file-upload" onclick="document.getElementById('pdfInput').click()">
-                            <div id="pdfStatus">📄 Click to select PDF file</div>
-                            <input type="file" id="pdfInput" accept=".pdf" style="display: none;" onchange="handleFileSelect('pdf', this)">
+                        <div class="file-upload" onclick="document.getElementById('pdfInput').click()" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){document.getElementById('pdfInput').click()}">
+                            <div id="pdfStatus">Click to select PDF file</div>
+                            <input type="file" id="pdfInput" accept=".pdf" style="display: none;" onchange="handleFileSelect('pdf', this)" aria-label="Select PDF file">
                         </div>
                         
-                        <div class="file-upload" onclick="document.getElementById('excelInput').click()" style="margin-top: 15px;">
-                            <div id="excelStatus">📊 Click to select Excel file</div>
-                            <input type="file" id="excelInput" accept=".xlsx,.xls" style="display: none;" onchange="handleFileSelect('excel', this)">
+                        <div class="file-upload" onclick="document.getElementById('excelInput').click()" style="margin-top: 15px;" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){document.getElementById('excelInput').click()}">
+                            <div id="excelStatus">Click to select Excel file</div>
+                            <input type="file" id="excelInput" accept=".xlsx,.xls" style="display: none;" onchange="handleFileSelect('excel', this)" aria-label="Select Excel file">
                         </div>
                     </div>
                     <div>
                         <h3>Processing Progress</h3>
-                        <div class="progress-bar">
+                        <div class="progress-bar" role="progressbar" aria-label="Processing progress">
                             <div class="progress-fill" id="progressFill"></div>
                         </div>
-                        <div id="progressText">Ready to start...</div>
+                        <div id="progressText" aria-live="polite">Ready to start...</div>
                         
                         <button class="button" id="startProcessing" onclick="startLiveProcessing()" disabled>
-                            🚀 Start Processing
+                            Start Processing
                         </button>
                     </div>
                 </div>
             </div>
 
             <div class="card" id="questionsCard" style="display: none;">
-                <h2>❓ Manual Review Required</h2>
+                <h2>Manual Review Required</h2>
                 
                 <div class="questions-header">
                     <div>
                         <h3 style="margin: 0; color: #856404;">Manual Review Questions</h3>
                         <p style="margin: 5px 0 0 0; color: #856404;">Review company matches and confirm if they're the same entity</p>
                     </div>
-                    <button class="button" id="skipAllBtn" onclick="skipAllQuestions()" style="background: #6c757d;">
-                        ⏭️ Skip All
+                    <button class="button secondary" id="skipAllBtn" onclick="skipAllQuestions()">
+                        Skip All
                     </button>
                 </div>
                 
@@ -585,24 +618,24 @@ class SessionManager {
                 
                 <div style="display: flex; gap: 15px; justify-content: center;">
                     <button class="button success" id="submitAnswers" onclick="submitManualAnswers()" disabled>
-                        ✅ Submit Answers
+                        Submit Answers
                     </button>
-                    <button class="button" onclick="clearAllAnswers()" style="background: #6c757d;">
-                        🔄 Clear All
+                    <button class="button secondary" onclick="clearAllAnswers()">
+                        Clear All
                     </button>
                 </div>
             </div>
 
             <div class="card">
-                <h2>📊 API Responses</h2>
+                <h2>API Responses</h2>
                 <div id="responseContainer">
                     <p>Start processing to see API responses...</p>
                 </div>
             </div>
 
             <div class="card">
-                <h2>📋 Activity Log</h2>
-                <div class="log-container" id="liveLogContainer"></div>
+                <h2>Activity Log</h2>
+                <div class="log-container" id="liveLogContainer" role="log" aria-label="Activity log" aria-live="polite"></div>
                 <button class="button secondary" onclick="clearLiveLog()">Clear Log</button>
             </div>
         </div>
@@ -639,6 +672,8 @@ class SessionManager {
             const docMode = document.getElementById('documentationMode');
             const liveMode = document.getElementById('liveTestingMode');
             const processingMode = document.getElementById('processingMode');
+            const apiStatus = document.getElementById('apiStatus');
+            const apiUrl = document.getElementById('apiUrl');
 
             if (isLiveMode) {
                 toggle.classList.add('active');
@@ -646,7 +681,7 @@ class SessionManager {
                 realLabel.classList.add('active');
                 docMode.style.display = 'none';
                 liveMode.style.display = 'block';
-                processingMode.innerHTML = '🔬 Live Testing';
+                processingMode.innerHTML = 'Live Testing';
                 processingMode.className = 'status-indicator status-processing';
                 testAPIConnection();
             } else {
@@ -655,8 +690,12 @@ class SessionManager {
                 realLabel.classList.remove('active');
                 docMode.style.display = 'block';
                 liveMode.style.display = 'none';
-                processingMode.innerHTML = '📚 Documentation';
+                processingMode.innerHTML = 'Documentation';
                 processingMode.className = 'status-indicator status-processing';
+                // Reset API status when switching to documentation mode
+                apiStatus.innerHTML = 'Disconnected';
+                apiStatus.className = 'status-indicator status-disconnected';
+                apiUrl.innerHTML = 'API: Not connected';
             }
         }
 
@@ -685,36 +724,42 @@ class SessionManager {
             detailedLog(`Testing API connection to ${API_BASE_URL}`, 'info');
             
             try {
-                const response = await fetch(`${API_BASE_URL}/health`);
+                const response = await fetch(`${API_BASE_URL}/health`, {
+                    method: 'GET',
+                    mode: 'cors'
+                });
                 if (response.ok) {
                     const data = await response.json();
-                    apiStatus.innerHTML = '🟢 Connected to Real API';
+                    apiStatus.innerHTML = 'Connected';
                     apiStatus.className = 'status-indicator status-connected';
-                    apiUrl.innerHTML = `🌐 API: ${API_BASE_URL}`;
+                    apiUrl.innerHTML = `API: ${API_BASE_URL}`;
                     
-                    detailedLog('✅ Connected to real processing API', 'success', data);
+                    detailedLog('Connected to processing API', 'success', data);
                     
                     // Test logs endpoint
                     try {
-                        const logsResponse = await fetch(`${API_BASE_URL}/logs`);
+                        const logsResponse = await fetch(`${API_BASE_URL}/logs`, {
+                            method: 'GET',
+                            mode: 'cors'
+                        });
                         if (logsResponse.ok) {
                             const logsData = await logsResponse.json();
-                            detailedLog(`📋 Logs endpoint available (${logsData.total_lines} total lines)`, 'info');
+                            detailedLog(`Logs endpoint available (${logsData.total_lines} total lines)`, 'info');
                         }
                     } catch (e) {
-                        detailedLog('📋 Logs endpoint not accessible', 'warning');
+                        detailedLog('Logs endpoint not accessible', 'warning');
                     }
                 } else {
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
             } catch (error) {
-                apiStatus.innerHTML = '🔴 API Connection Failed';
+                apiStatus.innerHTML = 'Connection Failed';
                 apiStatus.className = 'status-indicator status-disconnected';
-                apiUrl.innerHTML = `🌐 API: ${API_BASE_URL} (FAILED)`;
-                detailedLog(`❌ API connection failed: ${error.message}`, 'error');
+                apiUrl.innerHTML = `API: ${API_BASE_URL} (FAILED)`;
+                detailedLog(`API connection failed: ${error.message}`, 'error');
                 
                 // Show troubleshooting info
-                console.error('🔧 Troubleshooting Info:', {
+                console.error('Troubleshooting Info:', {
                     'API_URL': API_BASE_URL,
                     'Error': error.message,
                     'Error_Stack': error.stack,
@@ -723,9 +768,6 @@ class SessionManager {
                     'Logs_URL': `${API_BASE_URL}/logs`,
                     'Health_URL': `${API_BASE_URL}/health`
                 });
-                
-                // Show user-friendly error message
-                alert(`🔧 API Connection Failed\n\nError: ${error.message}\n\nAPI URL: ${API_BASE_URL}\n\nPlease check:\n1. Railway deployment is running\n2. Open browser console for details\n3. Try refreshing the page`);
             }
         }
 
@@ -751,8 +793,8 @@ class SessionManager {
             if (file) {
                 selectedFiles[type] = file;
                 const statusElement = document.getElementById(`${type}Status`);
-                const icon = type === 'pdf' ? '📄' : '📊';
-                statusElement.innerHTML = `${icon} ${file.name} (${(file.size / 1024 / 1024).toFixed(1)} MB)`;
+                const fileType = type === 'pdf' ? 'PDF' : 'Excel';
+                statusElement.innerHTML = `${fileType}: ${file.name} (${(file.size / 1024 / 1024).toFixed(1)} MB)`;
                 liveLog(`Selected ${type.toUpperCase()}: ${file.name}`, 'info');
                 
                 // Enable start button if both files selected
@@ -779,15 +821,33 @@ class SessionManager {
             
             const responseDiv = document.createElement('div');
             responseDiv.className = 'response-viewer';
+            
+            // Format JSON with proper indentation and syntax highlighting
+            const formattedJson = formatJSON(data);
+            
             responseDiv.innerHTML = `
                 <div class="response-header">${title}</div>
                 <div style="margin-bottom: 10px;">
                     <strong>Endpoint:</strong> <code>${endpoint}</code>
                 </div>
-                <div class="json-viewer">${JSON.stringify(data, null, 2)}</div>
+                <pre class="json-viewer"><code>${formattedJson}</code></pre>
             `;
             
             container.appendChild(responseDiv);
+            
+            // Scroll to the new response
+            responseDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+        
+        // Format JSON with syntax highlighting
+        function formatJSON(obj) {
+            const jsonString = JSON.stringify(obj, null, 2);
+            return jsonString
+                .replace(/"([^"]+)":/g, '<span class="json-key">"$1"</span>:')
+                .replace(/: "([^"]*)"/g, ': <span class="json-string">"$1"</span>')
+                .replace(/: (\d+)/g, ': <span class="json-number">$1</span>')
+                .replace(/: (true|false)/g, ': <span class="json-boolean">$1</span>')
+                .replace(/: null/g, ': <span class="json-null">null</span>');
         }
 
         // Main processing function
@@ -846,7 +906,7 @@ class SessionManager {
                 // 4. Check for questions
                 if (processData.questions_needed > 0) {
                     updateProgress(80, 'Getting manual review questions...');
-                    const questionsResponse = await fetch(`https://web-production-7ca0.up.railway.app/api/v1/session/${currentSessionId}/questions`);
+                    const questionsResponse = await fetch(`${API_BASE_URL}/api/v1/session/${currentSessionId}/questions`);
                     const questionsData = await questionsResponse.json();
                     
                     showAPIResponse('Manual Review Questions', questionsData, `GET /api/v1/session/{id}/questions`);
@@ -901,13 +961,13 @@ class SessionManager {
                     
                     <div class="question-buttons">
                         <button class="button success" onclick="setAnswer('${escapedCompanyName}', 'yes', ${index})">
-                            ✅ Yes - Same Company
+                            Yes - Same Company
                         </button>
                         <button class="button danger" onclick="setAnswer('${escapedCompanyName}', 'no', ${index})">
-                            ❌ No - Different
+                            No - Different
                         </button>
-                        <button class="button" onclick="setAnswer('${escapedCompanyName}', 'skip', ${index})" style="background: #6c757d;">
-                            ⏭️ Skip This One
+                        <button class="button secondary" onclick="setAnswer('${escapedCompanyName}', 'skip', ${index})">
+                            Skip This One
                         </button>
                     </div>
                     
@@ -924,9 +984,9 @@ class SessionManager {
             userAnswers[companyName] = answer;
             
             const answerDiv = document.getElementById(`answer-${questionIndex}`);
-            const answerText = answer === 'yes' ? '✅ Same Company - Will move to DNM list' : 
-                             answer === 'no' ? '❌ Different Company - Will keep current destination' : 
-                             '⏭️ Skipped - Will use default categorization';
+            const answerText = answer === 'yes' ? 'Same Company - Will move to DNM list' : 
+                             answer === 'no' ? 'Different Company - Will keep current destination' : 
+                             'Skipped - Will use default categorization';
             
             const bgColor = answer === 'yes' ? '#d4edda' : answer === 'no' ? '#f8d7da' : '#e2e3e5';
             const textColor = answer === 'yes' ? '#155724' : answer === 'no' ? '#721c24' : '#383d41';
@@ -994,12 +1054,17 @@ class SessionManager {
             try {
                 updateProgress(95, 'Submitting answers...');
                 
-                const answersResponse = await fetch(`https://web-production-7ca0.up.railway.app/api/v1/session/${currentSessionId}/answers`, {
+                const answersResponse = await fetch(`${API_BASE_URL}/api/v1/session/${currentSessionId}/answers`, {
                     method: 'POST',
                     mode: 'cors',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ answers: userAnswers })
                 });
+                
+                if (!answersResponse.ok) {
+                    throw new Error(`HTTP ${answersResponse.status}: ${answersResponse.statusText}`);
+                }
+                
                 const answersData = await answersResponse.json();
                 
                 showAPIResponse('Answers Submitted', { answers: userAnswers, response: answersData }, `POST /api/v1/session/{id}/answers`);
@@ -1012,6 +1077,15 @@ class SessionManager {
                 
             } catch (error) {
                 liveLog(`Answer submission failed: ${error.message}`, 'error');
+                updateProgress(90, 'Answer submission failed. Please try again.');
+                
+                // Show more detailed error for debugging
+                console.error('Answer submission error details:', {
+                    error: error.message,
+                    sessionId: currentSessionId,
+                    answers: userAnswers,
+                    apiUrl: `${API_BASE_URL}/api/v1/session/${currentSessionId}/answers`
+                });
             }
         }
 
@@ -1024,7 +1098,7 @@ class SessionManager {
                 <div class="response-header">📥 Download Results</div>
                 <p>Processing complete! Click below to download your results.</p>
                 <button class="button success" onclick="downloadResults()">
-                    📦 Download ZIP File
+                    Download ZIP File
                 </button>
                 <div style="margin-top: 15px;">
                     <strong>Download URL:</strong><br>
@@ -1036,7 +1110,7 @@ class SessionManager {
 
         // Download results
         function downloadResults() {
-            const downloadUrl = `https://web-production-7ca0.up.railway.app/api/v1/session/${currentSessionId}/download`;
+            const downloadUrl = `${API_BASE_URL}/api/v1/session/${currentSessionId}/download`;
             window.open(downloadUrl);
             liveLog('Download initiated', 'success');
         }

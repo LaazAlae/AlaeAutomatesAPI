@@ -102,7 +102,7 @@ def log_request():
 @app.route('/api/v1/session/<session_id>/answers', methods=['OPTIONS'])
 @app.route('/api/v1/session/<session_id>/download', methods=['OPTIONS'])
 @app.route('/api/v1/session/<session_id>/status', methods=['OPTIONS'])
-def handle_options():
+def handle_options(session_id=None):
     return '', 200
 
 @app.route('/health', methods=['GET'])

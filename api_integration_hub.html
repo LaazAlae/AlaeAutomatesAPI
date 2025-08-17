@@ -595,34 +595,58 @@ class SessionManager {
                         <button class="button" id="startProcessing" onclick="startLiveProcessing()" disabled>
                             Start Processing
                         </button>
+                        
+                        <!-- Manual Review Button (hidden initially) -->
+                        <button class="button warning manual-review-btn" id="manualReviewBtn" onclick="openManualReviewModal()" style="display: none;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+                                <path d="M12 9v4"/>
+                                <path d="m12 17 .01 0"/>
+                            </svg>
+                            Manual Review Required
+                        </button>
                     </div>
                 </div>
             </div>
 
-            <div class="card" id="questionsCard" style="display: none;">
-                <h2>Manual Review Required</h2>
-                
-                <div class="questions-header">
-                    <div>
-                        <h3 style="margin: 0; color: #856404;">Manual Review Questions</h3>
-                        <p style="margin: 5px 0 0 0; color: #856404;">Review company matches and confirm if they're the same entity</p>
+            <!-- Manual Review Modal -->
+            <div class="modal-overlay" id="manualReviewModal" style="display: none;">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2>Manual Review Required</h2>
+                        <button class="modal-close" onclick="closeManualReviewModal()">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        </button>
                     </div>
-                    <button class="button secondary" id="skipAllBtn" onclick="skipAllQuestions()">
-                        Skip All
-                    </button>
-                </div>
-                
-                <div class="questions-container" id="questionsList">
-                    <!-- Questions will be populated here -->
-                </div>
-                
-                <div style="display: flex; gap: 15px; justify-content: center;">
-                    <button class="button success" id="submitAnswers" onclick="submitManualAnswers()" disabled>
-                        Submit Answers
-                    </button>
-                    <button class="button secondary" onclick="clearAllAnswers()">
-                        Clear All
-                    </button>
+                    
+                    <div class="questions-header">
+                        <div>
+                            <h3 style="margin: 0; color: #856404;">Manual Review Questions</h3>
+                            <p style="margin: 5px 0 0 0; color: #856404;">Review company matches and confirm if they're the same entity</p>
+                        </div>
+                        <button class="button secondary" id="skipAllBtn" onclick="skipAllQuestions()">
+                            Skip All
+                        </button>
+                    </div>
+                    
+                    <div class="questions-container" id="questionsList">
+                        <!-- Questions will be populated here -->
+                    </div>
+                    
+                    <div class="modal-footer">
+                        <button class="button success" id="submitAnswers" onclick="submitManualAnswers()" disabled>
+                            Submit Answers
+                        </button>
+                        <button class="button secondary" onclick="clearAllAnswers()">
+                            Clear All
+                        </button>
+                        <button class="button" onclick="closeManualReviewModal()">
+                            Close
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -911,7 +935,7 @@ class SessionManager {
                     
                     showAPIResponse('Manual Review Questions', questionsData, `GET /api/v1/session/{id}/questions`);
                     showQuestions(questionsData.questions);
-                    updateProgress(90, 'Manual review required...');
+                    updateProgress(90, 'Manual review required - click button below to review');
                 } else {
                     updateProgress(100, 'Processing complete! Ready for download.');
                     enableDownload();
@@ -924,12 +948,60 @@ class SessionManager {
             }
         }
 
+        // Modal functions
+        function openManualReviewModal() {
+            const modal = document.getElementById('manualReviewModal');
+            modal.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+            liveLog('Manual review modal opened', 'info');
+        }
+        
+        function closeManualReviewModal() {
+            const modal = document.getElementById('manualReviewModal');
+            modal.style.display = 'none';
+            document.body.style.overflow = 'auto';
+            liveLog('Manual review modal closed', 'info');
+        }
+        
+        // Show manual review button
+        function showManualReviewButton() {
+            const button = document.getElementById('manualReviewBtn');
+            button.style.display = 'block';
+            updateManualReviewButtonState();
+        }
+        
+        // Update manual review button state
+        function updateManualReviewButtonState() {
+            const button = document.getElementById('manualReviewBtn');
+            const totalQuestions = document.querySelectorAll('.question-item').length;
+            const answeredCount = Object.keys(userAnswers).length;
+            
+            if (answeredCount >= totalQuestions && totalQuestions > 0) {
+                button.classList.add('answered');
+                button.innerHTML = `
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 12l2 2 4-4"/>
+                        <circle cx="12" cy="12" r="10"/>
+                    </svg>
+                    Review Complete (Click to Edit)
+                `;
+            } else {
+                button.classList.remove('answered');
+                button.innerHTML = `
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+                        <path d="M12 9v4"/>
+                        <path d="m12 17 .01 0"/>
+                    </svg>
+                    Manual Review Required (${answeredCount}/${totalQuestions})
+                `;
+            }
+        }
+        
         // Show manual review questions
         function showQuestions(questions) {
-            const questionsCard = document.getElementById('questionsCard');
             const questionsList = document.getElementById('questionsList');
             
-            questionsCard.style.display = 'block';
             questionsList.innerHTML = '';
             userAnswers = {};
 
@@ -976,9 +1048,38 @@ class SessionManager {
                 questionsList.appendChild(questionDiv);
             });
 
-            liveLog(`Showing ${questions.length} manual review questions in scrollable container`, 'info');
+            liveLog(`Showing ${questions.length} manual review questions in modal`, 'info');
+            
+            // Initialize submit button state
+            updateSubmitButtonState();
+            
+            // Show the manual review button
+            showManualReviewButton();
         }
 
+        // Update submit button state based on answers
+        function updateSubmitButtonState() {
+            const submitButton = document.getElementById('submitAnswers');
+            if (!submitButton) return;
+            
+            const answeredCount = Object.keys(userAnswers).length;
+            const hasValidAnswers = answeredCount > 0;
+            
+            submitButton.disabled = !hasValidAnswers;
+            
+            if (hasValidAnswers) {
+                submitButton.style.opacity = '1';
+                submitButton.style.cursor = 'pointer';
+                submitButton.style.background = 'var(--success)';
+                submitButton.title = `Submit ${answeredCount} answer(s)`;
+            } else {
+                submitButton.style.opacity = '0.5';
+                submitButton.style.cursor = 'not-allowed';
+                submitButton.style.background = 'var(--primary-300)';
+                submitButton.title = 'Please answer at least one question';
+            }
+        }
+        
         // Set answer for a question
         function setAnswer(companyName, answer, questionIndex) {
             userAnswers[companyName] = answer;
@@ -999,8 +1100,11 @@ class SessionManager {
             
             liveLog(`Answer set for "${companyName}": ${answer}`, 'info');
             
-            // Enable submit button
-            document.getElementById('submitAnswers').disabled = false;
+            // Update submit button state
+            updateSubmitButtonState();
+            
+            // Update manual review button state
+            updateManualReviewButtonState();
             
             // Update header to show progress
             updateQuestionsProgress();
@@ -1040,8 +1144,11 @@ class SessionManager {
                 div.style.display = 'none';
             });
             
-            // Disable submit button
-            document.getElementById('submitAnswers').disabled = true;
+            // Update submit button state
+            updateSubmitButtonState();
+            
+            // Update manual review button state
+            updateManualReviewButtonState();
             
             // Update progress
             updateQuestionsProgress();
@@ -1073,7 +1180,11 @@ class SessionManager {
                 updateProgress(100, 'Processing complete! Ready for download.');
                 enableDownload();
                 
-                document.getElementById('questionsCard').style.display = 'none';
+                // Update the manual review button to show completion
+                updateManualReviewButtonState();
+                
+                // Close modal if open
+                closeManualReviewModal();
                 
             } catch (error) {
                 liveLog(`Answer submission failed: ${error.message}`, 'error');
@@ -1115,6 +1226,25 @@ class SessionManager {
             liveLog('Download initiated', 'success');
         }
 
+        // Keyboard support for modal
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                const modal = document.getElementById('manualReviewModal');
+                if (modal && modal.style.display === 'flex') {
+                    closeManualReviewModal();
+                }
+            }
+        });
+        
+        // Click outside modal to close
+        document.addEventListener('click', function(event) {
+            const modal = document.getElementById('manualReviewModal');
+            const modalContent = document.querySelector('.modal-content');
+            if (modal && modal.style.display === 'flex' && !modalContent.contains(event.target)) {
+                closeManualReviewModal();
+            }
+        });
+        
         // Initialize page
         document.addEventListener('DOMContentLoaded', function() {
             // Auto-test API connection if in live mode

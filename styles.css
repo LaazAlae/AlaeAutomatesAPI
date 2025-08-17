@@ -380,6 +380,21 @@ body {
     border-color: #991b1b;
 }
 
+.button.warning {
+    background: var(--warning);
+    border-color: #b45309;
+    color: var(--surface);
+}
+
+.button.warning:hover {
+    background: #b45309;
+    border-color: #92400e;
+}
+
+.button.warning svg {
+    margin-right: 6px;
+}
+
 .code-block {
     background: var(--primary-900);
     color: var(--primary-100);
@@ -893,5 +908,123 @@ body {
     
     .endpoint-method {
         font-size: 0.625rem;
+    }
+    
+    .modal-content {
+        max-height: 80vh;
+        margin: 10px;
+    }
+    
+    .modal-footer {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .modal-footer .button {
+        width: 100%;
+        margin: 0;
+    }
+}
+
+/* Manual Review Button States */
+.manual-review-btn {
+    margin-top: 12px;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+.manual-review-btn.answered {
+    animation: pulse 4s ease-in-out infinite;
+    opacity: 0.8;
+}
+
+/* Modal Styles */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    animation: fadeIn 0.3s ease-out;
+}
+
+.modal-content {
+    background: var(--surface);
+    border-radius: 12px;
+    width: 100%;
+    max-width: 800px;
+    max-height: 90vh;
+    overflow: hidden;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    animation: slideInFromTop 0.3s ease-out;
+    display: flex;
+    flex-direction: column;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--primary-200);
+    background: var(--surface-subtle);
+    flex-shrink: 0;
+}
+
+.modal-header h2 {
+    margin: 0;
+    color: var(--primary-900);
+    font-size: 1.25rem;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    padding: 4px;
+    cursor: pointer;
+    border-radius: 6px;
+    color: var(--primary-600);
+    transition: all 0.2s ease;
+}
+
+.modal-close:hover {
+    background: var(--primary-100);
+    color: var(--primary-800);
+}
+
+.modal-footer {
+    padding: 20px 24px;
+    border-top: 1px solid var(--primary-200);
+    background: var(--surface-subtle);
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    flex-shrink: 0;
+}
+
+.questions-container {
+    flex: 1;
+    overflow-y: auto;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideInFromTop {
+    from {
+        opacity: 0;
+        transform: translateY(-50px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
     }
 }

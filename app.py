@@ -377,8 +377,25 @@ def download_results(session_id):
     session_data = sessions[session_id]
     statements = session_data.get('statements', [])
     
-    # Create detailed results file
-    content = f"""REAL STATEMENT PROCESSING RESULTS
+    if not statements:
+        return jsonify({'error': 'No processed statements found'}), 400
+    
+    try:
+        import zipfile
+        from io import BytesIO
+        
+        # Get file paths from session
+        pdf_path = session_data['files']['pdf_path']
+        excel_path = session_data['files']['excel_path']
+        
+        # Initialize processor and create split PDFs
+        processor = StatementProcessor(pdf_path, excel_path)
+        
+        # Create split PDFs
+        split_results = processor.create_split_pdfs(statements)
+        
+        # Create detailed results file content
+        results_content = f"""STATEMENT PROCESSING RESULTS
 Session ID: {session_id}
 Processed: {datetime.now().isoformat()}
 
@@ -391,29 +408,65 @@ Status: {session_data['status']}
 PDF: {session_data['files']['pdf_name']}
 Excel: {session_data['files']['excel_name']}
 
-=== DETAILED RESULTS ===
+=== SPLIT RESULTS ===
 """
-    
-    for i, stmt in enumerate(statements, 1):
-        content += f"\n--- Statement {i} ---\n"
-        content += f"Company: {stmt.get('company_name', 'Unknown')}\n"
-        content += f"Destination: {stmt.get('destination', 'Unknown')}\n"
-        content += f"Location: {stmt.get('location', 'Unknown')}\n"
-        content += f"Pages: {stmt.get('number_of_pages', 'Unknown')}\n"
-        content += f"Manual Required: {stmt.get('manual_required', False)}\n"
-        if stmt.get('similar_to'):
-            content += f"Similar To: {stmt.get('similar_to')} ({stmt.get('percentage', 'N/A')})\n"
-        if stmt.get('user_answered'):
-            content += f"User Answer: {stmt.get('user_answered')}\n"
-        content += f"Raw Text Preview: {stmt.get('rest_of_lines', '')[:200]}...\n"
-    
-    return Response(
-        content,
-        mimetype='text/plain',
-        headers={
-            'Content-Disposition': f'attachment; filename=REAL_results_{session_id[:8]}.txt'
-        }
-    )
+        
+        for dest, count in split_results.items():
+            results_content += f"{dest}: {count} pages\n"
+        
+        results_content += "\n=== DETAILED STATEMENT LIST ===\n"
+        
+        for i, stmt in enumerate(statements, 1):
+            results_content += f"\n--- Statement {i} ---\n"
+            results_content += f"Company: {stmt.get('company_name', 'Unknown')}\n"
+            results_content += f"Destination: {stmt.get('destination', 'Unknown')}\n"
+            results_content += f"Location: {stmt.get('location', 'Unknown')}\n"
+            results_content += f"Pages: {stmt.get('number_of_pages', 'Unknown')}\n"
+            if stmt.get('similar_to'):
+                results_content += f"Similar To: {stmt.get('similar_to')} ({stmt.get('percentage', 'N/A')})\n"
+            if stmt.get('user_answered'):
+                results_content += f"User Answer: {stmt.get('user_answered')}\n"
+        
+        # Create ZIP file in memory
+        zip_buffer = BytesIO()
+        
+        with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+            # Add results file
+            zip_file.writestr('results.txt', results_content)
+            
+            # Add statements data as JSON
+            zip_file.writestr('statements.json', json.dumps(statements, indent=2))
+            
+            # Add split PDF files
+            pdf_files = {
+                "DNM": "DNM.pdf",
+                "Foreign": "Foreign.pdf", 
+                "Natio Single": "natioSingle.pdf",
+                "Natio Multi": "natioMulti.pdf"
+            }
+            
+            for dest, filename in pdf_files.items():
+                if os.path.exists(filename) and dest in split_results:
+                    zip_file.write(filename, filename)
+                    # Clean up temporary files
+                    try:
+                        os.remove(filename)
+                    except:
+                        pass
+        
+        zip_buffer.seek(0)
+        
+        return Response(
+            zip_buffer.getvalue(),
+            mimetype='application/zip',
+            headers={
+                'Content-Disposition': f'attachment; filename=statements_results_{session_id[:8]}.zip'
+            }
+        )
+        
+    except Exception as e:
+        logger.error(f"Error creating download ZIP: {e}")
+        return jsonify({'error': f'Failed to create download package: {str(e)}'}), 500
 
 @app.route('/api/v1/session/<session_id>/status', methods=['GET'])
 def get_session_status(session_id):

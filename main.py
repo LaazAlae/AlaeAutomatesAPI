@@ -12,8 +12,8 @@ import os
 import logging
 import sys
 from datetime import datetime
-from app.statement_processor import StatementProcessor
-from app.invoice_processor import invoice_processor_bp
+from processors.statement_processor import StatementProcessor
+from processors.invoice_processor import invoice_processor_bp
 
 app = Flask(__name__)
 

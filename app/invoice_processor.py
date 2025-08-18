@@ -1,4 +1,4 @@
-from flask import Blueprint, request, redirect, url_for, render_template, send_from_directory, jsonify
+from flask import Blueprint, request, redirect, url_for, send_from_directory, jsonify
 import fitz  # PyMuPDF
 import re
 import os
@@ -71,23 +71,33 @@ def extract_invoice_numbers_and_split(input_pdf, output_folder):
 
 @invoice_processor_bp.route('/', methods=['GET', 'POST'])
 def upload_file():
-    message = ''
-    success = False
-    zip_filename = ''
-    
     logging.info("Received a request to the upload_file route.")
+    
+    if request.method == 'GET':
+        return jsonify({
+            'service': 'Invoice Processor API',
+            'description': 'Upload PDF files to extract and separate invoices',
+            'usage': 'POST with file parameter',
+            'supported_formats': ['pdf']
+        })
     
     if request.method == 'POST':
         logging.info("Request method is POST.")
         
         if 'file' not in request.files:
             logging.info("No file part in the request.")
-            return render_template('invoice_processor.html', message="No file part in the request", success=success, zip_filename=zip_filename)
+            return jsonify({
+                'success': False,
+                'message': 'No file part in the request'
+            }), 400
         
         file = request.files['file']
         if file.filename == '':
             logging.info("No selected file.")
-            return render_template('invoice_processor.html', message="No selected file", success=success, zip_filename=zip_filename)
+            return jsonify({
+                'success': False,
+                'message': 'No selected file'
+            }), 400
         
         if file and allowed_file(file.filename, ALLOWED_EXTENSIONS):
             logging.info(f"File {file.filename} is allowed and will be processed.")
@@ -115,6 +125,10 @@ def upload_file():
             if not invoices_found:
                 message = 'The PDF you chose does not contain any invoice'
                 logging.info(message)
+                return jsonify({
+                    'success': False,
+                    'message': message
+                }), 400
             else:
                 zip_filename = f"{filename.rsplit('.', 1)[0]}.zip"
                 zip_path = os.path.join(RESULT_FOLDER, zip_filename)
@@ -127,15 +141,20 @@ def upload_file():
                                 zipf.write(os.path.join(root, file), os.path.relpath(os.path.join(root, file), result_folder))
                     logging.info(f"Created zip file at {zip_path}")
                 
-                success = True
                 message = 'Invoices separated successfully. Find PDF files in your downloads.'
                 logging.info(message)
+                return jsonify({
+                    'success': True,
+                    'message': message,
+                    'zip_filename': zip_filename,
+                    'download_url': f'/invoice-processor/downloads/{zip_filename}'
+                })
         else:
             logging.info("File is not allowed or not a PDF.")
-            message = 'The file is not a valid PDF or is not allowed.'
-    
-    logging.info("Rendering template with message and status.")
-    return render_template('invoice_processor.html', message=message, success=success, zip_filename=zip_filename)
+            return jsonify({
+                'success': False,
+                'message': 'The file is not a valid PDF or is not allowed.'
+            }), 400
 
 @invoice_processor_bp.route('/downloads/<filename>')
 def download_file(filename):

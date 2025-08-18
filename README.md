@@ -63,7 +63,6 @@ API_URL=https://your-railway-app.railway.app python frontend_demo.py
 main.py                      # Backend API (Railway deployment)
 frontend_demo.py             # Frontend demo server (local only)
 start_frontend.py            # Quick start script
-wsgi.py                      # WSGI entry point for Gunicorn
 processors/
 ├── statement_processor.py   # Statement processing logic
 └── invoice_processor.py     # Invoice processing logic  

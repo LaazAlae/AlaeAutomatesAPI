@@ -1,6 +1,18 @@
 # Document Processing API
 
-A professional Flask-based API for processing PDF documents with two main services:
+A professional Flask-based backend API for processing PDF documents with two main services. The backend runs on Railway, and the frontend demo runs locally for development and testing.
+
+## Architecture
+
+### Backend (Railway Hosted)
+- Pure API endpoints, no frontend templates
+- Handles PDF processing and file operations
+- CORS enabled for frontend integration
+
+### Frontend (Local Development)
+- Separate Flask app for demonstrating API usage
+- HTML templates and JavaScript clients
+- Connects to Railway-hosted backend API
 
 ## Services
 
@@ -16,21 +28,34 @@ A professional Flask-based API for processing PDF documents with two main servic
 
 ## Quick Start
 
-### Installation
+### Backend Setup (Deploy to Railway)
+1. Deploy `app.py` to Railway
+2. Set environment variables if needed
+3. Your API will be available at `https://your-app.railway.app`
+
+### Frontend Demo (Local Development)
+1. Install dependencies:
 ```bash
 pip install -r requirements.txt
 ```
 
-### Run Locally
+2. Start frontend demo:
 ```bash
-python app.py
+python start_frontend.py
 ```
 
-### Access the Application
-- Web Interface: `http://localhost:8000`
-- API Documentation: `http://localhost:8000/health`
-- Statement Processing: `http://localhost:8000/monthly-statements`
-- Invoice Processing: `http://localhost:8000/invoice-processor`
+3. Enter your Railway API URL when prompted
+
+4. Access the demo at `http://localhost:3000`
+
+### Manual Setup
+```bash
+# Backend only (API endpoints)
+python app.py
+
+# Frontend demo (in another terminal)
+API_URL=https://your-railway-app.railway.app python frontend_demo.py
+```
 
 ## File Structure
 

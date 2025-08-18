@@ -4,7 +4,7 @@ Real Statement Processing API - Uses actual statement_processor.py
 This processes your real PDF and Excel files!
 """
 
-from flask import Flask, jsonify, request, Response, render_template
+from flask import Flask, jsonify, request, Response
 import uuid
 import json
 import tempfile
@@ -80,7 +80,7 @@ load_sessions()
 
 # Log startup
 logger.info("[STARTUP] Statement Processing API starting up")
-logger.info("📝 Logging configured - Check api.log for detailed logs")
+logger.info("[CONFIG] Logging configured - Check api.log for detailed logs")
 
 @app.after_request
 def after_request(response):
@@ -124,24 +124,21 @@ def health():
 
 @app.route('/', methods=['GET'])
 def root():
-    return render_template('index.html')
-
-@app.route('/monthly-statements', methods=['GET'])
-def monthly_statements():
-    return render_template('monthly_statements.html')
-
-@app.route('/api-info', methods=['GET'])
-def api_info():
     return jsonify({
-        'service': 'REAL Statement Processing API',
+        'service': 'Document Processing API',
         'status': 'running',
-        'processing': 'Uses actual statement_processor.py',
-        'note': 'This processes your real PDF and Excel files!',
+        'version': '2.0',
+        'services': {
+            'statement_processing': 'PDF statement analysis with DNM matching',
+            'invoice_processing': 'Invoice number extraction and splitting'
+        },
         'endpoints': {
             'health': '/health',
             'logs': '/logs',
-            'sessions': '/api/v1/session'
-        }
+            'statement_api': '/api/v1/session',
+            'invoice_api': '/invoice-processor'
+        },
+        'documentation': 'See API_DOCUMENTATION.md for complete integration guide'
     })
 
 @app.route('/logs', methods=['GET'])
@@ -502,14 +499,28 @@ def get_session_status(session_id):
         }
     })
 
+# For Gunicorn deployment
+def create_app():
+    return app
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8000))
-    print("[API] REAL Statement Processing API")
-    print(f"Port: {port}")
-    print("Processing: ACTUAL PDF + Excel files")
-    print(f"Health: http://localhost:{port}/health")
-    print("Uses: statement_processor.py for real processing")
-    print("CORS enabled for browser testing")
+    print("=" * 60)
+    print("DOCUMENT PROCESSING API - BACKEND ONLY")
+    print("=" * 60)
+    print(f"API URL: http://localhost:{port}")
+    print(f"Health Check: http://localhost:{port}/health")
+    print("=" * 60)
+    print("API Endpoints:")
+    print("  / - API info and service overview")
+    print("  /health - Health status")
+    print("  /logs - System logs")
+    print("  /api/v1/session/* - Statement processing API")
+    print("  /invoice-processor/* - Invoice processing API")
+    print("=" * 60)
+    print("This is the BACKEND API ONLY")
+    print("For frontend demo, run: python frontend_demo.py")
+    print("=" * 60)
     
     app.run(
         host='0.0.0.0',

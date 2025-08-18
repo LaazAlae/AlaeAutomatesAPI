@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document Processing Hub</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <script>
+        // API Configuration
+        window.API_BASE_URL = '{{ api_url }}';
+    </script>
 </head>
 <body>
     <div class="container">
@@ -54,8 +58,9 @@
                 <h3>API Information</h3>
                 <p>Both services are available as REST APIs for integration</p>
                 <div class="api-links">
-                    <a href="/health" class="api-link">API Health</a>
-                    <a href="/logs" class="api-link">System Logs</a>
+                    <a href="{{ api_url }}/health" class="api-link" target="_blank">API Health</a>
+                    <a href="{{ api_url }}/logs" class="api-link" target="_blank">System Logs</a>
+                    <a href="{{ api_url }}/" class="api-link" target="_blank">API Root</a>
                 </div>
             </div>
         </div>

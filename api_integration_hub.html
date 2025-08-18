@@ -597,7 +597,7 @@ class SessionManager {
                         </button>
                         
                         <!-- Manual Review Button (hidden initially) -->
-                        <button class="button warning manual-review-btn" id="manualReviewBtn" onclick="openManualReviewModal()" style="display: none;">
+                        <button class="button warning manual-review-btn" id="manualReviewBtn" onclick="openManualReviewModal(event)" style="display: none;">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
                                 <path d="M12 9v4"/>
@@ -614,7 +614,7 @@ class SessionManager {
                 <div class="modal-content">
                     <div class="modal-header">
                         <h2>Manual Review Required</h2>
-                        <button class="modal-close" onclick="closeManualReviewModal()">
+                        <button class="modal-close" onclick="closeManualReviewModal(event)">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <line x1="18" y1="6" x2="6" y2="18"></line>
                                 <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -643,7 +643,7 @@ class SessionManager {
                         <button class="button secondary" onclick="clearAllAnswers()">
                             Clear All
                         </button>
-                        <button class="button" onclick="closeManualReviewModal()">
+                        <button class="button" onclick="closeManualReviewModal(event)">
                             Close
                         </button>
                     </div>
@@ -859,8 +859,10 @@ class SessionManager {
             
             container.appendChild(responseDiv);
             
-            // Scroll to the new response
-            responseDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            // Scroll to the new response (only if not in modal mode)
+            if (!document.getElementById('manualReviewModal') || document.getElementById('manualReviewModal').style.display === 'none') {
+                responseDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
         }
         
         // Format JSON with syntax highlighting
@@ -949,14 +951,22 @@ class SessionManager {
         }
 
         // Modal functions
-        function openManualReviewModal() {
+        function openManualReviewModal(event) {
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
             const modal = document.getElementById('manualReviewModal');
             modal.style.display = 'flex';
             document.body.style.overflow = 'hidden';
             liveLog('Manual review modal opened', 'info');
         }
         
-        function closeManualReviewModal() {
+        function closeManualReviewModal(event) {
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
             const modal = document.getElementById('manualReviewModal');
             modal.style.display = 'none';
             document.body.style.overflow = 'auto';
@@ -1236,11 +1246,10 @@ class SessionManager {
             }
         });
         
-        // Click outside modal to close
+        // Click on modal overlay (not content) to close
         document.addEventListener('click', function(event) {
             const modal = document.getElementById('manualReviewModal');
-            const modalContent = document.querySelector('.modal-content');
-            if (modal && modal.style.display === 'flex' && !modalContent.contains(event.target)) {
+            if (modal && event.target === modal && modal.style.display === 'flex') {
                 closeManualReviewModal();
             }
         });

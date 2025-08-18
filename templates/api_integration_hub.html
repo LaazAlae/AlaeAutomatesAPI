@@ -3,15 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Statement Processing API - Integration Hub</title>
+    <title>Monthly Statement Processor - Integration Hub</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 </head>
 <body>
+    <!-- Navigation -->
+    <nav class="main-nav">
+        <div class="nav-container">
+            <a href="/" class="nav-brand">Document Processing Hub</a>
+            <div class="nav-links">
+                <a href="/" class="nav-link">Home</a>
+                <a href="/monthly-statements" class="nav-link active">Monthly Statements</a>
+                <a href="/invoice-separator" class="nav-link">Invoice Separator</a>
+            </div>
+            <button class="mobile-nav-toggle" onclick="toggleMobileNav()" aria-label="Toggle navigation">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+    </nav>
+
     <div class="container">
-        <!-- Header -->
-        <div class="header">
-            <h1>Statement Processing API</h1>
-            <p>Professional Integration Hub for PDF Statement Processing</p>
+        <!-- Page Header -->
+        <div class="page-header">
+            <h1 class="page-title">Monthly Statement Processor</h1>
+            <p class="page-subtitle">Professional Integration Hub for PDF Statement Processing</p>
             
             <div class="mode-toggle">
                 <span class="mode-label" id="simLabel">Documentation</span>
@@ -20,9 +39,20 @@
                 </div>
                 <span class="mode-label" id="realLabel">Live Testing</span>
             </div>
+        </div>
+        
+        <!-- Status Section -->
+        <div class="content-section">
+            <h2 class="section-title">
+                <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <path d="m9 12 2 2 4-4"></path>
+                </svg>
+                System Status
+            </h2>
             
-            <div class="api-info">
-                <div class="api-status-card">
+            <div class="status-grid">
+                <div class="status-card">
                     <h3>API Status</h3>
                     <div id="apiStatus" class="status-indicator status-disconnected">
                         Disconnected
@@ -31,7 +61,7 @@
                         API: Not connected
                     </div>
                 </div>
-                <div class="mode-status-card">
+                <div class="status-card">
                     <h3>Current Mode</h3>
                     <div id="processingMode" class="status-indicator status-processing">
                         Documentation
@@ -42,8 +72,14 @@
 
         <!-- Documentation Mode Content -->
         <div id="documentationMode">
-            <div class="card">
-                <h2>API Integration Guide</h2>
+            <div class="content-section">
+                <h2 class="section-title">
+                    <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <book-open x="2" y="3" width="20" height="18" rx="2" ry="2"></book-open>
+                        <path d="m6 8 4 4 4-4"></path>
+                    </svg>
+                    API Integration Guide
+                </h2>
                 
                 <div class="tab-container">
                     <div class="tab-buttons">
@@ -675,7 +711,7 @@ class SessionManager {
         let workflowSteps = ['pdf_input', 'excel_input', 'process', 'manual_review', 'download'];
         
         // API Configuration
-        const API_BASE_URL = 'https://web-production-7ca0.up.railway.app';
+        window.API_BASE_URL = '{{ api_url }}';
         
         // Enhanced logging function
         function detailedLog(message, type = 'info', data = null) {
@@ -749,10 +785,10 @@ class SessionManager {
             const apiStatus = document.getElementById('apiStatus');
             const apiUrl = document.getElementById('apiUrl');
             
-            detailedLog(`Testing API connection to ${API_BASE_URL}`, 'info');
+            detailedLog(`Testing API connection to ${window.API_BASE_URL}`, 'info');
             
             try {
-                const response = await fetch(`${API_BASE_URL}/health`, {
+                const response = await fetch(`${window.API_BASE_URL}/health`, {
                     method: 'GET',
                     mode: 'cors'
                 });
@@ -760,13 +796,13 @@ class SessionManager {
                     const data = await response.json();
                     apiStatus.innerHTML = 'Connected';
                     apiStatus.className = 'status-indicator status-connected';
-                    apiUrl.innerHTML = `API: ${API_BASE_URL}`;
+                    apiUrl.innerHTML = `API: ${window.API_BASE_URL}`;
                     
                     detailedLog('Connected to processing API', 'success', data);
                     
                     // Test logs endpoint
                     try {
-                        const logsResponse = await fetch(`${API_BASE_URL}/logs`, {
+                        const logsResponse = await fetch(`${window.API_BASE_URL}/logs`, {
                             method: 'GET',
                             mode: 'cors'
                         });
@@ -783,18 +819,18 @@ class SessionManager {
             } catch (error) {
                 apiStatus.innerHTML = 'Connection Failed';
                 apiStatus.className = 'status-indicator status-disconnected';
-                apiUrl.innerHTML = `API: ${API_BASE_URL} (FAILED)`;
+                apiUrl.innerHTML = `API: ${window.API_BASE_URL} (FAILED)`;
                 detailedLog(`API connection failed: ${error.message}`, 'error');
                 
                 // Show troubleshooting info
                 console.error('Troubleshooting Info:', {
-                    'API_URL': API_BASE_URL,
+                    'API_URL': window.API_BASE_URL,
                     'Error': error.message,
                     'Error_Stack': error.stack,
                     'Check_1': 'Verify Railway deployment is running',
                     'Check_2': 'Check CORS configuration',
-                    'Logs_URL': `${API_BASE_URL}/logs`,
-                    'Health_URL': `${API_BASE_URL}/health`
+                    'Logs_URL': `${window.API_BASE_URL}/logs`,
+                    'Health_URL': `${window.API_BASE_URL}/health`
                 });
             }
         }
@@ -892,7 +928,7 @@ class SessionManager {
                 
                 // 1. Create session
                 updateProgress(10, 'Creating session...');
-                const sessionResponse = await fetch(`${API_BASE_URL}/api/v1/session`, {
+                const sessionResponse = await fetch(`${window.API_BASE_URL}/api/v1/session`, {
                     method: 'POST',
                     mode: 'cors'
                 });
@@ -912,7 +948,7 @@ class SessionManager {
                 formData.append('pdf', selectedFiles.pdf);
                 formData.append('excel', selectedFiles.excel);
 
-                const uploadResponse = await fetch(`${API_BASE_URL}/api/v1/session/${currentSessionId}/upload`, {
+                const uploadResponse = await fetch(`${window.API_BASE_URL}/api/v1/session/${currentSessionId}/upload`, {
                     method: 'POST',
                     mode: 'cors',
                     body: formData
@@ -928,7 +964,7 @@ class SessionManager {
 
                 // 3. Process statements
                 updateProgress(60, 'Processing statements...');
-                const processResponse = await fetch(`${API_BASE_URL}/api/v1/session/${currentSessionId}/process`, {
+                const processResponse = await fetch(`${window.API_BASE_URL}/api/v1/session/${currentSessionId}/process`, {
                     method: 'POST',
                     mode: 'cors'
                 });
@@ -940,7 +976,7 @@ class SessionManager {
                 // 4. Check for questions
                 if (processData.questions_needed > 0) {
                     updateProgress(80, 'Getting manual review questions...');
-                    const questionsResponse = await fetch(`${API_BASE_URL}/api/v1/session/${currentSessionId}/questions`);
+                    const questionsResponse = await fetch(`${window.API_BASE_URL}/api/v1/session/${currentSessionId}/questions`);
                     const questionsData = await questionsResponse.json();
                     
                     showAPIResponse('Manual Review Questions', questionsData, `GET /api/v1/session/{id}/questions`);
@@ -1181,7 +1217,7 @@ class SessionManager {
             try {
                 updateProgress(95, 'Submitting answers...');
                 
-                const answersResponse = await fetch(`${API_BASE_URL}/api/v1/session/${currentSessionId}/answers`, {
+                const answersResponse = await fetch(`${window.API_BASE_URL}/api/v1/session/${currentSessionId}/answers`, {
                     method: 'POST',
                     mode: 'cors',
                     headers: { 'Content-Type': 'application/json' },
@@ -1227,7 +1263,7 @@ class SessionManager {
                     error: error.message,
                     sessionId: currentSessionId,
                     answers: userAnswers,
-                    apiUrl: `${API_BASE_URL}/api/v1/session/${currentSessionId}/answers`
+                    apiUrl: `${window.API_BASE_URL}/api/v1/session/${currentSessionId}/answers`
                 });
             }
         }
@@ -1262,9 +1298,15 @@ class SessionManager {
 
         // Download results
         function downloadResults() {
-            const downloadUrl = `${API_BASE_URL}/api/v1/session/${currentSessionId}/download`;
+            const downloadUrl = `${window.API_BASE_URL}/api/v1/session/${currentSessionId}/download`;
             window.open(downloadUrl);
             liveLog('Download initiated', 'success');
+        }
+        
+        // Mobile navigation toggle
+        function toggleMobileNav() {
+            const navLinks = document.querySelector('.nav-links');
+            navLinks.classList.toggle('open');
         }
 
         // Keyboard support for modal
@@ -1331,10 +1373,21 @@ class SessionManager {
             detailedLog('🌐 Page loaded, testing API connection...', 'info');
             showTab('overview');
             testAPIConnection();
+            
             // Initialize workflow heartbeat when switching to live mode
             if (isLiveMode) {
                 updateWorkflowHeartbeat();
             }
+            
+            // Close mobile nav when clicking outside
+            document.addEventListener('click', function(event) {
+                const navLinks = document.querySelector('.nav-links');
+                const toggle = document.querySelector('.mobile-nav-toggle');
+                
+                if (!navLinks.contains(event.target) && !toggle.contains(event.target)) {
+                    navLinks.classList.remove('open');
+                }
+            });
         });
     </script>
 </body>

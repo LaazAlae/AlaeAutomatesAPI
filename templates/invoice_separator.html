@@ -1,0 +1,985 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice Separator - Integration Hub</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="main-nav">
+        <div class="nav-container">
+            <a href="/" class="nav-brand">Document Processing Hub</a>
+            <div class="nav-links">
+                <a href="/" class="nav-link">Home</a>
+                <a href="/monthly-statements" class="nav-link">Monthly Statements</a>
+                <a href="/invoice-separator" class="nav-link active">Invoice Separator</a>
+            </div>
+            <button class="mobile-nav-toggle" onclick="toggleMobileNav()" aria-label="Toggle navigation">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- Page Header -->
+        <div class="page-header">
+            <h1 class="page-title">Invoice Separator</h1>
+            <p class="page-subtitle">Professional Integration Hub for PDF Invoice Separation</p>
+            
+            <div class="mode-toggle">
+                <span class="mode-label" id="simLabel">Documentation</span>
+                <div class="toggle-switch" id="modeToggle" onclick="toggleMode()" role="button" tabindex="0" aria-label="Toggle between documentation and live testing mode" onkeydown="if(event.key==='Enter'||event.key===' '){toggleMode()}">
+                    <div class="toggle-slider"></div>
+                </div>
+                <span class="mode-label" id="realLabel">Live Testing</span>
+            </div>
+        </div>
+        
+        <!-- Status Section -->
+        <div class="content-section">
+            <h2 class="section-title">
+                <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <path d="m9 12 2 2 4-4"></path>
+                </svg>
+                System Status
+            </h2>
+            
+            <div class="status-grid">
+                <div class="status-card">
+                    <h3>API Status</h3>
+                    <div id="apiStatus" class="status-indicator status-disconnected">
+                        Disconnected
+                    </div>
+                    <div id="apiUrl" class="api-url">
+                        API: Not connected
+                    </div>
+                </div>
+                <div class="status-card">
+                    <h3>Current Mode</h3>
+                    <div id="processingMode" class="status-indicator status-processing">
+                        Documentation
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Documentation Mode Content -->
+        <div id="documentationMode">
+            <div class="content-section">
+                <h2 class="section-title">
+                    <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <book-open x="2" y="3" width="20" height="18" rx="2" ry="2"></book-open>
+                        <path d="m6 8 4 4 4-4"></path>
+                    </svg>
+                    API Integration Guide
+                </h2>
+                
+                <div class="tab-container">
+                    <div class="tab-buttons">
+                        <button class="tab-button active" onclick="showTab('overview')">Overview</button>
+                        <button class="tab-button" onclick="showTab('endpoints')">API Endpoints</button>
+                        <button class="tab-button" onclick="showTab('workflow')">Workflow</button>
+                        <button class="tab-button" onclick="showTab('examples')">Code Examples</button>
+                        <button class="tab-button" onclick="showTab('security')">Security</button>
+                    </div>
+
+                    <div id="overview" class="tab-content active">
+                        <h3>Overview</h3>
+                        <p class="overview-description">Extracts invoice numbers from PDF files and separates them into individual documents.</p>
+                        
+                        <div class="feature-grid">
+                            <div class="feature-item">
+                                <h4>Invoice Detection</h4>
+                                <p>Finds invoice numbers using pattern matching (P/R + 6-8 digits)</p>
+                            </div>
+                            <div class="feature-item">
+                                <h4>PDF Splitting</h4>
+                                <p>Automatically splits multi-invoice PDFs into separate files</p>
+                            </div>
+                            <div class="feature-item">
+                                <h4>Smart Organization</h4>
+                                <p>Names files by invoice number for easy identification</p>
+                            </div>
+                            <div class="feature-item">
+                                <h4>ZIP Download</h4>
+                                <p>Packages all separated invoices in a single download</p>
+                            </div>
+                        </div>
+
+                        <div class="security-note">
+                            <strong>Performance:</strong> Fast pattern recognition optimized for large PDF files. Memory efficient processing.
+                        </div>
+
+                        <h3>Processing Flow</h3>
+                        <div class="integration-steps">
+                            <div class="integration-step">
+                                <h4>Upload PDF</h4>
+                                <p>Upload a PDF file containing multiple invoices</p>
+                            </div>
+                            <div class="integration-step">
+                                <h4>Extract Numbers</h4>
+                                <p>API scans for invoice number patterns</p>
+                            </div>
+                            <div class="integration-step">
+                                <h4>Split Documents</h4>
+                                <p>Creates separate PDF for each invoice found</p>
+                            </div>
+                            <div class="integration-step">
+                                <h4>Create ZIP</h4>
+                                <p>Packages all invoices in organized ZIP file</p>
+                            </div>
+                            <div class="integration-step">
+                                <h4>Download</h4>
+                                <p>Download ZIP with all separated invoice PDFs</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="endpoints" class="tab-content">
+                        <h3>API Endpoints</h3>
+                        
+                        <div class="endpoint-card">
+                            <span class="endpoint-method method-get">GET</span>
+                            <strong>/health</strong>
+                            <p>Check API health and status</p>
+                            <div class="code-block" data-lang="Response">
+{
+  "status": "healthy",
+  "service": "invoice-processor",
+  "version": "1.0"
+}</div>
+                        </div>
+
+                        <div class="endpoint-card">
+                            <span class="endpoint-method method-get">GET</span>
+                            <strong>/invoice-processor</strong>
+                            <p>Get service information</p>
+                            <div class="code-block" data-lang="Response">
+{
+  "service": "Invoice Processor API",
+  "description": "Upload PDF files to extract and separate invoices",
+  "version": "1.0"
+}</div>
+                        </div>
+
+                        <div class="endpoint-card">
+                            <span class="endpoint-method method-post">POST</span>
+                            <strong>/invoice-processor</strong>
+                            <p>Upload PDF file for invoice separation</p>
+                            <div class="code-block" data-lang="FormData">
+FormData:
+- file: File (PDF containing multiple invoices)</div>
+                            <div class="code-block" data-lang="Response">
+{
+  "status": "success",
+  "message": "File processed successfully",
+  "invoices_found": 5,
+  "file_path": "/downloads/invoices_separated_12345.zip"
+}</div>
+                        </div>
+
+                        <div class="endpoint-card">
+                            <span class="endpoint-method method-get">GET</span>
+                            <strong>/download/{file_path}</strong>
+                            <p>Download the ZIP file with separated invoices</p>
+                            <div class="code-block" data-lang="Response">
+Content-Type: application/zip
+Content-Disposition: attachment; filename=invoices_separated.zip
+
+Contains:
+- P123456.pdf (invoice P123456)
+- R789012.pdf (invoice R789012)
+- P345678.pdf (invoice P345678)
+- ... (one PDF per invoice found)</div>
+                        </div>
+                    </div>
+
+                    <div id="workflow" class="tab-content">
+                        <h3>Integration Workflow</h3>
+                        
+                        <div class="code-block" data-lang="JavaScript">
+// Complete invoice processing workflow
+class InvoiceProcessor {
+  constructor(apiUrl) {
+    this.apiUrl = apiUrl;
+  }
+
+  async processInvoices(pdfFile) {
+    try {
+      // 1. Prepare file upload
+      const formData = new FormData();
+      formData.append('file', pdfFile);
+
+      // 2. Upload and process in one step
+      const response = await fetch(`${this.apiUrl}/invoice-processor`, {
+        method: 'POST',
+        mode: 'cors',
+        body: formData
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const result = await response.json();
+      
+      // 3. Check if invoices were found
+      if (result.invoices_found === 0) {
+        console.warn('No invoices found in the PDF');
+        return null;
+      }
+      
+      console.log(`Found ${result.invoices_found} invoices`);
+      
+      // 4. Download the separated invoices
+      if (result.file_path) {
+        this.downloadSeparatedInvoices(result.file_path);
+      }
+      
+      return result;
+      
+    } catch (error) {
+      console.error('Invoice processing failed:', error);
+      throw error;
+    }
+  }
+
+  downloadSeparatedInvoices(filePath) {
+    // Open download link
+    const downloadUrl = `${this.apiUrl}/download/${filePath}`;
+    window.open(downloadUrl);
+  }
+
+  // Simple usage example
+  async handleFileUpload(fileInput) {
+    const file = fileInput.files[0];
+    if (!file) return;
+    
+    if (!file.name.toLowerCase().endsWith('.pdf')) {
+      throw new Error('Please select a PDF file');
+    }
+    
+    return await this.processInvoices(file);
+  }
+}</div>
+
+                        <h3>Frontend Integration Tips</h3>
+                        <div class="tip-grid">
+                            <div class="tip-item">
+                                <strong>CORS Support</strong>
+                                <p>API includes CORS headers for browser requests</p>
+                            </div>
+                            <div class="tip-item">
+                                <strong>File Validation</strong>
+                                <p>Validate PDF files before upload</p>
+                            </div>
+                            <div class="tip-item">
+                                <strong>Progress Tracking</strong>
+                                <p>Monitor processing status via response</p>
+                            </div>
+                            <div class="tip-item">
+                                <strong>Download Handling</strong>
+                                <p>Use window.open() for ZIP downloads</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="examples" class="tab-content">
+                        <h3>React Integration Example</h3>
+                        <div class="code-block" data-lang="React">
+import React, { useState } from 'react';
+
+function InvoiceProcessor() {
+  const [processing, setProcessing] = useState(false);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState(null);
+
+  const processInvoices = async (pdfFile) => {
+    setProcessing(true);
+    setError(null);
+    
+    try {
+      // Validate file
+      if (!pdfFile.name.toLowerCase().endsWith('.pdf')) {
+        throw new Error('Please select a PDF file');
+      }
+      
+      if (pdfFile.size > 50 * 1024 * 1024) {
+        throw new Error('File too large (max 50MB)');
+      }
+
+      // Upload and process
+      const formData = new FormData();
+      formData.append('file', pdfFile);
+      
+      const response = await fetch('/invoice-processor', {
+        method: 'POST',
+        body: formData
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Processing failed: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      setResult(data);
+      
+      // Auto-download if successful
+      if (data.file_path) {
+        downloadInvoices(data.file_path);
+      }
+      
+    } catch (error) {
+      setError(error.message);
+      console.error('Processing error:', error);
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const downloadInvoices = (filePath) => {
+    window.open(`/download/${filePath}`);
+  };
+
+  return (
+    <div className="invoice-processor">
+      <input 
+        type="file" 
+        accept=".pdf" 
+        onChange={(e) => processInvoices(e.target.files[0])}
+        disabled={processing}
+      />
+      
+      {processing && <div>Processing invoices...</div>}
+      {error && <div className="error">{error}</div>}
+      {result && (
+        <div className="result">
+          Found {result.invoices_found} invoices!
+          <button onClick={() => downloadInvoices(result.file_path)}>
+            Download Separated Invoices
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}</div>
+
+                        <h3>Python Integration Example</h3>
+                        <div class="code-block" data-lang="Python">
+import requests
+import os
+
+class InvoiceProcessorClient:
+    def __init__(self, api_url):
+        self.api_url = api_url
+
+    def process_invoices(self, pdf_path, output_dir='./downloads'):
+        """Process PDF file to extract and separate invoices"""
+        
+        # Validate input file
+        if not os.path.exists(pdf_path):
+            raise FileNotFoundError(f"PDF file not found: {pdf_path}")
+            
+        if not pdf_path.lower().endswith('.pdf'):
+            raise ValueError("File must be a PDF")
+        
+        # Check file size (50MB limit)
+        file_size = os.path.getsize(pdf_path)
+        if file_size > 50 * 1024 * 1024:
+            raise ValueError("File too large (max 50MB)")
+        
+        try:
+            # Upload and process
+            with open(pdf_path, 'rb') as pdf_file:
+                files = {'file': pdf_file}
+                response = requests.post(
+                    f"{self.api_url}/invoice-processor",
+                    files=files,
+                    timeout=300  # 5 minute timeout for large files
+                )
+            
+            # Check response
+            response.raise_for_status()
+            result = response.json()
+            
+            if result['status'] != 'success':
+                raise Exception(f"Processing failed: {result.get('message', 'Unknown error')}")
+            
+            print(f"✅ Found {result['invoices_found']} invoices")
+            
+            # Download separated invoices
+            if result.get('file_path') and result['invoices_found'] > 0:
+                self.download_separated_invoices(result['file_path'], output_dir)
+            
+            return result
+            
+        except requests.RequestException as e:
+            raise Exception(f"API request failed: {str(e)}")
+    
+    def download_separated_invoices(self, file_path, output_dir):
+        """Download the ZIP file containing separated invoices"""
+        
+        # Create output directory if it doesn't exist
+        os.makedirs(output_dir, exist_ok=True)
+        
+        # Download the ZIP file
+        download_url = f"{self.api_url}/download/{file_path}"
+        response = requests.get(download_url, stream=True)
+        response.raise_for_status()
+        
+        # Save to local file
+        output_path = os.path.join(output_dir, 'separated_invoices.zip')
+        with open(output_path, 'wb') as f:
+            for chunk in response.iter_content(chunk_size=8192):
+                f.write(chunk)
+        
+        print(f"✅ Downloaded separated invoices to: {output_path}")
+        return output_path
+
+# Usage example
+if __name__ == "__main__":
+    client = InvoiceProcessorClient("https://your-api-url.com")
+    
+    try:
+        result = client.process_invoices("./invoices.pdf")
+        print(f"Processing complete! Found {result['invoices_found']} invoices.")
+    except Exception as e:
+        print(f"Error: {e}")</div>
+                    </div>
+
+                    <div id="security" class="tab-content">
+                        <h3>Security & Best Practices</h3>
+                        
+                        <div class="security-note">
+                            <strong>Security Features:</strong>
+                            <ul style="margin: 10px 0; padding-left: 20px;">
+                                <li>File type validation (PDF only)</li>
+                                <li>File size limits (50MB maximum)</li>
+                                <li>Invoice pattern validation (P/R + digits)</li>
+                                <li>Request timeout protection (5 minutes)</li>
+                                <li>Secure filename handling</li>
+                                <li>CORS configuration for browser security</li>
+                            </ul>
+                        </div>
+
+                        <h3>Integration Checklist</h3>
+                        <div class="integration-steps">
+                            <div class="integration-step">
+                                <h4>File Validation</h4>
+                                <p>Validate file types and sizes before upload</p>
+                                <div class="code-block" data-lang="JavaScript">
+// Client-side validation for invoice processing
+function validateInvoiceFile(pdfFile) {
+  if (!pdfFile || !pdfFile.name.toLowerCase().endsWith('.pdf')) {
+    throw new Error('Invalid PDF file');
+  }
+  
+  if (pdfFile.size > 50 * 1024 * 1024) {
+    throw new Error('PDF file too large (max 50MB)');
+  }
+  
+  if (pdfFile.size < 1024) {
+    throw new Error('PDF file too small (min 1KB)');
+  }
+  
+  return true;
+}</div>
+                            </div>
+                            
+                            <div class="integration-step">
+                                <h4>Error Handling</h4>
+                                <p>Implement comprehensive error handling</p>
+                                <div class="code-block" data-lang="JavaScript">
+// Error handling example
+async function apiCall(url, options) {
+  try {
+    const response = await fetch(url, options);
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || `HTTP ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('API call failed:', error);
+    // Show user-friendly error message
+    showErrorMessage('Processing failed. Please try again.');
+    throw error;
+  }
+}</div>
+                            </div>
+                            
+                            <div class="integration-step">
+                                <h4>Session Management</h4>
+                                <p>Handle session lifecycle properly</p>
+                                <div class="code-block" data-lang="JavaScript">
+// Request management for invoice processing
+class InvoiceRequestManager {
+  constructor(apiUrl) {
+    this.apiUrl = apiUrl;
+    this.activeRequests = new Set();
+  }
+
+  async processInvoices(pdfFile) {
+    // Validate file first
+    this.validateFile(pdfFile);
+    
+    const requestId = Date.now().toString();
+    this.activeRequests.add(requestId);
+    
+    try {
+      const formData = new FormData();
+      formData.append('file', pdfFile);
+      
+      const response = await fetch(`${this.apiUrl}/invoice-processor`, {
+        method: 'POST',
+        body: formData,
+        signal: AbortSignal.timeout(300000) // 5 minute timeout
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      return await response.json();
+    } finally {
+      this.activeRequests.delete(requestId);
+    }
+  }
+  
+  validateFile(file) {
+    if (!file?.name?.toLowerCase().endsWith('.pdf')) {
+      throw new Error('Only PDF files are allowed');
+    }
+    if (file.size > 50 * 1024 * 1024) {
+      throw new Error('File too large (max 50MB)');
+    }
+  }
+}</div>
+                            </div>
+                        </div>
+
+                        <h3>Production Deployment</h3>
+                        <div class="deployment-grid">
+                            <div class="deployment-item">
+                                <strong>Railway Optimized</strong>
+                                <p>Designed for Railway deployment</p>
+                            </div>
+                            <div class="deployment-item">
+                                <strong>Fast Processing</strong>
+                                <p>Efficient PDF parsing and splitting</p>
+                            </div>
+                            <div class="deployment-item">
+                                <strong>Health Monitoring</strong>
+                                <p>Built-in health check endpoint</p>
+                            </div>
+                            <div class="deployment-item">
+                                <strong>Pattern Recognition</strong>
+                                <p>Optimized invoice number detection</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Live Testing Mode Content -->
+        <div id="liveTestingMode" style="display: none;">
+            <div class="card">
+                <h2>Live API Testing</h2>
+                <p>Test the API with real files and see actual responses</p>
+                
+                <div class="api-info">
+                    <div>
+                        <h3>Test with Your PDF File</h3>
+                        <div class="file-upload" onclick="document.getElementById('invoicePdfInput').click()" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){document.getElementById('invoicePdfInput').click()}">
+                            <div id="invoicePdfStatus">Click to select PDF file with invoices</div>
+                            <input type="file" id="invoicePdfInput" accept=".pdf" style="display: none;" onchange="handleInvoiceFileSelect(this)" aria-label="Select PDF file with invoices">
+                        </div>
+                    </div>
+                    <div>
+                        <h3>Processing Progress</h3>
+                        <div class="progress-bar" role="progressbar" aria-label="Processing progress">
+                            <div class="progress-fill" id="progressFill"></div>
+                        </div>
+                        <div id="progressText" aria-live="polite">Ready to start...</div>
+                        
+                        <button class="button" id="startInvoiceProcessing" onclick="startInvoiceProcessing()" disabled>
+                            Separate Invoices
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+
+            <div class="card">
+                <h2>API Responses</h2>
+                <div id="responseContainer">
+                    <p>Start processing to see API responses...</p>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Activity Log</h2>
+                <div class="log-container" id="liveLogContainer" role="log" aria-label="Activity log" aria-live="polite"></div>
+                <button class="button secondary" onclick="clearLiveLog()">Clear Log</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let isLiveMode = false;
+        let selectedInvoiceFile = null;
+        let currentWorkflowStep = 'pdf_input'; // Track current workflow step
+        let workflowSteps = ['pdf_input', 'process', 'download'];
+        
+        // API Configuration
+        window.API_BASE_URL = '{{ api_url }}';
+        
+        // Enhanced logging function
+        function detailedLog(message, type = 'info', data = null) {
+            const timestamp = new Date().toLocaleTimeString();
+            console.log(`[${timestamp}] ${type.toUpperCase()}: ${message}`, data || '');
+            liveLog(message, type, data);
+            
+            // Also show critical errors in the UI
+            if (type === 'error') {
+                alert(`❌ Error: ${message}\n\nCheck console for details.`);
+            }
+        }
+
+        // Mode toggle functionality
+        function toggleMode() {
+            isLiveMode = !isLiveMode;
+            const toggle = document.getElementById('modeToggle');
+            const simLabel = document.getElementById('simLabel');
+            const realLabel = document.getElementById('realLabel');
+            const docMode = document.getElementById('documentationMode');
+            const liveMode = document.getElementById('liveTestingMode');
+            const processingMode = document.getElementById('processingMode');
+            const apiStatus = document.getElementById('apiStatus');
+            const apiUrl = document.getElementById('apiUrl');
+
+            if (isLiveMode) {
+                toggle.classList.add('active');
+                simLabel.classList.remove('active');
+                realLabel.classList.add('active');
+                docMode.style.display = 'none';
+                liveMode.style.display = 'block';
+                processingMode.innerHTML = 'Live Testing';
+                processingMode.className = 'status-indicator status-processing';
+                testAPIConnection();
+                // Start workflow heartbeat when entering live mode
+                updateWorkflowHeartbeat();
+            } else {
+                toggle.classList.remove('active');
+                simLabel.classList.add('active');
+                realLabel.classList.remove('active');
+                docMode.style.display = 'block';
+                liveMode.style.display = 'none';
+                processingMode.innerHTML = 'Documentation';
+                processingMode.className = 'status-indicator status-processing';
+                // Reset API status when switching to documentation mode
+                apiStatus.innerHTML = 'Disconnected';
+                apiStatus.className = 'status-indicator status-disconnected';
+                apiUrl.innerHTML = 'API: Not connected';
+            }
+        }
+
+        // Tab functionality
+        function showTab(tabName) {
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // Remove active class from all buttons
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.classList.remove('active');
+            });
+            
+            // Show selected tab and mark button as active
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        // API connection test
+        async function testAPIConnection() {
+            const apiStatus = document.getElementById('apiStatus');
+            const apiUrl = document.getElementById('apiUrl');
+            
+            detailedLog(`Testing API connection to ${window.API_BASE_URL}`, 'info');
+            
+            try {
+                const response = await fetch(`${window.API_BASE_URL}/health`, {
+                    method: 'GET',
+                    mode: 'cors'
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    apiStatus.innerHTML = 'Connected';
+                    apiStatus.className = 'status-indicator status-connected';
+                    apiUrl.innerHTML = `API: ${window.API_BASE_URL}`;
+                    
+                    detailedLog('Connected to invoice processing API', 'success', data);
+                    
+                    // Test invoice processor endpoint
+                    try {
+                        const invoiceResponse = await fetch(`${window.API_BASE_URL}/invoice-processor`, {
+                            method: 'GET',
+                            mode: 'cors'
+                        });
+                        if (invoiceResponse.ok) {
+                            const invoiceData = await invoiceResponse.json();
+                            detailedLog(`Invoice processor endpoint available`, 'info', invoiceData);
+                        }
+                    } catch (e) {
+                        detailedLog('Invoice processor endpoint not accessible', 'warning');
+                    }
+                } else {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+            } catch (error) {
+                apiStatus.innerHTML = 'Connection Failed';
+                apiStatus.className = 'status-indicator status-disconnected';
+                apiUrl.innerHTML = `API: ${window.API_BASE_URL} (FAILED)`;
+                detailedLog(`API connection failed: ${error.message}`, 'error');
+                
+                // Show troubleshooting info
+                console.error('Troubleshooting Info:', {
+                    'API_URL': window.API_BASE_URL,
+                    'Error': error.message,
+                    'Error_Stack': error.stack,
+                    'Check_1': 'Verify Railway deployment is running',
+                    'Check_2': 'Check CORS configuration',
+                    'Health_URL': `${window.API_BASE_URL}/health`,
+                    'Invoice_URL': `${window.API_BASE_URL}/invoice-processor`
+                });
+            }
+        }
+
+        // Live logging
+        function liveLog(message, type = 'info') {
+            const logContainer = document.getElementById('liveLogContainer');
+            const timestamp = new Date().toLocaleTimeString();
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            entry.innerHTML = `[${timestamp}] ${message}`;
+            logContainer.appendChild(entry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        function clearLiveLog() {
+            document.getElementById('liveLogContainer').innerHTML = '';
+            liveLog('Log cleared', 'info');
+        }
+
+        // Invoice file handling
+        function handleInvoiceFileSelect(input) {
+            const file = input.files[0];
+            if (file) {
+                selectedInvoiceFile = file;
+                const statusElement = document.getElementById('invoicePdfStatus');
+                statusElement.innerHTML = `PDF: ${file.name} (${(file.size / 1024 / 1024).toFixed(1)} MB)`;
+                liveLog(`Selected PDF: ${file.name}`, 'info');
+                
+                // Advance workflow to processing
+                advanceWorkflowStep('process');
+                
+                // Enable start button
+                document.getElementById('startInvoiceProcessing').disabled = false;
+            }
+        }
+
+        // Update progress
+        function updateProgress(percent, message) {
+            const progressFill = document.getElementById('progressFill');
+            const progressText = document.getElementById('progressText');
+            
+            progressFill.style.width = `${percent}%`;
+            progressText.textContent = message;
+            
+            liveLog(`Progress: ${percent}% - ${message}`, 'info');
+        }
+
+        // Show API response
+        function showAPIResponse(title, data, endpoint) {
+            const container = document.getElementById('responseContainer');
+            
+            const responseDiv = document.createElement('div');
+            responseDiv.className = 'response-viewer';
+            
+            // Format JSON with proper indentation and syntax highlighting
+            const formattedJson = formatJSON(data);
+            
+            responseDiv.innerHTML = `
+                <div class="response-header">${title}</div>
+                <div style="margin-bottom: 10px;">
+                    <strong>Endpoint:</strong> <code>${endpoint}</code>
+                </div>
+                <pre class="json-viewer"><code>${formattedJson}</code></pre>
+            `;
+            
+            container.appendChild(responseDiv);
+            
+            // Don't auto-scroll for API responses - let user control scrolling
+        }
+        
+        // Format JSON with syntax highlighting
+        function formatJSON(obj) {
+            const jsonString = JSON.stringify(obj, null, 2);
+            return jsonString
+                .replace(/"([^"]+)":/g, '<span class="json-key">"$1"</span>:')
+                .replace(/: "([^"]*)"/g, ': <span class="json-string">"$1"</span>')
+                .replace(/: (\d+)/g, ': <span class="json-number">$1</span>')
+                .replace(/: (true|false)/g, ': <span class="json-boolean">$1</span>')
+                .replace(/: null/g, ': <span class="json-null">null</span>');
+        }
+
+        // Main invoice processing function
+        async function startInvoiceProcessing() {
+            try {
+                updateProgress(0, 'Starting invoice processing...');
+                document.getElementById('startInvoiceProcessing').disabled = true;
+                
+                // 1. Prepare file upload
+                updateProgress(20, 'Uploading PDF file...');
+                const formData = new FormData();
+                formData.append('file', selectedInvoiceFile);
+
+                // 2. Upload and process in one step
+                updateProgress(50, 'Processing invoices...');
+                const response = await fetch(`${window.API_BASE_URL}/invoice-processor`, {
+                    method: 'POST',
+                    mode: 'cors',
+                    body: formData
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const result = await response.json();
+                
+                detailedLog(`✅ Invoice processing completed`, 'success', result);
+                showAPIResponse('Invoice Processing Results', result, 'POST /invoice-processor');
+                
+                if (result.status === 'success' && result.invoices_found > 0) {
+                    updateProgress(90, `Found ${result.invoices_found} invoices! Preparing download...`);
+                    liveLog(`Found ${result.invoices_found} invoices in the PDF`, 'success');
+                    
+                    // Enable download
+                    enableInvoiceDownload(result.file_path, result.invoices_found);
+                    updateProgress(100, 'Processing complete! Ready for download.');
+                    advanceWorkflowStep('download');
+                } else if (result.invoices_found === 0) {
+                    updateProgress(100, 'No invoices found in the PDF.');
+                    liveLog('No invoice numbers found in the PDF file', 'warning');
+                } else {
+                    throw new Error(result.message || 'Processing failed');
+                }
+
+            } catch (error) {
+                liveLog(`Invoice processing failed: ${error.message}`, 'error');
+                updateProgress(0, 'Processing failed');
+                document.getElementById('startInvoiceProcessing').disabled = false;
+            }
+        }
+
+
+        // Enable invoice download
+        function enableInvoiceDownload(filePath, invoiceCount) {
+            const responseContainer = document.getElementById('responseContainer');
+            const downloadDiv = document.createElement('div');
+            downloadDiv.className = 'response-viewer';
+            downloadDiv.id = 'downloadSection';
+            downloadDiv.innerHTML = `
+                <div class="response-header">
+                    <span class="direction-icon received">📥</span>
+                    <span class="response-title">Download Separated Invoices</span>
+                    <span class="direction-text">Ready for Download</span>
+                </div>
+                <div class="endpoint-info">
+                    <p>Found and separated ${invoiceCount} invoices! Click below to download the ZIP file.</p>
+                </div>
+                <button class="button success download-ready" onclick="downloadInvoices('${filePath}')" id="downloadBtn">
+                    Download ${invoiceCount} Separated Invoices
+                </button>
+                <div style="margin-top: 15px; padding: 8px; background: var(--surface-subtle); border-radius: 4px;">
+                    <strong>Download URL:</strong><br>
+                    <code>GET /download/${filePath}</code>
+                </div>
+            `;
+            responseContainer.appendChild(downloadDiv);
+        }
+
+        // Download invoice results
+        function downloadInvoices(filePath) {
+            const downloadUrl = `${window.API_BASE_URL}/download/${filePath}`;
+            window.open(downloadUrl);
+            liveLog('Invoice download initiated', 'success');
+        }
+
+        
+        // Workflow heartbeat management
+        function updateWorkflowHeartbeat() {
+            // Remove all workflow heartbeats first
+            document.querySelectorAll('.workflow-heartbeat').forEach(el => {
+                el.classList.remove('workflow-heartbeat');
+            });
+            
+            // Add heartbeat to current step
+            if (currentWorkflowStep === 'pdf_input' && !selectedInvoiceFile) {
+                const pdfUpload = document.querySelector('#invoicePdfStatus').parentElement;
+                if (pdfUpload) pdfUpload.classList.add('workflow-heartbeat');
+            } else if (currentWorkflowStep === 'process' && selectedInvoiceFile) {
+                const processBtn = document.getElementById('startInvoiceProcessing');
+                if (processBtn && !processBtn.disabled) processBtn.classList.add('workflow-heartbeat');
+            } else if (currentWorkflowStep === 'download') {
+                const downloadBtn = document.getElementById('downloadBtn');
+                if (downloadBtn) downloadBtn.classList.add('workflow-heartbeat');
+            }
+        }
+        
+        function advanceWorkflowStep(nextStep) {
+            currentWorkflowStep = nextStep;
+            updateWorkflowHeartbeat();
+        }
+        
+        // Mobile navigation toggle
+        function toggleMobileNav() {
+            const navLinks = document.querySelector('.nav-links');
+            navLinks.classList.toggle('open');
+        }
+        
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            detailedLog('🌐 Page loaded, testing API connection...', 'info');
+            showTab('overview');
+            testAPIConnection();
+            
+            // Initialize workflow heartbeat when switching to live mode
+            if (isLiveMode) {
+                updateWorkflowHeartbeat();
+            }
+            
+            // Close mobile nav when clicking outside
+            document.addEventListener('click', function(event) {
+                const navLinks = document.querySelector('.nav-links');
+                const toggle = document.querySelector('.mobile-nav-toggle');
+                
+                if (!navLinks.contains(event.target) && !toggle.contains(event.target)) {
+                    navLinks.classList.remove('open');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

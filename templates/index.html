@@ -5,65 +5,166 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document Processing Hub</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
-    <script>
-        // API Configuration
-        window.API_BASE_URL = '{{ api_url }}';
-    </script>
 </head>
 <body>
+    <!-- Navigation -->
+    <nav class="main-nav">
+        <div class="nav-container">
+            <a href="/" class="nav-brand">Document Processing Hub</a>
+            <div class="nav-links">
+                <a href="/" class="nav-link active">Home</a>
+                <a href="/monthly-statements" class="nav-link">Monthly Statements</a>
+                <a href="/invoice-separator" class="nav-link">Invoice Separator</a>
+            </div>
+            <button class="mobile-nav-toggle" onclick="toggleMobileNav()" aria-label="Toggle navigation">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+    </nav>
+
     <div class="container">
-        <div class="header">
-            <h1>Document Processing Hub</h1>
-            <p>Professional PDF Processing Solutions</p>
+        <!-- Page Header -->
+        <div class="page-header">
+            <h1 class="page-title">Document Processing Hub</h1>
+            <p class="page-subtitle">Professional PDF Processing Solutions</p>
         </div>
 
-        <div class="services-grid">
-            <div class="service-card">
-                <div class="service-icon">
-                    <span class="icon">📈</span>
+        <!-- Content Grid -->
+        <div class="content-grid">
+            <!-- API Status Section -->
+            <div class="content-section">
+                <h2 class="section-title">
+                    <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="m9 12 2 2 4-4"></path>
+                    </svg>
+                    System Status
+                </h2>
+                
+                <div class="status-grid">
+                    <div class="status-card">
+                        <h3>API Status</h3>
+                        <div id="apiStatus" class="status-indicator status-disconnected">
+                            Disconnected
+                        </div>
+                        <div id="apiUrl" class="api-url">
+                            API: Not connected
+                        </div>
+                    </div>
+                    <div class="status-card">
+                        <h3>Available Services</h3>
+                        <div id="processingMode" class="status-indicator status-processing">
+                            2 Services Ready
+                        </div>
+                    </div>
                 </div>
-                <h2>Monthly Statements</h2>
-                <p>Process and separate monthly PDF statements with AI-powered analysis</p>
-                <div class="service-features">
-                    <ul>
-                        <li>PDF statement analysis</li>
-                        <li>Excel DNM list integration</li>
-                        <li>Manual review system</li>
-                        <li>ZIP download results</li>
-                    </ul>
-                </div>
-                <a href="/monthly-statements" class="service-button">Process Statements</a>
             </div>
 
-            <div class="service-card">
-                <div class="service-icon">
-                    <span class="icon">📄</span>
-                </div>
-                <h2>Invoice Processor</h2>
-                <p>Split and organize invoices by extracting invoice numbers from PDFs</p>
-                <div class="service-features">
-                    <ul>
-                        <li>Invoice number extraction</li>
-                        <li>Automatic PDF splitting</li>
-                        <li>Batch processing</li>
-                        <li>Organized file output</li>
-                    </ul>
-                </div>
-                <a href="/invoice-processor" class="service-button">Process Invoices</a>
-            </div>
-        </div>
-
-        <div class="api-info">
-            <div class="api-status-card">
-                <h3>API Information</h3>
-                <p>Both services are available as REST APIs for integration</p>
-                <div class="api-links">
-                    <a href="{{ api_url }}/health" class="api-link" target="_blank">API Health</a>
-                    <a href="{{ api_url }}/logs" class="api-link" target="_blank">System Logs</a>
-                    <a href="{{ api_url }}/" class="api-link" target="_blank">API Root</a>
+            <!-- Services Section -->
+            <div class="content-section">
+                <h2 class="section-title">
+                    <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <folder x="2" y="3" width="20" height="18" rx="2" ry="2"></folder>
+                        <path d="m9 9 3 3 3-3"></path>
+                    </svg>
+                    Choose a Service
+                </h2>
+                
+                <div class="service-grid">
+                    <div class="service-card" onclick="window.location.href='/monthly-statements'" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){window.location.href='/monthly-statements'}">
+                        <div class="service-header">
+                            <div class="service-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+                                    <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
+                                    <polyline points="13,2 13,9 20,9"></polyline>
+                                </svg>
+                            </div>
+                            <h3 class="service-title">Monthly Statement Processor</h3>
+                        </div>
+                        <p class="service-description">Process PDF statements with DNM list integration and manual review system for accurate company categorization</p>
+                        <div class="service-features">
+                            <span class="feature-tag">PDF Analysis</span>
+                            <span class="feature-tag">DNM Matching</span>
+                            <span class="feature-tag">Manual Review</span>
+                        </div>
+                    </div>
+                    
+                    <div class="service-card" onclick="window.location.href='/invoice-separator'" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){window.location.href='/invoice-separator'}">
+                        <div class="service-header">
+                            <div class="service-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                    <polyline points="14,2 14,8 20,8"></polyline>
+                                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                                </svg>
+                            </div>
+                            <h3 class="service-title">Invoice Separator</h3>
+                        </div>
+                        <p class="service-description">Extract invoice numbers and split PDFs into separate organized files for easy management and distribution</p>
+                        <div class="service-features">
+                            <span class="feature-tag">Invoice Extraction</span>
+                            <span class="feature-tag">PDF Splitting</span>
+                            <span class="feature-tag">ZIP Download</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
+
+    <script>
+        // Global API configuration
+        window.API_BASE_URL = '{{ api_url }}';
+        
+        // Mobile navigation toggle
+        function toggleMobileNav() {
+            const navLinks = document.querySelector('.nav-links');
+            navLinks.classList.toggle('open');
+        }
+        
+        // API status checker
+        async function checkAPIStatus() {
+            const statusElement = document.getElementById('apiStatus');
+            const urlElement = document.getElementById('apiUrl');
+            
+            try {
+                const response = await fetch(`${window.API_BASE_URL}/health`);
+                const data = await response.json();
+                
+                if (data.status === 'healthy') {
+                    statusElement.textContent = 'Connected';
+                    statusElement.className = 'status-indicator status-connected';
+                    urlElement.textContent = `API: ${window.API_BASE_URL}`;
+                } else {
+                    throw new Error('API not healthy');
+                }
+            } catch (error) {
+                statusElement.textContent = 'Disconnected';
+                statusElement.className = 'status-indicator status-disconnected';
+                urlElement.textContent = `API: ${window.API_BASE_URL} (offline)`;
+            }
+        }
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            checkAPIStatus();
+            setInterval(checkAPIStatus, 30000);
+            
+            // Close mobile nav when clicking outside
+            document.addEventListener('click', function(event) {
+                const navLinks = document.querySelector('.nav-links');
+                const toggle = document.querySelector('.mobile-nav-toggle');
+                
+                if (!navLinks.contains(event.target) && !toggle.contains(event.target)) {
+                    navLinks.classList.remove('open');
+                }
+            });
+        });
+    </script>
 </body>
 </html>

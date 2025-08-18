@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document Processing Hub</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Document Processing Hub</h1>
+            <p>Professional PDF Processing Solutions</p>
+        </div>
+
+        <div class="services-grid">
+            <div class="service-card">
+                <div class="service-icon">
+                    <span class="icon">📈</span>
+                </div>
+                <h2>Monthly Statements</h2>
+                <p>Process and separate monthly PDF statements with AI-powered analysis</p>
+                <div class="service-features">
+                    <ul>
+                        <li>PDF statement analysis</li>
+                        <li>Excel DNM list integration</li>
+                        <li>Manual review system</li>
+                        <li>ZIP download results</li>
+                    </ul>
+                </div>
+                <a href="/monthly-statements" class="service-button">Process Statements</a>
+            </div>
+
+            <div class="service-card">
+                <div class="service-icon">
+                    <span class="icon">📄</span>
+                </div>
+                <h2>Invoice Processor</h2>
+                <p>Split and organize invoices by extracting invoice numbers from PDFs</p>
+                <div class="service-features">
+                    <ul>
+                        <li>Invoice number extraction</li>
+                        <li>Automatic PDF splitting</li>
+                        <li>Batch processing</li>
+                        <li>Organized file output</li>
+                    </ul>
+                </div>
+                <a href="/invoice-processor" class="service-button">Process Invoices</a>
+            </div>
+        </div>
+
+        <div class="api-info">
+            <div class="api-status-card">
+                <h3>API Information</h3>
+                <p>Both services are available as REST APIs for integration</p>
+                <div class="api-links">
+                    <a href="/health" class="api-link">API Health</a>
+                    <a href="/logs" class="api-link">System Logs</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

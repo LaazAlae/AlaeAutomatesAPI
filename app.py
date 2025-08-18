@@ -4,7 +4,7 @@ Real Statement Processing API - Uses actual statement_processor.py
 This processes your real PDF and Excel files!
 """
 
-from flask import Flask, jsonify, request, Response
+from flask import Flask, jsonify, request, Response, render_template
 import uuid
 import json
 import tempfile
@@ -12,9 +12,13 @@ import os
 import logging
 import sys
 from datetime import datetime
-from statement_processor import StatementProcessor
+from app.statement_processor import StatementProcessor
+from app.invoice_processor import invoice_processor_bp
 
 app = Flask(__name__)
+
+# Register blueprints
+app.register_blueprint(invoice_processor_bp, url_prefix='/invoice-processor')
 
 # Configure enterprise-grade logging
 logging.basicConfig(
@@ -43,12 +47,12 @@ def load_sessions():
                 fcntl.flock(f.fileno(), fcntl.LOCK_SH)
                 sessions = pickle.load(f)
                 fcntl.flock(f.fileno(), fcntl.LOCK_UN)
-            logger.info(f"📂 Loaded {len(sessions)} sessions from persistent storage")
+            logger.info(f"[STORAGE] Loaded {len(sessions)} sessions from persistent storage")
         else:
             sessions = {}
-            logger.info("📂 No persistent sessions found, starting fresh")
+            logger.info("[STORAGE] No persistent sessions found, starting fresh")
     except Exception as e:
-        logger.error(f"❌ Failed to load sessions: {e}")
+        logger.error(f"[ERROR] Failed to load sessions: {e}")
         sessions = {}
 
 def save_sessions():
@@ -58,24 +62,24 @@ def save_sessions():
             fcntl.flock(f.fileno(), fcntl.LOCK_EX)
             pickle.dump(sessions, f)
             fcntl.flock(f.fileno(), fcntl.LOCK_UN)
-        logger.debug(f"💾 Saved {len(sessions)} sessions to persistent storage")
+        logger.debug(f"[STORAGE] Saved {len(sessions)} sessions to persistent storage")
     except Exception as e:
-        logger.error(f"❌ Failed to save sessions: {e}")
+        logger.error(f"[ERROR] Failed to save sessions: {e}")
 
 def debug_sessions(action, session_id=None):
     """Debug helper to track session state"""
-    logger.info(f"🔍 SESSION DEBUG - {action}")
-    logger.info(f"📊 Total sessions: {len(sessions)}")
+    logger.info(f"[DEBUG] SESSION DEBUG - {action}")
+    logger.info(f"[INFO] Total sessions: {len(sessions)}")
     logger.info(f"🗂️  Session IDs: {list(sessions.keys())}")
     if session_id:
-        logger.info(f"🎯 Looking for: {session_id}")
-        logger.info(f"✅ Found: {session_id in sessions}")
+        logger.info(f"[SEARCH] Looking for: {session_id}")
+        logger.info(f"[RESULT] Found: {session_id in sessions}")
 
 # Load existing sessions on startup
 load_sessions()
 
 # Log startup
-logger.info("🚀 Statement Processing API starting up")
+logger.info("[STARTUP] Statement Processing API starting up")
 logger.info("📝 Logging configured - Check api.log for detailed logs")
 
 @app.after_request
@@ -87,12 +91,12 @@ def after_request(response):
 
 @app.before_request
 def log_request():
-    logger.info(f"📨 {request.method} {request.path} from {request.remote_addr}")
-    logger.info(f"📋 Content-Type: {request.content_type}")
+    logger.info(f"[REQUEST] {request.method} {request.path} from {request.remote_addr}")
+    logger.info(f"[REQUEST] Content-Type: {request.content_type}")
     if request.is_json and request.json:
-        logger.info(f"📋 Request body: {json.dumps(request.json, indent=2)}")
+        logger.info(f"[REQUEST] Request body: {json.dumps(request.json, indent=2)}")
     elif request.method == 'POST' and request.content_type and 'multipart' in request.content_type:
-        logger.info(f"📋 Multipart form data with files: {list(request.files.keys())}")
+        logger.info(f"[REQUEST] Multipart form data with files: {list(request.files.keys())}")
 
 # Add OPTIONS handler for CORS preflight
 @app.route('/api/v1/session', methods=['OPTIONS'])
@@ -107,7 +111,7 @@ def handle_options(session_id=None):
 
 @app.route('/health', methods=['GET'])
 def health():
-    logger.info("💚 Health check requested")
+    logger.info("[HEALTH] Health check requested")
     return jsonify({
         'status': 'healthy',
         'service': 'REAL Statement Processing API',
@@ -120,6 +124,14 @@ def health():
 
 @app.route('/', methods=['GET'])
 def root():
+    return render_template('index.html')
+
+@app.route('/monthly-statements', methods=['GET'])
+def monthly_statements():
+    return render_template('monthly_statements.html')
+
+@app.route('/api-info', methods=['GET'])
+def api_info():
     return jsonify({
         'service': 'REAL Statement Processing API',
         'status': 'running',
@@ -155,7 +167,7 @@ def get_logs():
             'showing': 0
         })
     except Exception as e:
-        logger.error(f"❌ Failed to read logs: {str(e)}")
+        logger.error(f"[ERROR] Failed to read logs: {str(e)}")
         return jsonify({'error': f'Failed to read logs: {str(e)}'}), 500
 
 @app.route('/api/v1/session', methods=['POST'])
@@ -175,8 +187,8 @@ def create_session():
     # Save sessions persistently
     save_sessions()
     
-    logger.info(f"🆕 Session created: {session_id}")
-    logger.info(f"📊 Total active sessions: {len(sessions)}")
+    logger.info(f"[SESSION] Session created: {session_id}")
+    logger.info(f"[INFO] Total active sessions: {len(sessions)}")
     debug_sessions("AFTER_CREATE", session_id)
     
     return jsonify({
@@ -189,22 +201,22 @@ def upload_files(session_id):
     # Load fresh sessions to get latest state from other workers
     load_sessions()
     
-    logger.info(f"📤 Upload request for session: {session_id}")
+    logger.info(f"[UPLOAD] Upload request for session: {session_id}")
     debug_sessions("BEFORE_UPLOAD_CHECK", session_id)
     
     if session_id not in sessions:
-        logger.error(f"❌ Session not found: {session_id}")
+        logger.error(f"[ERROR] Session not found: {session_id}")
         debug_sessions("SESSION_NOT_FOUND", session_id)
         return jsonify({'error': 'Session not found', 'session_id': session_id, 'available_sessions': list(sessions.keys())}), 404
     
     if 'pdf' not in request.files or 'excel' not in request.files:
-        logger.error(f"❌ Missing files. Available: {list(request.files.keys())}")
+        logger.error(f"[ERROR] Missing files. Available: {list(request.files.keys())}")
         return jsonify({'error': 'Both PDF and Excel files required', 'received_files': list(request.files.keys())}), 400
     
     pdf_file = request.files['pdf']
     excel_file = request.files['excel']
     
-    logger.info(f"📄 Received files: PDF={pdf_file.filename}, Excel={excel_file.filename}")
+    logger.info(f"[FILES] Received files: PDF={pdf_file.filename}, Excel={excel_file.filename}")
     
     # Save real files temporarily
     try:
@@ -229,8 +241,8 @@ def upload_files(session_id):
         # Save updated sessions
         save_sessions()
         
-        logger.info(f"✅ Files uploaded successfully for session {session_id}")
-        logger.info(f"📊 PDF size: {os.path.getsize(pdf_path)} bytes, Excel size: {os.path.getsize(excel_path)} bytes")
+        logger.info(f"[SUCCESS] Files uploaded successfully for session {session_id}")
+        logger.info(f"[INFO] PDF size: {os.path.getsize(pdf_path)} bytes, Excel size: {os.path.getsize(excel_path)} bytes")
         
         return jsonify({
             'status': 'success',
@@ -243,7 +255,7 @@ def upload_files(session_id):
         })
         
     except Exception as e:
-        logger.error(f"❌ File upload failed for session {session_id}: {str(e)}")
+        logger.error(f"[ERROR] File upload failed for session {session_id}: {str(e)}")
         return jsonify({'error': f'File upload failed: {str(e)}', 'session_id': session_id}), 500
 
 @app.route('/api/v1/session/<session_id>/process', methods=['POST'])
@@ -263,7 +275,7 @@ def process_statements(session_id):
         pdf_path = files['pdf_path']
         excel_path = files['excel_path']
         
-        print(f"🔍 REAL PROCESSING: {files['pdf_name']} + {files['excel_name']}")
+        print(f"[PROCESS] REAL PROCESSING: {files['pdf_name']} + {files['excel_name']}")
         
         # Create StatementProcessor with real files
         processor = StatementProcessor(pdf_path, excel_path)
@@ -291,7 +303,7 @@ def process_statements(session_id):
         # Save updated sessions
         save_sessions()
         
-        print(f"✅ REAL RESULTS: {len(statements)} statements, {len(questions)} questions")
+        print(f"[RESULTS] REAL RESULTS: {len(statements)} statements, {len(questions)} questions")
         
         return jsonify({
             'status': 'success',
@@ -302,7 +314,7 @@ def process_statements(session_id):
         })
         
     except Exception as e:
-        print(f"❌ Processing error: {e}")
+        print(f"[ERROR] Processing error: {e}")
         sessions[session_id]['status'] = 'error'
         save_sessions()  # Save error state
         return jsonify({'error': f'Processing failed: {str(e)}'}), 500
@@ -326,10 +338,10 @@ def get_questions(session_id):
 @app.route('/api/v1/session/<session_id>/answers', methods=['POST'])
 def submit_answers(session_id):
     load_sessions()  # Load fresh session state
-    logger.info(f"📝 Answers submission for session: {session_id}")
+    logger.info(f"[ANSWERS] Answers submission for session: {session_id}")
     
     if session_id not in sessions:
-        logger.error(f"❌ Session not found for answers: {session_id}")
+        logger.error(f"[ERROR] Session not found for answers: {session_id}")
         return jsonify({'error': 'Session not found'}), 404
     
     # Handle JSON payload safely
@@ -340,7 +352,7 @@ def submit_answers(session_id):
         # Fallback to form data if not JSON
         answers = dict(request.form)
     
-    logger.info(f"📝 Received {len(answers)} answers for session {session_id}")
+    logger.info(f"[INFO] Received {len(answers)} answers for session {session_id}")
     
     # Apply answers to real statements
     session_data = sessions[session_id]
@@ -492,7 +504,7 @@ def get_session_status(session_id):
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8000))
-    print("🚀 REAL Statement Processing API")
+    print("[API] REAL Statement Processing API")
     print(f"Port: {port}")
     print("Processing: ACTUAL PDF + Excel files")
     print(f"Health: http://localhost:{port}/health")

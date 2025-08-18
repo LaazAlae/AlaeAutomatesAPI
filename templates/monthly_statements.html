@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monthly Statements - Statement Processing API</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Monthly Statements Processor</h1>
+            <p>Professional Integration Hub for PDF Statement Processing</p>
+            
+            <div class="mode-toggle">
+                <span class="mode-label" id="simLabel">Documentation</span>
+                <div class="toggle-switch" id="modeToggle" onclick="toggleMode()" role="button" tabindex="0" aria-label="Toggle between documentation and live testing mode" onkeydown="if(event.key==='Enter'||event.key===' '){toggleMode()}">
+                    <div class="toggle-slider"></div>
+                </div>
+                <span class="mode-label" id="realLabel">Live Testing</span>
+            </div>
+            
+            <div class="api-info">
+                <div class="api-status-card">
+                    <h3>API Status</h3>
+                    <div id="apiStatus" class="status-indicator status-disconnected">
+                        Disconnected
+                    </div>
+                    <div id="apiUrl" class="api-url">
+                        API: Not connected
+                    </div>
+                </div>
+                <div class="mode-status-card">
+                    <h3>Current Mode</h3>
+                    <div id="processingMode" class="status-indicator status-processing">
+                        Documentation
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation -->
+        <div class="navigation">
+            <a href="/" class="nav-button">← Back to Home</a>
+            <a href="/invoice-processor" class="nav-button">Invoice Processor</a>
+        </div>
+
+        <!-- Documentation Mode Content -->
+        <div id="documentationMode">
+            <div class="card">
+                <h2>API Integration Guide</h2>
+                
+                <div class="tab-container">
+                    <div class="tab-buttons">
+                        <button class="tab-button active" onclick="showTab('overview')">Overview</button>
+                        <button class="tab-button" onclick="showTab('endpoints')">API Endpoints</button>
+                        <button class="tab-button" onclick="showTab('workflow')">Workflow</button>
+                        <button class="tab-button" onclick="showTab('examples')">Examples</button>
+                    </div>
+
+                    <div id="overview" class="tab-content active">
+                        <h3>Statement Processing Overview</h3>
+                        <p>The Statement Processing API allows you to upload PDF statements and Excel DNM (Do Not Mail) lists for automated processing and categorization.</p>
+                        
+                        <div class="feature-grid">
+                            <div class="feature-item">
+                                <h4>PDF Analysis</h4>
+                                <p>Extracts company information and statement details from PDF files</p>
+                            </div>
+                            <div class="feature-item">
+                                <h4>DNM Integration</h4>
+                                <p>Cross-references companies with your Excel DNM list</p>
+                            </div>
+                            <div class="feature-item">
+                                <h4>Manual Review</h4>
+                                <p>Prompts for manual decisions on ambiguous cases</p>
+                            </div>
+                            <div class="feature-item">
+                                <h4>ZIP Downloads</h4>
+                                <p>Provides organized results in downloadable ZIP format</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="endpoints" class="tab-content">
+                        <h3>API Endpoints</h3>
+                        <div class="endpoint-list">
+                            <div class="endpoint">
+                                <span class="method post">POST</span>
+                                <span class="path">/api/v1/session</span>
+                                <span class="description">Create processing session</span>
+                            </div>
+                            <div class="endpoint">
+                                <span class="method post">POST</span>
+                                <span class="path">/api/v1/session/{id}/upload</span>
+                                <span class="description">Upload PDF and Excel files</span>
+                            </div>
+                            <div class="endpoint">
+                                <span class="method post">POST</span>
+                                <span class="path">/api/v1/session/{id}/process</span>
+                                <span class="description">Process uploaded files</span>
+                            </div>
+                            <div class="endpoint">
+                                <span class="method get">GET</span>
+                                <span class="path">/api/v1/session/{id}/questions</span>
+                                <span class="description">Get manual review questions</span>
+                            </div>
+                            <div class="endpoint">
+                                <span class="method post">POST</span>
+                                <span class="path">/api/v1/session/{id}/answers</span>
+                                <span class="description">Submit manual review answers</span>
+                            </div>
+                            <div class="endpoint">
+                                <span class="method get">GET</span>
+                                <span class="path">/api/v1/session/{id}/download</span>
+                                <span class="description">Download processed results</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="workflow" class="tab-content">
+                        <h3>Processing Workflow</h3>
+                        <div class="workflow-steps">
+                            <div class="step">
+                                <span class="step-number">1</span>
+                                <div class="step-content">
+                                    <h4>Create Session</h4>
+                                    <p>Initialize a new processing session</p>
+                                </div>
+                            </div>
+                            <div class="step">
+                                <span class="step-number">2</span>
+                                <div class="step-content">
+                                    <h4>Upload Files</h4>
+                                    <p>Upload PDF statement and Excel DNM list</p>
+                                </div>
+                            </div>
+                            <div class="step">
+                                <span class="step-number">3</span>
+                                <div class="step-content">
+                                    <h4>Process</h4>
+                                    <p>Analyze PDF and cross-reference with DNM list</p>
+                                </div>
+                            </div>
+                            <div class="step">
+                                <span class="step-number">4</span>
+                                <div class="step-content">
+                                    <h4>Review Questions</h4>
+                                    <p>Handle manual review cases if needed</p>
+                                </div>
+                            </div>
+                            <div class="step">
+                                <span class="step-number">5</span>
+                                <div class="step-content">
+                                    <h4>Download Results</h4>
+                                    <p>Get organized PDF splits and processing logs</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="examples" class="tab-content">
+                        <h3>Code Examples</h3>
+                        <div class="code-example">
+                            <h4>JavaScript Integration</h4>
+                            <pre><code>// Create session
+const response = await fetch('/api/v1/session', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' }
+});
+const { session_id } = await response.json();
+
+// Upload files
+const formData = new FormData();
+formData.append('pdf', pdfFile);
+formData.append('excel', excelFile);
+
+await fetch(`/api/v1/session/${session_id}/upload`, {
+    method: 'POST',
+    body: formData
+});
+
+// Process files
+await fetch(`/api/v1/session/${session_id}/process`, {
+    method: 'POST'
+});</code></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Live Testing Mode Content -->
+        <div id="liveMode" style="display: none;">
+            <div class="card">
+                <h2>Live Testing Interface</h2>
+                <div class="testing-interface">
+                    <div class="session-management">
+                        <button id="createSessionBtn" class="primary-button">Create Session</button>
+                        <div id="sessionInfo" class="session-info"></div>
+                    </div>
+
+                    <div id="uploadSection" class="upload-section" style="display: none;">
+                        <h3>Upload Files</h3>
+                        <div class="file-upload-area">
+                            <div class="file-input-group">
+                                <label for="pdfFile">PDF Statement:</label>
+                                <input type="file" id="pdfFile" accept=".pdf" required>
+                            </div>
+                            <div class="file-input-group">
+                                <label for="excelFile">Excel DNM List:</label>
+                                <input type="file" id="excelFile" accept=".xlsx,.xls" required>
+                            </div>
+                            <button id="uploadBtn" class="primary-button">Upload Files</button>
+                        </div>
+                    </div>
+
+                    <div id="processSection" class="process-section" style="display: none;">
+                        <h3>Process Files</h3>
+                        <button id="processBtn" class="primary-button">Start Processing</button>
+                        <div id="processingStatus" class="status-display"></div>
+                    </div>
+
+                    <div id="reviewSection" class="review-section" style="display: none;">
+                        <h3>Manual Review</h3>
+                        <div id="questionsList" class="questions-container"></div>
+                        <button id="submitAnswersBtn" class="primary-button" style="display: none;">Submit Answers</button>
+                    </div>
+
+                    <div id="downloadSection" class="download-section" style="display: none;">
+                        <h3>Download Results</h3>
+                        <button id="downloadBtn" class="primary-button">Download ZIP</button>
+                    </div>
+                </div>
+
+                <div id="responseDisplay" class="response-display">
+                    <h3>API Response</h3>
+                    <pre id="responseContent"></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/monthly-statements.js') }}"></script>
+</body>
+</html>

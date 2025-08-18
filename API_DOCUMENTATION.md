@@ -1,10 +1,16 @@
-# 📋 Statement Processing API - Complete Documentation
+# Document Processing API - Complete Documentation
 
-## 🎯 **What This API Does**
+## **What This API Does**
 
-This API processes PDF bank statements and matches company names against a Do Not Mail (DNM) list from an Excel file. It automatically extracts company information from PDF pages and determines which companies should be excluded from mailings.
+This API provides two main services:
 
-### **Core Functionality:**
+### Statement Processing
+Processes PDF bank statements and matches company names against a Do Not Mail (DNM) list from an Excel file. It automatically extracts company information from PDF pages and determines which companies should be excluded from mailings.
+
+### Invoice Processing  
+Extracts invoice numbers from PDF files and splits them into separate documents based on invoice number patterns (P/R followed by 6-8 digits).
+
+### **Statement Processing Features:**
 - **Extracts company names** from PDF bank statements using OCR and text parsing
 - **Matches companies** against DNM Excel list using fuzzy string matching
 - **Splits PDF statements** by company destination (DNM, Foreign, etc.)
@@ -12,7 +18,14 @@ This API processes PDF bank statements and matches company names against a Do No
 - **Optimized performance** - O(n) time complexity with pre-compiled regex patterns
 - **Production ready** - Error handling, memory management, CORS support
 
-## 🏗️ **Architecture Overview**
+### **Invoice Processing Features:**
+- **Extracts invoice numbers** from PDF files using regex patterns
+- **Splits PDFs** into separate files by invoice number
+- **Batch processing** for multiple invoices in one file
+- **ZIP download** of separated invoice files
+- **Error handling** for files without invoice numbers
+
+## **Architecture Overview**
 
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
@@ -178,6 +191,53 @@ GET /api/v1/session/{session_id}/status
     "statements_count": 150,
     "questions_count": 12
   }
+}
+```
+
+## **Invoice Processor API Endpoints**
+
+### **1. Upload and Process Invoice**
+```http
+POST /invoice-processor/
+Content-Type: multipart/form-data
+```
+**Form Data:**
+- `file`: PDF file containing invoices
+
+**Response:**
+```json
+{
+  "message": "Invoices separated successfully. Find PDF files in your downloads.",
+  "success": true,
+  "zip_filename": "invoice_file.zip"
+}
+```
+
+### **2. Download Separated Invoices**
+```http
+GET /invoice-processor/downloads/{zip_filename}
+```
+**Response:** ZIP file download containing separated invoice PDFs
+
+### **3. Clear Results**
+```http
+POST /invoice-processor/clear_results
+```
+**Response:**
+```json
+{
+  "status": "success"
+}
+```
+
+### **4. Delete All Results**
+```http
+POST /invoice-processor/delete_separate_results
+```
+**Response:**
+```json
+{
+  "status": "success"
 }
 ```
 

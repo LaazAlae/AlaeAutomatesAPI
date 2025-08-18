@@ -29,7 +29,7 @@ A professional Flask-based backend API for processing PDF documents with two mai
 ## Quick Start
 
 ### Backend Setup (Deploy to Railway)
-1. Deploy `app.py` to Railway
+1. Deploy `main.py` to Railway
 2. Set environment variables if needed
 3. Your API will be available at `https://your-app.railway.app`
 
@@ -51,7 +51,7 @@ python start_frontend.py
 ### Manual Setup
 ```bash
 # Backend only (API endpoints)
-python app.py
+python main.py
 
 # Frontend demo (in another terminal)
 API_URL=https://your-railway-app.railway.app python frontend_demo.py
@@ -60,16 +60,21 @@ API_URL=https://your-railway-app.railway.app python frontend_demo.py
 ## File Structure
 
 ```
+main.py                      # Backend API (Railway deployment)
+frontend_demo.py             # Frontend demo server (local only)
+start_frontend.py            # Quick start script
 app/
-├── statement_processor.py    # Statement processing logic
-└── invoice_processor.py      # Invoice processing logic
+├── statement_processor.py   # Statement processing logic
+└── invoice_processor.py     # Invoice processing logic  
 templates/
 ├── index.html               # Homepage
 ├── monthly_statements.html  # Statement processing interface  
 └── invoice_processor.html   # Invoice processing interface
 static/
-└── css/
-    └── styles.css           # Application styles
+├── css/
+│   └── styles.css          # Application styles
+└── js/
+    └── api-client.js       # JavaScript API client
 ```
 
 ## API Endpoints

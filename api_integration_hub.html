@@ -671,6 +671,8 @@ class SessionManager {
         let currentSessionId = null;
         let selectedFiles = { pdf: null, excel: null };
         let userAnswers = {};
+        let currentWorkflowStep = 'pdf_input'; // Track current workflow step
+        let workflowSteps = ['pdf_input', 'excel_input', 'process', 'manual_review', 'download'];
         
         // API Configuration
         const API_BASE_URL = 'https://web-production-7ca0.up.railway.app';
@@ -708,6 +710,8 @@ class SessionManager {
                 processingMode.innerHTML = 'Live Testing';
                 processingMode.className = 'status-indicator status-processing';
                 testAPIConnection();
+                // Start workflow heartbeat when entering live mode
+                updateWorkflowHeartbeat();
             } else {
                 toggle.classList.remove('active');
                 simLabel.classList.add('active');
@@ -821,6 +825,13 @@ class SessionManager {
                 statusElement.innerHTML = `${fileType}: ${file.name} (${(file.size / 1024 / 1024).toFixed(1)} MB)`;
                 liveLog(`Selected ${type.toUpperCase()}: ${file.name}`, 'info');
                 
+                // Advance workflow based on file type
+                if (type === 'pdf') {
+                    advanceWorkflowStep('excel_input');
+                } else if (type === 'excel' && selectedFiles.pdf) {
+                    advanceWorkflowStep('process');
+                }
+                
                 // Enable start button if both files selected
                 if (selectedFiles.pdf && selectedFiles.excel) {
                     document.getElementById('startProcessing').disabled = false;
@@ -859,10 +870,7 @@ class SessionManager {
             
             container.appendChild(responseDiv);
             
-            // Scroll to the new response (only if not in modal mode)
-            if (!document.getElementById('manualReviewModal') || document.getElementById('manualReviewModal').style.display === 'none') {
-                responseDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            }
+            // Don't auto-scroll for API responses - let user control scrolling
         }
         
         // Format JSON with syntax highlighting
@@ -938,9 +946,11 @@ class SessionManager {
                     showAPIResponse('Manual Review Questions', questionsData, `GET /api/v1/session/{id}/questions`);
                     showQuestions(questionsData.questions);
                     updateProgress(90, 'Manual review required - click button below to review');
+                    advanceWorkflowStep('manual_review');
                 } else {
                     updateProgress(100, 'Processing complete! Ready for download.');
                     enableDownload();
+                    advanceWorkflowStep('download');
                 }
 
             } catch (error) {
@@ -1189,12 +1199,24 @@ class SessionManager {
                 
                 updateProgress(100, 'Processing complete! Ready for download.');
                 enableDownload();
+                advanceWorkflowStep('download');
                 
                 // Update the manual review button to show completion
                 updateManualReviewButtonState();
                 
                 // Close modal if open
                 closeManualReviewModal();
+                
+                // Add extra scroll to download after a brief delay
+                setTimeout(() => {
+                    const downloadSection = document.getElementById('downloadSection');
+                    if (downloadSection) {
+                        downloadSection.scrollIntoView({ 
+                            behavior: 'smooth', 
+                            block: 'center' 
+                        });
+                    }
+                }, 1000);
                 
             } catch (error) {
                 liveLog(`Answer submission failed: ${error.message}`, 'error');
@@ -1215,18 +1237,27 @@ class SessionManager {
             const responseContainer = document.getElementById('responseContainer');
             const downloadDiv = document.createElement('div');
             downloadDiv.className = 'response-viewer';
+            downloadDiv.id = 'downloadSection';
             downloadDiv.innerHTML = `
-                <div class="response-header">📥 Download Results</div>
-                <p>Processing complete! Click below to download your results.</p>
-                <button class="button success" onclick="downloadResults()">
+                <div class="response-header">
+                    <span class="direction-icon received">📥</span>
+                    <span class="response-title">Download Results</span>
+                    <span class="direction-text">Ready for Download</span>
+                </div>
+                <div class="endpoint-info">
+                    <p>Processing complete! Click below to download your results.</p>
+                </div>
+                <button class="button success download-ready" onclick="downloadResults()" id="downloadBtn">
                     Download ZIP File
                 </button>
-                <div style="margin-top: 15px;">
+                <div style="margin-top: 15px; padding: 8px; background: var(--surface-subtle); border-radius: 4px;">
                     <strong>Download URL:</strong><br>
                     <code>GET /api/v1/session/${currentSessionId}/download</code>
                 </div>
             `;
             responseContainer.appendChild(downloadDiv);
+            
+            // Download section ready - will auto-scroll only after manual review is complete
         }
 
         // Download results
@@ -1254,12 +1285,45 @@ class SessionManager {
             }
         });
         
+        // Workflow heartbeat management
+        function updateWorkflowHeartbeat() {
+            // Remove all workflow heartbeats first
+            document.querySelectorAll('.workflow-heartbeat').forEach(el => {
+                el.classList.remove('workflow-heartbeat');
+            });
+            
+            // Add heartbeat to current step
+            if (currentWorkflowStep === 'pdf_input' && !selectedFiles.pdf) {
+                const pdfUpload = document.querySelector('#pdfStatus').parentElement;
+                if (pdfUpload) pdfUpload.classList.add('workflow-heartbeat');
+            } else if (currentWorkflowStep === 'excel_input' && selectedFiles.pdf && !selectedFiles.excel) {
+                const excelUpload = document.querySelector('#excelStatus').parentElement;
+                if (excelUpload) excelUpload.classList.add('workflow-heartbeat');
+            } else if (currentWorkflowStep === 'process' && selectedFiles.pdf && selectedFiles.excel) {
+                const processBtn = document.getElementById('startProcessing');
+                if (processBtn && !processBtn.disabled) processBtn.classList.add('workflow-heartbeat');
+            } else if (currentWorkflowStep === 'manual_review') {
+                const reviewBtn = document.getElementById('manualReviewBtn');
+                if (reviewBtn && reviewBtn.style.display !== 'none') reviewBtn.classList.add('workflow-heartbeat');
+            } else if (currentWorkflowStep === 'download') {
+                const downloadBtn = document.getElementById('downloadBtn');
+                if (downloadBtn) downloadBtn.classList.add('workflow-heartbeat');
+            }
+        }
+        
+        function advanceWorkflowStep(nextStep) {
+            currentWorkflowStep = nextStep;
+            updateWorkflowHeartbeat();
+        }
+        
         // Initialize page
         document.addEventListener('DOMContentLoaded', function() {
             // Auto-test API connection if in live mode
             if (isLiveMode) {
                 testAPIConnection();
             }
+            // Start workflow heartbeat on PDF input
+            updateWorkflowHeartbeat();
         });
         
         // Initialize on page load
@@ -1267,6 +1331,10 @@ class SessionManager {
             detailedLog('🌐 Page loaded, testing API connection...', 'info');
             showTab('overview');
             testAPIConnection();
+            // Initialize workflow heartbeat when switching to live mode
+            if (isLiveMode) {
+                updateWorkflowHeartbeat();
+            }
         });
     </script>
 </body>

@@ -147,7 +147,7 @@ def upload_file():
                     'success': True,
                     'message': message,
                     'zip_filename': zip_filename,
-                    'download_url': f'/invoice-processor/downloads/{zip_filename}'
+                    'download_url': f'/api/invoice-processor/downloads/{zip_filename}'
                 })
         else:
             logging.info("File is not allowed or not a PDF.")

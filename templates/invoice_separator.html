@@ -879,6 +879,17 @@ class InvoiceRequestManager {
                     enableInvoiceDownload(result.zip_filename, result.download_url);
                     updateProgress(100, 'Processing complete! Ready for download.');
                     advanceWorkflowStep('download');
+                    
+                    // Auto-scroll to download section
+                    setTimeout(() => {
+                        const downloadSection = document.getElementById('downloadSection');
+                        if (downloadSection) {
+                            downloadSection.scrollIntoView({ 
+                                behavior: 'smooth', 
+                                block: 'center' 
+                            });
+                        }
+                    }, 500);
                 } else if (result.success === false) {
                     updateProgress(100, 'Processing failed.');
                     liveLog(result.message || 'Processing failed', 'warning');

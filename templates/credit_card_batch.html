@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Credit Card Batch - Integration Hub</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="main-nav">
+        <div class="nav-container">
+            <a href="/" class="nav-brand">AlaeAutomates <span style="font-size: 0.8em; opacity: 0.7; font-weight: 300;">API</span></a>
+            <div class="nav-links">
+                <a href="/" class="nav-link">Home</a>
+                <a href="/monthly-statements" class="nav-link">Monthly Statements</a>
+                <a href="/invoice-separator" class="nav-link">Invoice Separator</a>
+                <a href="/credit-card-batch" class="nav-link active">Credit Card Batch</a>
+            </div>
+            <button class="mobile-nav-toggle" onclick="toggleMobileNav()" aria-label="Toggle navigation">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- Page Header -->
+        <div class="page-header">
+            <h1 class="page-title">Credit Card Batch Automation</h1>
+            <p class="page-subtitle">Professional Integration Hub for Credit Card Batch Processing</p>
+            
+            <div class="mode-toggle">
+                <span class="mode-label" id="simLabel">Documentation</span>
+                <div class="toggle-switch" id="modeToggle" onclick="toggleMode()" role="button" tabindex="0" aria-label="Toggle between documentation and live testing mode" onkeydown="if(event.key==='Enter'||event.key===' '){toggleMode()}">
+                    <div class="toggle-slider"></div>
+                </div>
+                <span class="mode-label" id="realLabel">Live Testing</span>
+            </div>
+        </div>
+        
+        <!-- Status Section -->
+        <div class="content-section">
+            <h2 class="section-title">
+                <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <path d="m9 12 2 2 4-4"></path>
+                </svg>
+                System Status
+            </h2>
+            
+            <div class="status-grid">
+                <div class="status-card">
+                    <h3>API Status</h3>
+                    <div id="apiStatus" class="status-indicator status-disconnected">
+                        Disconnected
+                    </div>
+                    <div id="apiUrl" class="api-url">
+                        API: Not connected
+                    </div>
+                </div>
+                <div class="status-card">
+                    <h3>Current Mode</h3>
+                    <div id="processingMode" class="status-indicator status-processing">
+                        Documentation
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Documentation Mode Content -->
+        <div id="documentationMode">
+            <div class="content-section">
+                <h2 class="section-title">
+                    <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <book-open x="2" y="3" width="20" height="18" rx="2" ry="2"></book-open>
+                        <path d="m6 8 4 4 4-4"></path>
+                    </svg>
+                    API Integration Guide
+                </h2>
+                
+                <div class="tab-container">
+                    <div class="tab-buttons">
+                        <button class="tab-button active" onclick="showTab('overview')">Overview</button>
+                        <button class="tab-button" onclick="showTab('endpoints')">API Endpoints</button>
+                        <button class="tab-button" onclick="showTab('workflow')">Workflow</button>
+                        <button class="tab-button" onclick="showTab('examples')">Code Examples</button>
+                        <button class="tab-button" onclick="showTab('security')">Security</button>
+                    </div>
+
+                    <div id="overview" class="tab-content active">
+                        <h3>Overview</h3>
+                        <p class="overview-description">Processes Excel files with credit card data and generates enhanced JavaScript automation code for legacy Edge browsers.</p>
+                        
+                        <div class="feature-grid">
+                            <div class="feature-item">
+                                <h4>Excel Processing</h4>
+                                <p>Automatically processes raw Excel files, removing headers and totals</p>
+                            </div>
+                            <div class="feature-item">
+                                <h4>Data Cleaning</h4>
+                                <p>Implements VBA macro functionality for data standardization</p>
+                            </div>
+                            <div class="feature-item">
+                                <h4>Safe Automation</h4>
+                                <p>Enhanced JavaScript with visibility checks and error handling</p>
+                            </div>
+                            <div class="feature-item">
+                                <h4>Legacy Compatible</h4>
+                                <p>Optimized for Legacy Edge with improved performance</p>
+                            </div>
+                        </div>
+
+                        <div class="security-note">
+                            <strong>Performance:</strong> Robust automation with element visibility verification, no sequential delays, and built-in safety checks.
+                        </div>
+
+                        <h3>Processing Flow</h3>
+                        <div class="integration-steps">
+                            <div class="integration-step">
+                                <h4>Upload Excel File</h4>
+                                <p>Upload raw Excel file with credit card data</p>
+                            </div>
+                            <div class="integration-step">
+                                <h4>Automatic Processing</h4>
+                                <p>API cleans data and removes headers/totals automatically</p>
+                            </div>
+                            <div class="integration-step">
+                                <h4>Code Generation</h4>
+                                <p>Generates enhanced JavaScript automation code</p>
+                            </div>
+                            <div class="integration-step">
+                                <h4>Legacy Edge Deployment</h4>
+                                <p>Copy code to console and run step-by-step automation</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="endpoints" class="tab-content">
+                        <h3>API Endpoints</h3>
+                        
+                        <div class="endpoint-card">
+                            <span class="endpoint-method method-get">GET</span>
+                            <strong>/health</strong>
+                            <p>Check API health and status</p>
+                            <div class="code-block" data-lang="Response">
+{
+  "status": "healthy",
+  "service": "AlaeAutomates API",
+  "version": "3.0"
+}</div>
+                        </div>
+
+                        <div class="endpoint-card">
+                            <span class="endpoint-method method-post">POST</span>
+                            <strong>/api/credit-card-batch</strong>
+                            <p>Process Excel file and generate automation code</p>
+                            <div class="code-block" data-lang="FormData">
+FormData:
+- file: Excel file (.xlsx or .xls)</div>
+                            <div class="code-block" data-lang="Response">
+{
+  "success": true,
+  "message": "Successfully processed 25 records",
+  "records_count": 25,
+  "data_preview": [
+    {
+      "invoiceNumber": "R130587",
+      "cardPaymentMethod": "AMEX-1006",
+      "settlementAmount": "105.00",
+      "customer": "Wanyi Yang"
+    }
+  ],
+  "automation_code": "// Enhanced JavaScript code..."
+}</div>
+                        </div>
+                    </div>
+
+                    <div id="workflow" class="tab-content">
+                        <h3>Integration Workflow</h3>
+                        
+                        <div class="code-block" data-lang="JavaScript">
+// Complete workflow example
+class CreditCardBatchProcessor {
+  constructor(apiUrl) {
+    this.apiUrl = apiUrl;
+  }
+
+  async processExcelFile(excelFile) {
+    try {
+      // Upload and process Excel file
+      const formData = new FormData();
+      formData.append('file', excelFile);
+
+      const response = await fetch(`${this.apiUrl}/api/credit-card-batch`, {
+        method: 'POST',
+        mode: 'cors',
+        body: formData
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Processing failed');
+      }
+
+      // Show data preview
+      console.log(`Processed ${result.records_count} records`);
+      console.log('Preview:', result.data_preview);
+
+      // Return automation code for console deployment
+      return result.automation_code;
+      
+    } catch (error) {
+      console.error('Processing failed:', error);
+      throw error;
+    }
+  }
+
+  deployToConsole(automationCode) {
+    // Copy to clipboard for console deployment
+    navigator.clipboard.writeText(automationCode).then(() => {
+      console.log('✅ Code copied to clipboard!');
+      console.log('📋 Paste in Legacy Edge console and type run()');
+    });
+  }
+}</div>
+
+                        <h3>Frontend Integration Tips</h3>
+                        <div class="tip-grid">
+                            <div class="tip-item">
+                                <strong>File Validation</strong>
+                                <p>Validate Excel files before upload (.xlsx, .xls)</p>
+                            </div>
+                            <div class="tip-item">
+                                <strong>Progress Feedback</strong>
+                                <p>Show processing status and record count</p>
+                            </div>
+                            <div class="tip-item">
+                                <strong>Code Deployment</strong>
+                                <p>Provide copy-to-clipboard functionality</p>
+                            </div>
+                            <div class="tip-item">
+                                <strong>Error Handling</strong>
+                                <p>Handle file format and processing errors gracefully</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="examples" class="tab-content">
+                        <h3>React Integration Example</h3>
+                        <div class="code-block" data-lang="React">
+import React, { useState } from 'react';
+
+function CreditCardBatchProcessor() {
+  const [processing, setProcessing] = useState(false);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState(null);
+
+  const processFile = async (file) => {
+    setProcessing(true);
+    setError(null);
+    
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const response = await fetch('/api/credit-card-batch', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      if (!data.success) {
+        throw new Error(data.error);
+      }
+
+      setResult(data);
+      
+      // Auto-copy code to clipboard
+      navigator.clipboard.writeText(data.automation_code);
+      
+    } catch (error) {
+      setError(error.message);
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  return (
+    <div className="credit-card-processor">
+      <input
+        type="file" 
+        accept=".xlsx,.xls" 
+        onChange={(e) => processFile(e.target.files[0])}
+        disabled={processing}
+      />
+      
+      {processing && <div>Processing Excel file...</div>}
+      {error && <div className="error">{error}</div>}
+      {result && (
+        <div className="result">
+          <h3>Processing Complete!</h3>
+          <p>Processed {result.records_count} records</p>
+          <p>✅ Automation code copied to clipboard</p>
+          <button onClick={() => navigator.clipboard.writeText(result.automation_code)}>
+            Copy Code Again
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}</div>
+
+                        <h3>Python Integration Example</h3>
+                        <div class="code-block" data-lang="Python">
+import requests
+
+class CreditCardBatchClient:
+    def __init__(self, api_url):
+        self.api_url = api_url
+
+    def process_excel_file(self, file_path):
+        with open(file_path, 'rb') as file:
+            files = {'file': file}
+            
+            response = requests.post(
+                f"{self.api_url}/api/credit-card-batch",
+                files=files
+            )
+            
+            if response.status_code != 200:
+                raise Exception(f"API Error: {response.status_code}")
+            
+            data = response.json()
+            
+            if not data['success']:
+                raise Exception(f"Processing Error: {data.get('error')}")
+            
+            print(f"✅ Processed {data['records_count']} records")
+            
+            # Save automation code to file
+            with open('automation_code.js', 'w') as f:
+                f.write(data['automation_code'])
+            
+            return data
+
+# Usage Example
+client = CreditCardBatchClient('https://alaeautomatesapi.up.railway.app')
+result = client.process_excel_file('credit_card_data.xlsx')
+print("Automation code saved to automation_code.js")</div>
+                    </div>
+
+                    <div id="security" class="tab-content">
+                        <h3>Security & Best Practices</h3>
+                        
+                        <div class="security-note">
+                            <strong>Enhanced Security Features:</strong>
+                            <ul style="margin: 10px 0; padding-left: 20px;">
+                                <li>Element visibility verification before interaction</li>
+                                <li>Safe click and fill functions with error handling</li>
+                                <li>Timeout protection for element waiting</li>
+                                <li>Robust page detection and state management</li>
+                                <li>Legacy Edge compatibility with modern safety checks</li>
+                                <li>Automatic file validation and data cleaning</li>
+                            </ul>
+                        </div>
+
+                        <h3>Integration Checklist</h3>
+                        <div class="integration-steps">
+                            <div class="integration-step">
+                                <h4>File Validation</h4>
+                                <p>Validate Excel file format and size before upload</p>
+                                <div class="code-block" data-lang="JavaScript">
+// Client-side validation
+function validateExcelFile(file) {
+  const allowedTypes = [
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'application/vnd.ms-excel'
+  ];
+  
+  if (!allowedTypes.includes(file.type)) {
+    throw new Error('Please upload Excel file (.xlsx or .xls)');
+  }
+  
+  if (file.size > 10 * 1024 * 1024) { // 10MB limit
+    throw new Error('File too large (max 10MB)');
+  }
+}</div>
+                            </div>
+                            
+                            <div class="integration-step">
+                                <h4>Error Handling</h4>
+                                <p>Implement comprehensive error handling</p>
+                                <div class="code-block" data-lang="JavaScript">
+// Error handling example
+async function processWithErrorHandling(file) {
+  try {
+    validateExcelFile(file);
+    const result = await apiCall(file);
+    return result;
+  } catch (error) {
+    if (error.message.includes('HTTP 400')) {
+      showError('Invalid file format or data');
+    } else if (error.message.includes('HTTP 500')) {
+      showError('Server processing error - please try again');
+    } else {
+      showError(`Processing failed: ${error.message}`);
+    }
+    throw error;
+  }
+}</div>
+                            </div>
+                            
+                            <div class="integration-step">
+                                <h4>Code Deployment</h4>
+                                <p>Safe deployment to Legacy Edge console</p>
+                                <div class="code-block" data-lang="JavaScript">
+// Safe code deployment
+function deployToConsole(automationCode) {
+  // Copy to clipboard
+  navigator.clipboard.writeText(automationCode).then(() => {
+    console.log('✅ Code copied to clipboard');
+    console.log('📋 Instructions:');
+    console.log('1. Open Legacy Edge and navigate to batch page');
+    console.log('2. Press F12 to open console');
+    console.log('3. Paste the code and press Enter');
+    console.log('4. Type run() to start automation');
+  }).catch(() => {
+    // Fallback for older browsers
+    const textArea = document.createElement('textarea');
+    textArea.value = automationCode;
+    document.body.appendChild(textArea);
+    textArea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textArea);
+  });
+}</div>
+                            </div>
+                        </div>
+
+                        <h3>Production Deployment</h3>
+                        <div class="deployment-grid">
+                            <div class="deployment-item">
+                                <strong>Legacy Edge Optimized</strong>
+                                <p>Enhanced compatibility with older browsers</p>
+                            </div>
+                            <div class="deployment-item">
+                                <strong>Safety First</strong>
+                                <p>Built-in element visibility and safety checks</p>
+                            </div>
+                            <div class="deployment-item">
+                                <strong>Performance Enhanced</strong>
+                                <p>Fill all fields at once, no sequential delays</p>
+                            </div>
+                            <div class="deployment-item">
+                                <strong>Error Recovery</strong>
+                                <p>Robust error handling and recovery mechanisms</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Live Testing Mode Content -->
+        <div id="liveTestingMode" style="display: none;">
+            <div class="content-section">
+                <h2 class="section-title">
+                    <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <zap x="12" y="2" width="16" height="16"></zap>
+                        <path d="m6 8 4 4 4-4"></path>
+                    </svg>
+                    Live API Testing
+                </h2>
+                <p>Test the API with real Excel files and see actual responses</p>
+                
+                <div class="api-info">
+                    <div>
+                        <h3>Upload Excel File</h3>
+                        <div class="file-upload" onclick="document.getElementById('excelInput').click()" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){document.getElementById('excelInput').click()}">
+                            <div id="excelStatus">Click to select Excel file (.xlsx or .xls)</div>
+                            <input type="file" id="excelInput" accept=".xlsx,.xls" style="display: none;" onchange="handleFileSelect(this)" aria-label="Select Excel file">
+                        </div>
+                    </div>
+                    <div>
+                        <h3>Processing Progress</h3>
+                        <div class="progress-bar" role="progressbar" aria-label="Processing progress">
+                            <div class="progress-fill" id="progressFill"></div>
+                        </div>
+                        <div id="progressText" aria-live="polite">Ready to start...</div>
+                        
+                        <button class="button" id="startProcessing" onclick="startLiveProcessing()" disabled>
+                            Process Excel File
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-section">
+                <h2 class="section-title">
+                    <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <terminal x="4" y="4" width="16" height="16"></terminal>
+                    </svg>
+                    API Responses
+                </h2>
+                <div id="responseContainer">
+                    <p>Upload an Excel file to see API responses...</p>
+                </div>
+            </div>
+
+            <div class="content-section">
+                <h2 class="section-title">
+                    <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <activity x="4" y="4" width="16" height="16"></activity>
+                    </svg>
+                    Activity Log
+                </h2>
+                <div class="log-container" id="liveLogContainer" role="log" aria-label="Activity log" aria-live="polite"></div>
+                <button class="button secondary" onclick="clearLiveLog()">Clear Log</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let isLiveMode = false;
+        let selectedFile = null;
+        
+        // API Configuration
+        window.API_BASE_URL = '{{ api_url }}';
+        
+        // Enhanced logging function
+        function detailedLog(message, type = 'info', data = null) {
+            const timestamp = new Date().toLocaleTimeString();
+            console.log(`[${timestamp}] ${type.toUpperCase()}: ${message}`, data || '');
+            liveLog(message, type, data);
+        }
+
+        // Mode toggle functionality
+        function toggleMode() {
+            isLiveMode = !isLiveMode;
+            const toggle = document.getElementById('modeToggle');
+            const simLabel = document.getElementById('simLabel');
+            const realLabel = document.getElementById('realLabel');
+            const docMode = document.getElementById('documentationMode');
+            const liveMode = document.getElementById('liveTestingMode');
+            const processingMode = document.getElementById('processingMode');
+
+            if (isLiveMode) {
+                toggle.classList.add('active');
+                simLabel.classList.remove('active');
+                realLabel.classList.add('active');
+                docMode.style.display = 'none';
+                liveMode.style.display = 'block';
+                processingMode.innerHTML = 'Live Testing';
+                processingMode.className = 'status-indicator status-processing';
+                testAPIConnection();
+            } else {
+                toggle.classList.remove('active');
+                simLabel.classList.add('active');
+                realLabel.classList.remove('active');
+                docMode.style.display = 'block';
+                liveMode.style.display = 'none';
+                processingMode.innerHTML = 'Documentation';
+                processingMode.className = 'status-indicator status-processing';
+            }
+        }
+
+        // Tab functionality
+        function showTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.classList.remove('active');
+            });
+            
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        // API connection test
+        async function testAPIConnection() {
+            const apiStatus = document.getElementById('apiStatus');
+            const apiUrl = document.getElementById('apiUrl');
+            
+            detailedLog(`Testing API connection to ${window.API_BASE_URL}`, 'info');
+            
+            try {
+                const response = await fetch(`${window.API_BASE_URL}/health`, {
+                    method: 'GET',
+                    mode: 'cors'
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    apiStatus.innerHTML = 'Connected';
+                    apiStatus.className = 'status-indicator status-connected';
+                    apiUrl.innerHTML = `API: ${window.API_BASE_URL}`;
+                    
+                    detailedLog('Connected to credit card batch API', 'success', data);
+                } else {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+            } catch (error) {
+                apiStatus.innerHTML = 'Connection Failed';
+                apiStatus.className = 'status-indicator status-disconnected';
+                apiUrl.innerHTML = `API: ${window.API_BASE_URL} (FAILED)`;
+                detailedLog(`API connection failed: ${error.message}`, 'error');
+            }
+        }
+
+        // Live logging
+        function liveLog(message, type = 'info') {
+            const logContainer = document.getElementById('liveLogContainer');
+            if (logContainer) {
+                const timestamp = new Date().toLocaleTimeString();
+                const entry = document.createElement('div');
+                entry.className = `log-entry log-${type}`;
+                entry.innerHTML = `[${timestamp}] ${message}`;
+                logContainer.appendChild(entry);
+                logContainer.scrollTop = logContainer.scrollHeight;
+            }
+        }
+
+        function clearLiveLog() {
+            const logContainer = document.getElementById('liveLogContainer');
+            if (logContainer) {
+                logContainer.innerHTML = '';
+                liveLog('Log cleared', 'info');
+            }
+        }
+
+        // File handling
+        function handleFileSelect(input) {
+            const file = input.files[0];
+            if (file) {
+                selectedFile = file;
+                const statusElement = document.getElementById('excelStatus');
+                statusElement.innerHTML = `Excel: ${file.name} (${(file.size / 1024 / 1024).toFixed(1)} MB)`;
+                liveLog(`Selected Excel file: ${file.name}`, 'info');
+                
+                // Enable processing button
+                document.getElementById('startProcessing').disabled = false;
+            }
+        }
+
+        // Update progress
+        function updateProgress(percent, message) {
+            const progressFill = document.getElementById('progressFill');
+            const progressText = document.getElementById('progressText');
+            
+            if (progressFill) progressFill.style.width = `${percent}%`;
+            if (progressText) progressText.textContent = message;
+            
+            liveLog(`Progress: ${percent}% - ${message}`, 'info');
+        }
+
+        // Show API response
+        function showAPIResponse(title, data, endpoint) {
+            const container = document.getElementById('responseContainer');
+            if (!container) return;
+            
+            const responseDiv = document.createElement('div');
+            responseDiv.className = 'response-viewer';
+            
+            const formattedJson = formatJSON(data);
+            
+            responseDiv.innerHTML = `
+                <div class="response-header">${title}</div>
+                <div style="margin-bottom: 10px;">
+                    <strong>Endpoint:</strong> <code>${endpoint}</code>
+                </div>
+                <pre class="json-viewer"><code>${formattedJson}</code></pre>
+            `;
+            
+            container.appendChild(responseDiv);
+        }
+        
+        // Format JSON with syntax highlighting
+        function formatJSON(obj) {
+            const jsonString = JSON.stringify(obj, null, 2);
+            return jsonString
+                .replace(/"([^"]+)":/g, '<span class="json-key">"$1"</span>:')
+                .replace(/: "([^"]*)"/g, ': <span class="json-string">"$1"</span>')
+                .replace(/: (\d+)/g, ': <span class="json-number">$1</span>')
+                .replace(/: (true|false)/g, ': <span class="json-boolean">$1</span>')
+                .replace(/: null/g, ': <span class="json-null">null</span>');
+        }
+
+        // Main processing function
+        async function startLiveProcessing() {
+            if (!selectedFile) {
+                detailedLog('No file selected', 'error');
+                return;
+            }
+
+            try {
+                updateProgress(0, 'Starting Excel processing...');
+                document.getElementById('startProcessing').disabled = true;
+                
+                const formData = new FormData();
+                formData.append('file', selectedFile);
+
+                updateProgress(50, 'Uploading and processing Excel file...');
+
+                const response = await fetch(`${window.API_BASE_URL}/api/credit-card-batch`, {
+                    method: 'POST',
+                    mode: 'cors',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const result = await response.json();
+                
+                updateProgress(90, 'Processing complete, generating code...');
+                
+                detailedLog(`✅ Processing completed: ${result.records_count} records`, 'success', result);
+                showAPIResponse('Credit Card Batch Processing Results', result, 'POST /api/credit-card-batch');
+                
+                if (result.success) {
+                    updateProgress(100, 'Ready! Automation code generated.');
+                    
+                    // Show code download section
+                    enableCodeDownload(result.automation_code, result.records_count);
+                    
+                    liveLog(`Successfully processed ${result.records_count} credit card records`, 'success');
+                } else {
+                    throw new Error(result.error || 'Processing failed');
+                }
+
+            } catch (error) {
+                liveLog(`Processing failed: ${error.message}`, 'error');
+                updateProgress(0, 'Processing failed');
+                document.getElementById('startProcessing').disabled = false;
+            }
+        }
+
+        // Enable code download
+        function enableCodeDownload(automationCode, recordCount) {
+            const responseContainer = document.getElementById('responseContainer');
+            if (!responseContainer) return;
+            
+            const downloadDiv = document.createElement('div');
+            downloadDiv.className = 'response-viewer';
+            downloadDiv.id = 'codeDownloadSection';
+            downloadDiv.innerHTML = `
+                <div class="response-header">
+                    <span class="direction-icon received">📋</span>
+                    <span class="response-title">Automation Code Ready</span>
+                    <span class="direction-text">Copy to Console</span>
+                </div>
+                <div class="endpoint-info">
+                    <p>Generated automation code for ${recordCount} credit card records.</p>
+                    <p><strong>Instructions:</strong></p>
+                    <ol style="text-align: left; margin: 10px 0;">
+                        <li>Copy the code below</li>
+                        <li>Open Legacy Edge and navigate to your batch page</li>
+                        <li>Press F12 to open console</li>
+                        <li>Paste code and press Enter</li>
+                        <li>Type <code>run()</code> to start automation</li>
+                    </ol>
+                </div>
+                <button class="button success download-ready" onclick="copyCodeToClipboard()" id="copyCodeBtn">
+                    Copy Code to Clipboard
+                </button>
+                <div style="margin-top: 15px;">
+                    <details>
+                        <summary style="cursor: pointer; font-weight: bold;">View Generated Code</summary>
+                        <pre style="max-height: 300px; overflow-y: auto; background: #f5f5f5; padding: 10px; border-radius: 4px; margin-top: 10px;"><code id="generatedCode">${automationCode}</code></pre>
+                    </details>
+                </div>
+            `;
+            responseContainer.appendChild(downloadDiv);
+            
+            // Auto-scroll to download section
+            setTimeout(() => {
+                downloadDiv.scrollIntoView({ 
+                    behavior: 'smooth', 
+                    block: 'center' 
+                });
+            }, 500);
+        }
+
+        // Copy code to clipboard
+        function copyCodeToClipboard() {
+            const codeElement = document.getElementById('generatedCode');
+            if (codeElement) {
+                const code = codeElement.textContent;
+                navigator.clipboard.writeText(code).then(() => {
+                    const button = document.getElementById('copyCodeBtn');
+                    const originalText = button.textContent;
+                    button.textContent = '✅ Code Copied!';
+                    button.style.background = 'var(--success)';
+                    
+                    setTimeout(() => {
+                        button.textContent = originalText;
+                        button.style.background = '';
+                    }, 2000);
+                    
+                    liveLog('Automation code copied to clipboard', 'success');
+                    liveLog('Ready to deploy in Legacy Edge console', 'info');
+                }).catch(() => {
+                    // Fallback for older browsers
+                    const textArea = document.createElement('textarea');
+                    textArea.value = code;
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textArea);
+                    liveLog('Code copied to clipboard (fallback method)', 'success');
+                });
+            }
+        }
+        
+        // Mobile navigation toggle
+        function toggleMobileNav() {
+            const navLinks = document.querySelector('.nav-links');
+            navLinks.classList.toggle('open');
+        }
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            detailedLog('🏦 Credit Card Batch API interface loaded', 'info');
+            showTab('overview');
+            testAPIConnection();
+        });
+    </script>
+</body>
+</html>

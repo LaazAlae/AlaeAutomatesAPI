@@ -1,14 +1,17 @@
-# Document Processing API - Complete Documentation
+# AlaeAutomates API - Complete Documentation
 
 ## **What This API Does**
 
-This API provides two main services:
+This API provides three main services:
 
 ### Statement Processing
 Processes PDF bank statements and matches company names against a Do Not Mail (DNM) list from an Excel file. It automatically extracts company information from PDF pages and determines which companies should be excluded from mailings.
 
 ### Invoice Processing  
 Extracts invoice numbers from PDF files and splits them into separate documents based on invoice number patterns (P/R followed by 6-8 digits).
+
+### Credit Card Batch Processing
+Processes Excel files with credit card data and generates enhanced JavaScript automation code for Legacy Edge browsers. Automatically cleans data, removes headers and totals, and creates robust automation scripts with safety checks.
 
 ### **Statement Processing Features:**
 - **Extracts company names** from PDF bank statements using OCR and text parsing
@@ -24,6 +27,14 @@ Extracts invoice numbers from PDF files and splits them into separate documents 
 - **Batch processing** for multiple invoices in one file
 - **ZIP download** of separated invoice files
 - **Error handling** for files without invoice numbers
+
+### **Credit Card Batch Processing Features:**
+- **Excel file processing** with automatic header and total removal
+- **Data validation** and cleaning for credit card information
+- **Enhanced JavaScript generation** with safety checks and element visibility verification
+- **Legacy Edge compatibility** with modern security enhancements
+- **Robust automation** that fills all fields simultaneously without sequential delays
+- **Error recovery** with timeout protection and safe element interaction
 
 ## **Architecture Overview**
 
@@ -66,10 +77,12 @@ Access-Control-Allow-Methods: GET,PUT,POST,DELETE,OPTIONS
 - **Health Check**: `/health`
 - **Invoice Processing**: `/api/invoice-processor` 
 - **Statement Processing**: `/api/statement-processor`
+- **Credit Card Batch**: `/api/credit-card-batch`
 
 **Services Available:**
 - Invoice Processing: Invoice number extraction and splitting
 - Statement Processing: PDF statement analysis with DNM matching
+- Credit Card Batch: Excel processing and automation code generation
 
 ### **1. Health Check**
 ```http

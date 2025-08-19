@@ -14,11 +14,13 @@ import sys
 from datetime import datetime
 from processors.statement_processor import StatementProcessor
 from processors.invoice_processor import invoice_processor_bp
+from processors.credit_card_batch_processor import credit_card_batch_bp
 
 app = Flask(__name__)
 
 # Register blueprints
 app.register_blueprint(invoice_processor_bp, url_prefix='/api/invoice-processor')
+app.register_blueprint(credit_card_batch_bp, url_prefix='/api/credit-card-batch')
 
 # Configure enterprise-grade logging
 logging.basicConfig(
@@ -79,7 +81,7 @@ def debug_sessions(action, session_id=None):
 load_sessions()
 
 # Log startup
-logger.info("[STARTUP] Statement Processing API starting up")
+logger.info("[STARTUP] AlaeAutomates API v3.0 starting up")
 logger.info("[CONFIG] Logging configured for internal debugging")
 
 @app.after_request
@@ -114,28 +116,31 @@ def health():
     logger.info("[HEALTH] Health check requested")
     return jsonify({
         'status': 'healthy',
-        'service': 'REAL Statement Processing API',
-        'processing': 'ACTUAL PDF PROCESSING',
+        'service': 'AlaeAutomates API',
+        'version': '3.0',
         'port': os.environ.get('PORT', 8000),
         'sessions': len(sessions),
         'timestamp': datetime.now().isoformat(),
-        'active_sessions': list(sessions.keys())[:5] if sessions else []
+        'active_sessions': list(sessions.keys())[:5] if sessions else [],
+        'services': ['statement_processing', 'invoice_processing', 'credit_card_batch']
     })
 
 @app.route('/', methods=['GET'])
 def root():
     return jsonify({
-        'service': 'Document Processing API',
+        'service': 'AlaeAutomates API',
         'status': 'running',
-        'version': '2.0',
+        'version': '3.0',
         'services': {
             'statement_processing': 'PDF statement analysis with DNM matching',
-            'invoice_processing': 'Invoice number extraction and splitting'
+            'invoice_processing': 'Invoice number extraction and splitting',
+            'credit_card_batch': 'Credit card batch automation code generation'
         },
         'endpoints': {
             'health': '/health',
             'statement_api': '/api/statement-processor',
-            'invoice_api': '/api/invoice-processor'
+            'invoice_api': '/api/invoice-processor',
+            'credit_card_batch_api': '/api/credit-card-batch'
         },
         'documentation': 'See API_DOCUMENTATION.md for complete integration guide'
     })
@@ -485,11 +490,12 @@ if __name__ == '__main__':
     print(f"API URL: http://localhost:{port}")
     print(f"Health Check: http://localhost:{port}/health")
     print("=" * 60)
-    print("API Endpoints:")
+    print("AlaeAutomates API v3.0 - Endpoints:")
     print("  / - API info and service overview")
     print("  /health - Health status")
     print("  /api/statement-processor/* - Statement processing API")
-    print("  /api/invoice-processor/* - Invoice processing API")
+    print("  /api/invoice-processor/* - Invoice processing API") 
+    print("  /api/credit-card-batch/* - Credit card batch automation API")
     print("=" * 60)
     print("This is the BACKEND API ONLY")
     print("For frontend demo, run: python frontend_demo.py")

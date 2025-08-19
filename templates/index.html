@@ -3,18 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document Processing Hub</title>
+    <title>AlaeAutomates API</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 </head>
 <body>
     <!-- Navigation -->
     <nav class="main-nav">
         <div class="nav-container">
-            <a href="/" class="nav-brand">Document Processing Hub</a>
+            <a href="/" class="nav-brand">AlaeAutomates <span style="font-size: 0.8em; opacity: 0.7; font-weight: 300;">API</span></a>
             <div class="nav-links">
                 <a href="/" class="nav-link active">Home</a>
                 <a href="/monthly-statements" class="nav-link">Monthly Statements</a>
                 <a href="/invoice-separator" class="nav-link">Invoice Separator</a>
+                <a href="/credit-card-batch" class="nav-link">Credit Card Batch</a>
             </div>
             <button class="mobile-nav-toggle" onclick="toggleMobileNav()" aria-label="Toggle navigation">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -29,8 +30,8 @@
     <div class="container">
         <!-- Page Header -->
         <div class="page-header">
-            <h1 class="page-title">Document Processing Hub</h1>
-            <p class="page-subtitle">Professional PDF Processing Solutions</p>
+            <h1 class="page-title">AlaeAutomates <span style="font-size: 0.8em; opacity: 0.7; font-weight: 300;">API</span></h1>
+            <p class="page-subtitle">Professional Document Processing & Automation Solutions</p>
         </div>
 
         <!-- Content Grid -->
@@ -110,6 +111,24 @@
                             <span class="feature-tag">Invoice Extraction</span>
                             <span class="feature-tag">PDF Splitting</span>
                             <span class="feature-tag">ZIP Download</span>
+                        </div>
+                    </div>
+                    
+                    <div class="service-card" onclick="window.location.href='/credit-card-batch'" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){window.location.href='/credit-card-batch'}">
+                        <div class="service-header">
+                            <div class="service-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+                                    <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+                                    <line x1="1" y1="10" x2="23" y2="10"></line>
+                                </svg>
+                            </div>
+                            <h3 class="service-title">Credit Card Batch Automation</h3>
+                        </div>
+                        <p class="service-description">Process Excel files and generate enhanced JavaScript automation code for Legacy Edge batch processing</p>
+                        <div class="service-features">
+                            <span class="feature-tag">Excel Processing</span>
+                            <span class="feature-tag">Code Generation</span>
+                            <span class="feature-tag">Legacy Compatible</span>
                         </div>
                     </div>
                 </div>

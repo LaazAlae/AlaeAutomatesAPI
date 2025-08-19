@@ -871,17 +871,17 @@ class InvoiceRequestManager {
                 detailedLog(`✅ Invoice processing completed`, 'success', result);
                 showAPIResponse('Invoice Processing Results', result, 'POST /invoice-processor');
                 
-                if (result.status === 'success' && result.invoices_found > 0) {
-                    updateProgress(90, `Found ${result.invoices_found} invoices! Preparing download...`);
-                    liveLog(`Found ${result.invoices_found} invoices in the PDF`, 'success');
+                if (result.success && result.download_url) {
+                    updateProgress(90, 'Invoices separated! Preparing download...');
+                    liveLog('Invoices separated successfully', 'success');
                     
                     // Enable download
-                    enableInvoiceDownload(result.file_path, result.invoices_found);
+                    enableInvoiceDownload(result.zip_filename, result.download_url);
                     updateProgress(100, 'Processing complete! Ready for download.');
                     advanceWorkflowStep('download');
-                } else if (result.invoices_found === 0) {
-                    updateProgress(100, 'No invoices found in the PDF.');
-                    liveLog('No invoice numbers found in the PDF file', 'warning');
+                } else if (result.success === false) {
+                    updateProgress(100, 'Processing failed.');
+                    liveLog(result.message || 'Processing failed', 'warning');
                 } else {
                     throw new Error(result.message || 'Processing failed');
                 }
@@ -895,7 +895,7 @@ class InvoiceRequestManager {
 
 
         // Enable invoice download
-        function enableInvoiceDownload(filePath, invoiceCount) {
+        function enableInvoiceDownload(zipFilename, downloadUrl) {
             const responseContainer = document.getElementById('responseContainer');
             const downloadDiv = document.createElement('div');
             downloadDiv.className = 'response-viewer';
@@ -907,23 +907,23 @@ class InvoiceRequestManager {
                     <span class="direction-text">Ready for Download</span>
                 </div>
                 <div class="endpoint-info">
-                    <p>Found and separated ${invoiceCount} invoices! Click below to download the ZIP file.</p>
+                    <p>Invoices separated successfully! Click below to download the ZIP file.</p>
                 </div>
-                <button class="button success download-ready" onclick="downloadInvoices('${filePath}')" id="downloadBtn">
-                    Download ${invoiceCount} Separated Invoices
+                <button class="button success download-ready" onclick="downloadInvoices('${downloadUrl}')" id="downloadBtn">
+                    Download ZIP File
                 </button>
                 <div style="margin-top: 15px; padding: 8px; background: var(--surface-subtle); border-radius: 4px;">
                     <strong>Download URL:</strong><br>
-                    <code>GET /download/${filePath}</code>
+                    <code>GET ${downloadUrl}</code>
                 </div>
             `;
             responseContainer.appendChild(downloadDiv);
         }
 
         // Download invoice results
-        function downloadInvoices(filePath) {
-            const downloadUrl = `${window.API_BASE_URL}/download/${filePath}`;
-            window.open(downloadUrl);
+        function downloadInvoices(downloadUrl) {
+            const fullDownloadUrl = `${window.API_BASE_URL}${downloadUrl}`;
+            window.open(fullDownloadUrl);
             liveLog('Invoice download initiated', 'success');
         }
 

@@ -46,7 +46,7 @@ Extracts invoice numbers from PDF files and splits them into separate documents 
 
 ### **Base URL**
 ```
-Production: https://your-railway-app.railway.app
+Production: https://alaeautomatesapi.up.railway.app
 Local: http://localhost:8000
 ```
 
@@ -62,6 +62,16 @@ Access-Control-Allow-Methods: GET,PUT,POST,DELETE,OPTIONS
 
 ## 📡 **API Endpoints Reference**
 
+### **Endpoints Overview**
+- **Health Check**: `/health`
+- **Invoice Processing**: `/invoice-processor` 
+- **Statement Processing**: `/api/v1/session`
+- **System Logs**: `/logs`
+
+**Services Available:**
+- Invoice Processing: Invoice number extraction and splitting
+- Statement Processing: PDF statement analysis with DNM matching
+
 ### **1. Health Check**
 ```http
 GET /health
@@ -69,8 +79,9 @@ GET /health
 **Response:**
 ```json
 {
-  "status": "healthy",
-  "service": "Statement Processing API", 
+  "status": "running",
+  "service": "Document Processing API",
+  "version": "2.0", 
   "port": 8000,
   "sessions": 0,
   "timestamp": "2024-01-15T10:30:00Z"
@@ -198,7 +209,7 @@ GET /api/v1/session/{session_id}/status
 
 ### **1. Upload and Process Invoice**
 ```http
-POST /invoice-processor/
+POST /invoice-processor
 Content-Type: multipart/form-data
 ```
 **Form Data:**
@@ -209,7 +220,8 @@ Content-Type: multipart/form-data
 {
   "message": "Invoices separated successfully. Find PDF files in your downloads.",
   "success": true,
-  "zip_filename": "invoice_file.zip"
+  "zip_filename": "InvoiceGroup1075938_1204657_1204661_1207520_1207522_1213466_1242170.zip",
+  "download_url": "/invoice-processor/downloads/InvoiceGroup1075938_1204657_1204661_1207520_1207522_1213466_1242170.zip"
 }
 ```
 

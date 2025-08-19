@@ -109,51 +109,125 @@ def download_code():
         return jsonify({'error': f'Download failed: {str(e)}'}), 500
 
 def process_excel_file(file_path):
-    """Process Excel file - implement the macro functionality"""
+    """Process Excel file - implement the macro functionality using correct column mapping"""
     try:
         # Read Excel file using openpyxl
         workbook = openpyxl.load_workbook(file_path)
         worksheet = workbook.active
         
-        # Clean the data (implement macro functionality)
+        # The Excel file structure based on VBA macro:
+        # Column A: (deleted in macro) - skip
+        # Column B: Invoice Number 
+        # Column C: (deleted in macro) - skip  
+        # Column D: (deleted in macro) - skip
+        # Column E: Customer Name (lastname, firstname format)
+        # Column F: Card Type (A/V/M/D)
+        # Column G: Card Number with XXXX prefix
+        # Column H: Settlement Amount
+        
         cleaned_data = []
         
-        for row in worksheet.iter_rows(values_only=True):
-            # Skip empty rows
-            if not any(cell for cell in row if cell is not None):
-                continue
-            
-            # Skip header rows (contains "invoice", "amount", etc.)
-            row_text = ' '.join([str(cell).lower() for cell in row if cell is not None])
-            if any(header in row_text for header in ['invoice', 'amount', 'customer', 'payment', 'total']):
-                continue
-            
-            # Skip rows that are totals every 10 rows (usually contain "total" or just numbers)
-            if 'total' in row_text.lower():
-                continue
-            
-            # Extract data from row (expecting 4+ columns)
-            row_data = []
-            for cell in row:
-                if cell is not None:
-                    row_data.append(str(cell).strip())
-            
-            # Must have at least 4 columns: Invoice, Payment Method, Amount, Customer
-            if len(row_data) >= 4:
-                # Clean invoice number (remove R/P prefix if exists)
-                invoice = row_data[0].strip()
-                payment_method = row_data[1].strip()
-                amount = clean_amount(row_data[2])
-                customer = row_data[3].strip()
+        for row_index, row in enumerate(worksheet.iter_rows(values_only=True), 1):
+            try:
+                # Skip empty rows
+                if not any(cell for cell in row if cell is not None):
+                    continue
                 
-                # Validate data
-                if invoice and payment_method and amount and customer:
-                    cleaned_data.append({
-                        'invoice': invoice,
-                        'payment_method': payment_method,
-                        'amount': amount,
-                        'customer': customer
-                    })
+                # Extract data from correct columns (0-indexed)
+                invoice_number = str(row[1]) if len(row) > 1 and row[1] is not None else ""  # Column B
+                customer = str(row[4]) if len(row) > 4 and row[4] is not None else ""         # Column E  
+                card_type = str(row[5]) if len(row) > 5 and row[5] is not None else ""        # Column F
+                card_number = str(row[6]) if len(row) > 6 and row[6] is not None else ""      # Column G
+                settlement = str(row[7]) if len(row) > 7 and row[7] is not None else ""       # Column H
+                
+                # Skip if any critical field is missing or invalid
+                if not settlement or settlement == 'nan':
+                    continue
+                    
+                # Skip if settlement amount is in parentheses (refund)
+                if '(' in settlement and ')' in settlement:
+                    continue
+                
+                # Process customer name (lastname, firstname -> firstname lastname)
+                if ',' in customer:
+                    parts = customer.split(',', 1)  # Split only on first comma
+                    if len(parts) >= 2:
+                        last_name = parts[0].strip()
+                        first_name = parts[1].strip()
+                        customer = f"{first_name} {last_name}"
+                
+                # Special case for BILL.COM
+                if 'BILL .COM' in customer.upper():
+                    customer = 'BILL.COM'
+                
+                # Process card payment method - combine card type and last 4 digits
+                payment_method = ""
+                if card_type and card_number:
+                    # Map card type letters to full names
+                    if card_type.upper().startswith('A'):
+                        payment_method = "AMEX-"
+                    elif card_type.upper().startswith('V'):
+                        payment_method = "VISA-"
+                    elif card_type.upper().startswith('M'):
+                        payment_method = "MC-"
+                    elif card_type.upper().startswith('D'):
+                        payment_method = "DISC-"
+                    
+                    # Extract last 4 digits, remove XXXX prefix
+                    if 'XXXX' in card_number:
+                        card_digits = card_number.replace('XXXX', '').strip()
+                        # Ensure it's 4 digits
+                        if card_digits.isdigit():
+                            card_last_four = card_digits.zfill(4)
+                            payment_method += card_last_four
+                    elif card_number.isdigit():
+                        # If it's just numbers, take last 4
+                        card_last_four = card_number[-4:].zfill(4)
+                        payment_method += card_last_four
+                
+                # Process invoice number
+                processed_invoice = ""
+                if invoice_number and invoice_number != 'nan':
+                    # Clean multiple invoice numbers (take only first)
+                    if ',' in invoice_number:
+                        invoice_number = invoice_number.split(',')[0].strip()
+                    
+                    # Clean whitespace and convert to uppercase
+                    invoice_number = invoice_number.strip().upper()
+                    
+                    # Validate invoice format (P or R followed by digits)
+                    if re.match(r'^[PR]\d+', invoice_number):
+                        processed_invoice = invoice_number
+                    else:
+                        # Invalid invoice format - use line number for manual review
+                        processed_invoice = f"Line {row_index} TBD manually"
+                else:
+                    processed_invoice = f"Line {row_index} TBD manually"
+                
+                # Clean settlement amount
+                try:
+                    # Remove currency symbols, commas, and whitespace
+                    clean_amount_str = re.sub(r'[^\d.-]', '', str(settlement))
+                    settlement_amount = float(clean_amount_str)
+                    settlement_formatted = f"{settlement_amount:.2f}"
+                except:
+                    settlement_formatted = "0.00"
+                
+                # Skip zero amounts
+                if float(settlement_formatted) == 0:
+                    continue
+                
+                cleaned_data.append({
+                    'invoice': processed_invoice,
+                    'payment_method': payment_method,
+                    'amount': settlement_formatted,
+                    'customer': customer.strip()
+                })
+                
+            except Exception as e:
+                # Log error but continue processing
+                logging.error(f"Error processing row {row_index}: {str(e)}")
+                continue
         
         workbook.close()
         logging.info(f"Processed {len(cleaned_data)} valid records from Excel")
@@ -163,23 +237,6 @@ def process_excel_file(file_path):
         logging.error(f"Excel processing error: {str(e)}")
         raise
 
-def clean_amount(amount_str):
-    """Clean and validate amount string"""
-    if amount_str is None or amount_str == '':
-        return "0.00"
-    
-    # Convert to string and clean
-    amount = str(amount_str).strip()
-    
-    # Remove currency symbols and extra spaces
-    amount = re.sub(r'[$,\s]', '', amount)
-    
-    # Ensure it's a valid number
-    try:
-        float_amount = float(amount)
-        return f"{float_amount:.2f}"
-    except ValueError:
-        return "0.00"
 
 def generate_improved_automation_code(records_data):
     """Generate improved, safer JavaScript automation code"""

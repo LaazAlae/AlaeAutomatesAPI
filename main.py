@@ -80,7 +80,7 @@ load_sessions()
 
 # Log startup
 logger.info("[STARTUP] Statement Processing API starting up")
-logger.info("[CONFIG] Logging configured - Check api.log for detailed logs")
+logger.info("[CONFIG] Logging configured for internal debugging")
 
 @app.after_request
 def after_request(response):
@@ -134,38 +134,12 @@ def root():
         },
         'endpoints': {
             'health': '/health',
-            'logs': '/logs',
             'statement_api': '/api/statement-processor',
             'invoice_api': '/api/invoice-processor'
         },
         'documentation': 'See API_DOCUMENTATION.md for complete integration guide'
     })
 
-@app.route('/logs', methods=['GET'])
-def get_logs():
-    """Get recent API logs for debugging"""
-    try:
-        # Read last 100 lines of log file
-        with open('api.log', 'r') as f:
-            lines = f.readlines()
-            recent_logs = lines[-100:] if len(lines) > 100 else lines
-        
-        return jsonify({
-            'status': 'success',
-            'logs': recent_logs,
-            'total_lines': len(lines),
-            'showing': len(recent_logs)
-        })
-    except FileNotFoundError:
-        return jsonify({
-            'status': 'success',
-            'logs': ['Log file not found yet - API just started'],
-            'total_lines': 0,
-            'showing': 0
-        })
-    except Exception as e:
-        logger.error(f"[ERROR] Failed to read logs: {str(e)}")
-        return jsonify({'error': f'Failed to read logs: {str(e)}'}), 500
 
 @app.route('/api/statement-processor', methods=['POST'])
 def create_session():
@@ -440,14 +414,14 @@ Excel: {session_data['files']['excel_name']}
         zip_buffer = BytesIO()
         
         with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
-            # Create logs folder in ZIP
-            zip_file.writestr('logs/', '')  # Create logs directory
+            # Create results folder in ZIP
+            zip_file.writestr('results/', '')  # Create results directory
             
-            # Add results file to logs folder
-            zip_file.writestr('logs/results.txt', results_content)
+            # Add results file to results folder
+            zip_file.writestr('results/processing_results.txt', results_content)
             
-            # Add statements data as JSON to logs folder
-            zip_file.writestr('logs/statements.json', json.dumps(statements, indent=2))
+            # Add statements data as JSON to results folder
+            zip_file.writestr('results/statements_data.json', json.dumps(statements, indent=2))
             
             # Add split PDF files in root directory
             pdf_files = {
@@ -514,7 +488,6 @@ if __name__ == '__main__':
     print("API Endpoints:")
     print("  / - API info and service overview")
     print("  /health - Health status")
-    print("  /logs - System logs")
     print("  /api/statement-processor/* - Statement processing API")
     print("  /api/invoice-processor/* - Invoice processing API")
     print("=" * 60)

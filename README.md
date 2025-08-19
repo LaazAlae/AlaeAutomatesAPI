@@ -19,7 +19,7 @@ A professional Flask-based backend API for processing PDF documents with two mai
 ### Statement Processing
 - Processes PDF bank statements and matches company names against Do Not Mail (DNM) Excel lists
 - Provides manual review system for uncertain matches
-- Outputs organized PDF splits and processing logs
+- Outputs organized PDF splits and processing results
 
 ### Invoice Processing  
 - Extracts invoice numbers from PDF files using pattern recognition

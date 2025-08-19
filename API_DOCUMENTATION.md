@@ -66,7 +66,6 @@ Access-Control-Allow-Methods: GET,PUT,POST,DELETE,OPTIONS
 - **Health Check**: `/health`
 - **Invoice Processing**: `/api/invoice-processor` 
 - **Statement Processing**: `/api/statement-processor`
-- **System Logs**: `/logs`
 
 **Services Available:**
 - Invoice Processing: Invoice number extraction and splitting
@@ -673,7 +672,7 @@ Create Session → Upload Files → Process → Get Questions → Submit Answers
 - Ensure proper Content-Type headers
 
 **3. Processing Stuck**
-- Check server logs for errors
+- Check API response error messages
 - Verify PDF is text-readable
 - Ensure Excel has proper DNM format
 

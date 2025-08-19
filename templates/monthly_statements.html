@@ -799,20 +799,6 @@ class SessionManager {
                     apiUrl.innerHTML = `API: ${window.API_BASE_URL}`;
                     
                     detailedLog('Connected to processing API', 'success', data);
-                    
-                    // Test logs endpoint
-                    try {
-                        const logsResponse = await fetch(`${window.API_BASE_URL}/logs`, {
-                            method: 'GET',
-                            mode: 'cors'
-                        });
-                        if (logsResponse.ok) {
-                            const logsData = await logsResponse.json();
-                            detailedLog(`Logs endpoint available (${logsData.total_lines} total lines)`, 'info');
-                        }
-                    } catch (e) {
-                        detailedLog('Logs endpoint not accessible', 'warning');
-                    }
                 } else {
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
@@ -829,7 +815,6 @@ class SessionManager {
                     'Error_Stack': error.stack,
                     'Check_1': 'Verify Railway deployment is running',
                     'Check_2': 'Check CORS configuration',
-                    'Logs_URL': `${window.API_BASE_URL}/logs`,
                     'Health_URL': `${window.API_BASE_URL}/health`
                 });
             }

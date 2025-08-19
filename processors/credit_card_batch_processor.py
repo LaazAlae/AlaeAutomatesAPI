@@ -291,18 +291,18 @@ function CreditCardBatchAutomation() {{
     this.currentRecord = PAYMENT_DATA[this.currentRecordIndex];
     this.isProcessing = false;
     
-    console.log('═══════════════════════════════════════');
-    console.log('🏦 ALAEAUTOMATES CREDIT CARD BATCH');
-    console.log('═══════════════════════════════════════');
-    console.log('📍 Page: ' + this.currentPageState);
-    console.log('📋 Record: ' + (this.currentRecordIndex + 1) + '/' + PAYMENT_DATA.length);
+    console.log('=======================================');
+    console.log('ALAEAUTOMATES CREDIT CARD BATCH');
+    console.log('=======================================');
+    console.log('Page: ' + this.currentPageState);
+    console.log('Record: ' + (this.currentRecordIndex + 1) + '/' + PAYMENT_DATA.length);
     if (this.currentRecord) {{
-        console.log('📝 Processing: ' + this.currentRecord.invoiceNumber + ' - ' + this.currentRecord.customer);
-        console.log('💰 Amount: $' + this.currentRecord.settlementAmount);
-        console.log('💳 Method: ' + this.currentRecord.cardPaymentMethod);
+        console.log('Processing: ' + this.currentRecord.invoiceNumber + ' - ' + this.currentRecord.customer);
+        console.log('Amount: $' + this.currentRecord.settlementAmount);
+        console.log('Method: ' + this.currentRecord.cardPaymentMethod);
     }}
-    console.log('🔄 Step: ' + this.getStepName(this.processingStep));
-    console.log('═══════════════════════════════════════');
+    console.log('Step: ' + this.getStepName(this.processingStep));
+    console.log('=======================================');
 }}
 
 CreditCardBatchAutomation.prototype.getStepName = function(step) {{
@@ -323,13 +323,13 @@ CreditCardBatchAutomation.prototype.getStepName = function(step) {{
 
 CreditCardBatchAutomation.prototype.execute = function() {{
     if (this.isProcessing) {{
-        console.log('⏳ Already processing, please wait...');
+        console.log('Already processing, please wait...');
         return;
     }}
     
     if (!this.currentRecord) {{
-        console.log('✅ ALL RECORDS COMPLETED!');
-        console.log('🎉 Successfully processed ' + PAYMENT_DATA.length + ' credit card payments!');
+        console.log('ALL RECORDS COMPLETED!');
+        console.log('Successfully processed ' + PAYMENT_DATA.length + ' credit card payments!');
         return;
     }}
     
@@ -357,18 +357,18 @@ CreditCardBatchAutomation.prototype.execute = function() {{
                 if (this.processingStep >= 5 && this.processingStep <= 8) {{
                     this.executeStepSave();
                 }} else {{
-                    console.log('❓ Unknown step: ' + this.processingStep);
+                    console.log('UNKNOWN: Unknown step: ' + this.processingStep);
                     this.isProcessing = false;
                 }}
         }}
     }} catch (error) {{
-        console.error('❌ Error during execution:', error);
+        console.error('Error during execution:', error);
         this.isProcessing = false;
     }}
 }};
 
 CreditCardBatchAutomation.prototype.executeStep0 = function() {{
-    console.log('🔄 Looking for "Add Receipt" button...');
+    console.log('Looking for "Add Receipt" button...');
     var self = this;
     
     setTimeout(function() {{
@@ -376,17 +376,17 @@ CreditCardBatchAutomation.prototype.executeStep0 = function() {{
             if (self.clickButtonByText('Add Receipt')) {{
                 console.log('✓ "Add Receipt" clicked! Redirecting...');
             }} else {{
-                console.log('❌ "Add Receipt" button not found or not clickable');
+                console.log('ERROR: "Add Receipt" button not found or not clickable');
             }}
         }} catch (e) {{
-            console.error('❌ Error clicking Add Receipt:', e);
+            console.error('ERROR: Error clicking Add Receipt:', e);
         }}
         self.isProcessing = false;
     }}, 500);
 }};
 
 CreditCardBatchAutomation.prototype.executeStep1 = function() {{
-    console.log('🔄 Looking for "By Invoice" button...');
+    console.log('PROCESSING: Looking for "By Invoice" button...');
     var self = this;
     
     setTimeout(function() {{
@@ -394,17 +394,17 @@ CreditCardBatchAutomation.prototype.executeStep1 = function() {{
             if (self.clickButtonByText('By Invoice')) {{
                 console.log('✓ "By Invoice" clicked! Redirecting...');
             }} else {{
-                console.log('❌ "By Invoice" button not found or not clickable');
+                console.log('ERROR: "By Invoice" button not found or not clickable');
             }}
         }} catch (e) {{
-            console.error('❌ Error clicking By Invoice:', e);
+            console.error('ERROR: Error clicking By Invoice:', e);
         }}
         self.isProcessing = false;
     }}, 500);
 }};
 
 CreditCardBatchAutomation.prototype.executeStep2 = function() {{
-    console.log('🔄 Entering invoice number...');
+    console.log('PROCESSING: Entering invoice number...');
     var self = this;
     var cleanInvoice = this.cleanInvoiceNumber(this.currentRecord.invoiceNumber);
     
@@ -422,20 +422,20 @@ CreditCardBatchAutomation.prototype.executeStep2 = function() {{
                         }}
                     }}, 1000);
                 }} else {{
-                    console.log('❌ Failed to fill invoice field');
+                    console.log('ERROR: Failed to fill invoice field');
                 }}
             }} else {{
-                console.log('❌ Invoice field not found or not visible');
+                console.log('ERROR: Invoice field not found or not visible');
             }}
         }} catch (e) {{
-            console.error('❌ Error entering invoice:', e);
+            console.error('ERROR: Error entering invoice:', e);
         }}
         self.isProcessing = false;
     }}, 500);
 }};
 
 CreditCardBatchAutomation.prototype.executeStep3 = function() {{
-    console.log('🔄 Clicking Search...');
+    console.log('PROCESSING: Clicking Search...');
     var self = this;
     
     setTimeout(function() {{
@@ -443,17 +443,17 @@ CreditCardBatchAutomation.prototype.executeStep3 = function() {{
             if (self.clickButtonByText('Search')) {{
                 console.log('✓ Search clicked! Redirecting to payment form...');
             }} else {{
-                console.log('❌ Search button not found or not clickable');
+                console.log('ERROR: Search button not found or not clickable');
             }}
         }} catch (e) {{
-            console.error('❌ Error clicking search:', e);
+            console.error('ERROR: Error clicking search:', e);
         }}
         self.isProcessing = false;
     }}, 500);
 }};
 
 CreditCardBatchAutomation.prototype.executeStep4 = function() {{
-    console.log('🔄 Filling payment form (all fields at once)...');
+    console.log('PROCESSING: Filling payment form (all fields at once)...');
     var self = this;
     
     setTimeout(function() {{
@@ -490,43 +490,43 @@ CreditCardBatchAutomation.prototype.executeStep4 = function() {{
                 // Auto-save after filling all fields
                 setTimeout(function() {{
                     if (success) {{
-                        console.log('✅ All fields filled successfully!');
-                        console.log('🔄 Auto-saving...');
+                        console.log('SUCCESS: All fields filled successfully!');
+                        console.log('PROCESSING: Auto-saving...');
                         if (self.clickButtonByText('Save')) {{
-                            console.log('✅ Payment saved successfully!');
+                            console.log('SUCCESS: Payment saved successfully!');
                             self.nextRecord();
-                            console.log('📝 Ready for next record. Navigate to batch page and run() again.');
+                            console.log('NOTE: Ready for next record. Navigate to batch page and run() again.');
                         }} else {{
-                            console.log('❌ Save button not found - please save manually');
+                            console.log('ERROR: Save button not found - please save manually');
                         }}
                     }} else {{
-                        console.log('❌ Some fields failed to fill - please verify manually');
+                        console.log('ERROR: Some fields failed to fill - please verify manually');
                     }}
                     self.isProcessing = false;
                 }}, 1000);
             }}, 300);
         }} catch (e) {{
-            console.error('❌ Error filling form:', e);
+            console.error('ERROR: Error filling form:', e);
             self.isProcessing = false;
         }}
     }}, 500);
 }};
 
 CreditCardBatchAutomation.prototype.executeStepSave = function() {{
-    console.log('🔄 Ready to save...');
+    console.log('PROCESSING: Ready to save...');
     var self = this;
     
     setTimeout(function() {{
         try {{
             if (self.clickButtonByText('Save')) {{
-                console.log('✅ Payment saved!');
+                console.log('SUCCESS: Payment saved!');
                 self.nextRecord();
-                console.log('📝 Ready for next record. Navigate to batch page and run() again.');
+                console.log('NOTE: Ready for next record. Navigate to batch page and run() again.');
             }} else {{
-                console.log('❌ Save button not found or not clickable');
+                console.log('ERROR: Save button not found or not clickable');
             }}
         }} catch (e) {{
-            console.error('❌ Error saving:', e);
+            console.error('ERROR: Error saving:', e);
         }}
         self.isProcessing = false;
     }}, 500);
@@ -539,13 +539,13 @@ CreditCardBatchAutomation.prototype.nextRecord = function() {{
     if (this.currentRecordIndex < PAYMENT_DATA.length) {{
         this.currentRecord = PAYMENT_DATA[this.currentRecordIndex];
         console.log('');
-        console.log('📋 Next record ready: ' + this.currentRecord.invoiceNumber + ' - ' + this.currentRecord.customer);
+        console.log('NEXT: Next record ready: ' + this.currentRecord.invoiceNumber + ' - ' + this.currentRecord.customer);
     }} else {{
         this.currentRecord = null;
         this.setCookie('ccAutomationIndex', '0'); // Reset for next batch
         console.log('');
-        console.log('🎉 ALL {len(records_data)} RECORDS COMPLETED!');
-        console.log('💳 Credit card batch processing finished successfully!');
+        console.log('COMPLETE: ALL {len(records_data)} RECORDS COMPLETED!');
+        console.log('COMPLETE: Credit card batch processing finished successfully!');
     }}
 }};
 
@@ -619,7 +619,7 @@ window.run = function() {{
 window.reset = function() {{
     document.cookie = 'ccAutomationIndex=0; path=/; expires=' + 
         new Date(Date.now() + 24*60*60*1000).toUTCString();
-    console.log('🔄 Reset to first record');
+    console.log('PROCESSING: Reset to first record');
     ccAuto = new CreditCardBatchAutomation();
 }};
 
@@ -632,9 +632,9 @@ window.status = function() {{
 ccAuto.execute();
 
 console.log('');
-console.log('💡 COMMANDS: run() = execute | reset() = restart | status() = show progress');
+console.log('TIP: COMMANDS: run() = execute | reset() = restart | status() = show progress');
 console.log('🛡️  ENHANCED: Built-in safety checks, element visibility verification');
 console.log('⚡ IMPROVED: Fill all fields at once, no sequential delays');
-console.log('🚀 ALAEAUTOMATES: Faster, safer, more reliable automation!');'''
+console.log('ALAEAUTOMATES: ALAEAUTOMATES: Faster, safer, more reliable automation!');'''
 
     return code

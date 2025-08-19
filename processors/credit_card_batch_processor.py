@@ -239,45 +239,67 @@ def process_excel_file(file_path):
 
 
 def generate_improved_automation_code(records_data):
-    """Generate improved, safer JavaScript automation code"""
+    """Generate clean, safe JavaScript automation code based on working version"""
     
-    # Convert records to JSON
-    json_data = json.dumps(records_data, indent=2)
+    # Convert records to proper format for the working version
+    formatted_data = []
+    for record in records_data:
+        formatted_data.append({
+            'invoiceNumber': record['invoice'],
+            'cardPaymentMethod': record['payment_method'], 
+            'settlementAmount': record['amount'],
+            'customer': record['customer']
+        })
     
-    # Generate improved automation code with safety features
-    code = f'''// ALAEAUTOMATES CREDIT CARD BATCH AUTOMATION
+    json_data = json.dumps(formatted_data, indent=2)
+    
+    # Generate clean automation code based on your working version
+    code = f'''// SIMPLIFIED HEADLESS PAYMENT AUTOMATION
 // Generated for {len(records_data)} payment records
-// Enhanced with safety checks and improved performance
-// Compatible with Legacy Edge
+// Just type run() on each page!
 
 // PAYMENT DATA
 var PAYMENT_DATA = {json_data};
 
-// SAFETY AND VISIBILITY HELPERS
-function waitForElement(selector, timeout = 5000) {{
-    return new Promise((resolve, reject) => {{
-        const element = document.querySelector(selector) || 
-                       document.getElementsByName(selector)[0];
-        if (element && isElementVisible(element)) {{
-            resolve(element);
-            return;
-        }}
+// PAGE DETECTION
+function detectPageAndStep() {{
+    var url = window.location.href.toLowerCase();
+    var bodyText = document.body.textContent || document.body.innerText || '';
+    
+    if (url.indexOf('receipt_add_invoice.aspx') !== -1) {{
+        var amountField = document.getElementsByName('ctl00$ContentPlaceHolder1$txtAmount')[0];
+        var customerField = document.getElementsByName('ctl00$ContentPlaceHolder1$txtCheckName')[0];
+        var paymentNumberField = document.getElementsByName('ctl00$ContentPlaceHolder1$txtNumber')[0];
         
-        const startTime = Date.now();
-        const checkInterval = setInterval(() => {{
-            const el = document.querySelector(selector) || 
-                      document.getElementsByName(selector)[0];
-            if (el && isElementVisible(el)) {{
-                clearInterval(checkInterval);
-                resolve(el);
-            }} else if (Date.now() - startTime > timeout) {{
-                clearInterval(checkInterval);
-                reject(new Error('Element not found or not visible: ' + selector));
+        if (customerField && customerField.value && customerField.value.trim() !== '') {{
+            return {{ page: 'PAYMENT_FORM_PAGE', step: 8 }};
+        }} else if (amountField && amountField.value && amountField.value.trim() !== '') {{
+            return {{ page: 'PAYMENT_FORM_PAGE', step: 7 }};
+        }} else if (paymentNumberField && paymentNumberField.value && paymentNumberField.value.trim() !== '') {{
+            return {{ page: 'PAYMENT_FORM_PAGE', step: 6 }};
+        }} else {{
+            return {{ page: 'PAYMENT_FORM_PAGE', step: 4 }};
+        }}
+    }} else if (url.indexOf('batch_page.aspx') !== -1) {{
+        if (url.indexOf('view=recadd') !== -1) {{
+            return {{ page: 'ADD_RECEIPT_PAGE', step: 1 }};
+        }} else if (url.indexOf('view=isrch') !== -1) {{
+            var invoiceField = document.getElementsByName('ctl00$ContentPlaceHolder1$txtNumber')[0];
+            if (invoiceField && invoiceField.value && invoiceField.value.trim() !== '') {{
+                return {{ page: 'SEARCH_PAGE', step: 3 }};
+            }} else {{
+                return {{ page: 'SEARCH_PAGE', step: 2 }};
             }}
-        }}, 100);
-    }});
+        }} else {{
+            if (bodyText.indexOf('Add Receipt') !== -1) {{
+                return {{ page: 'MAIN_BATCH_PAGE', step: 0 }};
+            }}
+        }}
+    }}
+    return {{ page: 'UNKNOWN_PAGE', step: 0 }};
 }}
 
+// SAFETY HELPERS WITH IMPROVED RELIABILITY
 function isElementVisible(element) {{
     if (!element) return false;
     const rect = element.getBoundingClientRect();
@@ -305,68 +327,28 @@ function safeFillField(element, value) {{
         element.focus();
         element.value = value;
         
-        // Trigger change events for legacy compatibility
+        // Trigger events for both legacy and modern browsers
         if (element.onchange) element.onchange();
         if (element.oninput) element.oninput();
         
-        // Dispatch modern events too
-        element.dispatchEvent(new Event('input', {{ bubbles: true }}));
-        element.dispatchEvent(new Event('change', {{ bubbles: true }}));
+        try {{
+            element.dispatchEvent(new Event('input', {{ bubbles: true }}));
+            element.dispatchEvent(new Event('change', {{ bubbles: true }}));
+        }} catch (e) {{
+            // Fallback for older browsers
+        }}
         return true;
     }}
     return false;
 }}
 
-// PAGE DETECTION WITH IMPROVED ACCURACY
-function detectPageAndStep() {{
-    var url = window.location.href.toLowerCase();
-    var bodyText = (document.body.textContent || document.body.innerText || '').toLowerCase();
-    
-    if (url.indexOf('receipt_add_invoice.aspx') !== -1) {{
-        // Check form completion status
-        var amountField = document.getElementsByName('ctl00$ContentPlaceHolder1$txtAmount')[0];
-        var customerField = document.getElementsByName('ctl00$ContentPlaceHolder1$txtCheckName')[0];
-        var paymentNumberField = document.getElementsByName('ctl00$ContentPlaceHolder1$txtNumber')[0];
-        var typeDropdown = document.getElementsByName('ctl00$ContentPlaceHolder1$lstType')[0];
-        
-        var fieldsCompleted = 0;
-        if (typeDropdown && typeDropdown.selectedIndex > 0) fieldsCompleted++;
-        if (paymentNumberField && paymentNumberField.value.trim()) fieldsCompleted++;
-        if (amountField && amountField.value.trim()) fieldsCompleted++;
-        if (customerField && customerField.value.trim()) fieldsCompleted++;
-        
-        if (fieldsCompleted === 4) {{
-            return {{ page: 'PAYMENT_FORM_PAGE', step: 8 }};
-        }} else if (fieldsCompleted > 0) {{
-            return {{ page: 'PAYMENT_FORM_PAGE', step: 4 + fieldsCompleted }};
-        }} else {{
-            return {{ page: 'PAYMENT_FORM_PAGE', step: 4 }};
-        }}
-    }} else if (url.indexOf('batch_page.aspx') !== -1) {{
-        if (url.indexOf('view=recadd') !== -1) {{
-            return {{ page: 'ADD_RECEIPT_PAGE', step: 1 }};
-        }} else if (url.indexOf('view=isrch') !== -1) {{
-            var invoiceField = document.getElementsByName('ctl00$ContentPlaceHolder1$txtNumber')[0];
-            if (invoiceField && invoiceField.value.trim()) {{
-                return {{ page: 'SEARCH_PAGE', step: 3 }};
-            }} else {{
-                return {{ page: 'SEARCH_PAGE', step: 2 }};
-            }}
-        }} else if (bodyText.indexOf('add receipt') !== -1) {{
-            return {{ page: 'MAIN_BATCH_PAGE', step: 0 }};
-        }}
-    }}
-    
-    return {{ page: 'UNKNOWN_PAGE', step: 0 }};
-}}
-
-// ENHANCED AUTOMATION CLASS
-function CreditCardBatchAutomation() {{
+// ENHANCED AUTOMATION
+function HeadlessAutomation() {{
     var pageInfo = detectPageAndStep();
     this.currentPageState = pageInfo.page;
     this.processingStep = pageInfo.step;
     
-    var cookieIndex = this.getCookie('ccAutomationIndex');
+    var cookieIndex = this.getCookie('automationIndex');
     if (cookieIndex !== null) {{
         this.currentRecordIndex = parseInt(cookieIndex);
     }} else {{
@@ -374,268 +356,169 @@ function CreditCardBatchAutomation() {{
     }}
     
     this.currentRecord = PAYMENT_DATA[this.currentRecordIndex];
-    this.isProcessing = false;
     
     console.log('=======================================');
-    console.log('ALAEAUTOMATES CREDIT CARD BATCH');
+    console.log('AUTOMATION STATUS');
     console.log('=======================================');
     console.log('Page: ' + this.currentPageState);
     console.log('Record: ' + (this.currentRecordIndex + 1) + '/' + PAYMENT_DATA.length);
     if (this.currentRecord) {{
-        console.log('Processing: ' + this.currentRecord.invoice + ' - ' + this.currentRecord.customer);
-        console.log('Amount: $' + this.currentRecord.amount);
-        console.log('Method: ' + this.currentRecord.payment_method);
+        console.log('Processing: ' + this.currentRecord.invoiceNumber + ' - ' + this.currentRecord.customer);
+        console.log('Amount: $' + this.currentRecord.settlementAmount);
+        console.log('Method: ' + this.currentRecord.cardPaymentMethod);
     }}
     console.log('Step: ' + this.getStepName(this.processingStep));
     console.log('=======================================');
 }}
 
-CreditCardBatchAutomation.prototype.getStepName = function(step) {{
+HeadlessAutomation.prototype.getStepName = function(step) {{
     var stepNames = [
         'Click Add Receipt',
         'Click By Invoice', 
         'Enter Invoice Number',
         'Click Search',
-        'Fill Payment Form (All Fields)',
-        'Verify Payment Type',
-        'Verify Payment Method',
-        'Verify Amount',
-        'Verify Customer & Save',
+        'Select Payment Type',
+        'Enter Payment Method',
+        'Enter Amount',
+        'Enter Customer Name',
+        'Click Save',
         'Complete'
     ];
     return stepNames[step] || 'Unknown';
 }};
 
-CreditCardBatchAutomation.prototype.execute = function() {{
-    if (this.isProcessing) {{
-        console.log('Already processing, please wait...');
-        return;
-    }}
-    
+HeadlessAutomation.prototype.execute = function() {{
     if (!this.currentRecord) {{
         console.log('ALL RECORDS COMPLETED!');
-        console.log('Successfully processed ' + PAYMENT_DATA.length + ' credit card payments!');
         return;
     }}
     
-    this.isProcessing = true;
     var self = this;
     
-    try {{
-        switch (this.processingStep) {{
-            case 0: // Click Add Receipt
-                this.executeStep0();
-                break;
-            case 1: // Click By Invoice
-                this.executeStep1();
-                break;
-            case 2: // Enter Invoice Number
-                this.executeStep2();
-                break;
-            case 3: // Click Search
-                this.executeStep3();
-                break;
-            case 4: // Fill entire payment form at once
-                this.executeStep4();
-                break;
-            default:
-                if (this.processingStep >= 5 && this.processingStep <= 8) {{
-                    this.executeStepSave();
-                }} else {{
-                    console.log('UNKNOWN: Unknown step: ' + this.processingStep);
-                    this.isProcessing = false;
-                }}
-        }}
-    }} catch (error) {{
-        console.error('Error during execution:', error);
-        this.isProcessing = false;
+    switch (this.processingStep) {{
+        case 0: // Click Add Receipt
+            console.log('Clicking "Add Receipt"...');
+            this.clickButton('Add Receipt');
+            console.log('Done! Page will redirect...');
+            break;
+            
+        case 1: // Click By Invoice
+            console.log('Clicking "By Invoice"...');
+            this.clickButton('By Invoice');
+            console.log('Done! Page will redirect...');
+            break;
+            
+        case 2: // Enter Invoice Number
+            var cleanInvoice = this.cleanInvoiceNumber(this.currentRecord.invoiceNumber);
+            console.log('Entering invoice: ' + cleanInvoice);
+            this.fillFieldSafe('ctl00$ContentPlaceHolder1$txtNumber', cleanInvoice);
+            console.log('Invoice entered!');
+            setTimeout(function() {{
+                console.log('Clicking "Search"...');
+                self.clickButton('Search');
+                console.log('Search clicked! Page will redirect...');
+            }}, 1000);
+            break;
+            
+        case 3: // Click Search (if invoice already entered)
+            console.log('Clicking "Search"...');
+            this.clickButton('Search');
+            console.log('Done! Page will redirect to payment form...');
+            break;
+            
+        case 4: // Payment form - start filling
+            console.log('Starting payment form fill...');
+            var paymentType = this.determinePaymentType(this.currentRecord.cardPaymentMethod);
+            console.log('Selecting payment type: ' + paymentType);
+            this.selectDropdown('ctl00$ContentPlaceHolder1$lstType', paymentType);
+            
+            setTimeout(function() {{
+                console.log('Entering payment method: ' + self.currentRecord.cardPaymentMethod);
+                self.fillFieldSafe('ctl00$ContentPlaceHolder1$txtNumber', self.currentRecord.cardPaymentMethod);
+                
+                setTimeout(function() {{
+                    console.log('Entering amount: $' + self.currentRecord.settlementAmount);
+                    self.fillFieldSafe('ctl00$ContentPlaceHolder1$txtAmount', self.currentRecord.settlementAmount);
+                    
+                    setTimeout(function() {{
+                        console.log('Entering customer: ' + self.currentRecord.customer);
+                        self.fillFieldSafe('ctl00$ContentPlaceHolder1$txtCheckName', self.currentRecord.customer);
+                        
+                        setTimeout(function() {{
+                            console.log('Clicking "Save"...');
+                            self.clickButton('Save');
+                            console.log('Payment saved!');
+                            
+                            self.nextRecord();
+                            console.log('Ready for next record. Navigate to main batch page and run again.');
+                        }}, 1000);
+                    }}, 500);
+                }}, 500);
+            }}, 500);
+            break;
+            
+        case 5: // If payment method already selected
+        case 6: // If amount already entered
+        case 7: // If customer already entered
+            console.log('Form partially filled, completing remaining fields...');
+            setTimeout(function() {{ self.completeForm(); }}, 500);
+            break;
+            
+        case 8: // Ready to save
+            console.log('Clicking "Save"...');
+            this.clickButton('Save');
+            console.log('Payment saved!');
+            this.nextRecord();
+            console.log('Ready for next record. Navigate to main batch page and run again.');
+            break;
+            
+        default:
+            console.log('Unknown step: ' + this.processingStep);
     }}
 }};
 
-CreditCardBatchAutomation.prototype.executeStep0 = function() {{
-    console.log('Looking for "Add Receipt" button...');
+HeadlessAutomation.prototype.completeForm = function() {{
     var self = this;
+    var amountField = document.getElementsByName('ctl00$ContentPlaceHolder1$txtAmount')[0];
+    var customerField = document.getElementsByName('ctl00$ContentPlaceHolder1$txtCheckName')[0];
+    
+    if (!amountField.value) {{
+        console.log('Entering amount: $' + this.currentRecord.settlementAmount);
+        this.fillFieldSafe('ctl00$ContentPlaceHolder1$txtAmount', this.currentRecord.settlementAmount);
+    }}
     
     setTimeout(function() {{
-        try {{
-            if (self.clickButtonByText('Add Receipt')) {{
-                console.log('✓ "Add Receipt" clicked! Redirecting...');
-            }} else {{
-                console.log('ERROR: "Add Receipt" button not found or not clickable');
-            }}
-        }} catch (e) {{
-            console.error('ERROR: Error clicking Add Receipt:', e);
+        if (!customerField.value) {{
+            console.log('Entering customer: ' + self.currentRecord.customer);
+            self.fillFieldSafe('ctl00$ContentPlaceHolder1$txtCheckName', self.currentRecord.customer);
         }}
-        self.isProcessing = false;
+        
+        setTimeout(function() {{
+            console.log('Clicking "Save"...');
+            self.clickButton('Save');
+            console.log('Payment saved!');
+            self.nextRecord();
+        }}, 1000);
     }}, 500);
 }};
 
-CreditCardBatchAutomation.prototype.executeStep1 = function() {{
-    console.log('PROCESSING: Looking for "By Invoice" button...');
-    var self = this;
-    
-    setTimeout(function() {{
-        try {{
-            if (self.clickButtonByText('By Invoice')) {{
-                console.log('✓ "By Invoice" clicked! Redirecting...');
-            }} else {{
-                console.log('ERROR: "By Invoice" button not found or not clickable');
-            }}
-        }} catch (e) {{
-            console.error('ERROR: Error clicking By Invoice:', e);
-        }}
-        self.isProcessing = false;
-    }}, 500);
-}};
-
-CreditCardBatchAutomation.prototype.executeStep2 = function() {{
-    console.log('PROCESSING: Entering invoice number...');
-    var self = this;
-    var cleanInvoice = this.cleanInvoiceNumber(this.currentRecord.invoice);
-    
-    setTimeout(function() {{
-        try {{
-            var invoiceField = document.getElementsByName('ctl00$ContentPlaceHolder1$txtNumber')[0];
-            if (invoiceField && isElementVisible(invoiceField)) {{
-                if (safeFillField(invoiceField, cleanInvoice)) {{
-                    console.log('✓ Invoice entered: ' + cleanInvoice);
-                    
-                    // Auto-click search after entering invoice
-                    setTimeout(function() {{
-                        if (self.clickButtonByText('Search')) {{
-                            console.log('✓ Search clicked! Redirecting to payment form...');
-                        }}
-                    }}, 1000);
-                }} else {{
-                    console.log('ERROR: Failed to fill invoice field');
-                }}
-            }} else {{
-                console.log('ERROR: Invoice field not found or not visible');
-            }}
-        }} catch (e) {{
-            console.error('ERROR: Error entering invoice:', e);
-        }}
-        self.isProcessing = false;
-    }}, 500);
-}};
-
-CreditCardBatchAutomation.prototype.executeStep3 = function() {{
-    console.log('PROCESSING: Clicking Search...');
-    var self = this;
-    
-    setTimeout(function() {{
-        try {{
-            if (self.clickButtonByText('Search')) {{
-                console.log('✓ Search clicked! Redirecting to payment form...');
-            }} else {{
-                console.log('ERROR: Search button not found or not clickable');
-            }}
-        }} catch (e) {{
-            console.error('ERROR: Error clicking search:', e);
-        }}
-        self.isProcessing = false;
-    }}, 500);
-}};
-
-CreditCardBatchAutomation.prototype.executeStep4 = function() {{
-    console.log('PROCESSING: Filling payment form (all fields at once)...');
-    var self = this;
-    
-    setTimeout(function() {{
-        try {{
-            var success = true;
-            var paymentType = self.determinePaymentType(self.currentRecord.payment_method);
-            
-            // Fill all form fields simultaneously
-            console.log('→ Selecting payment type: ' + paymentType);
-            if (!self.selectDropdown('ctl00$ContentPlaceHolder1$lstType', paymentType)) {{
-                success = false;
-            }}
-            
-            // Small delay then fill other fields
-            setTimeout(function() {{
-                console.log('→ Entering payment method: ' + self.currentRecord.payment_method);
-                var paymentField = document.getElementsByName('ctl00$ContentPlaceHolder1$txtNumber')[0];
-                if (!safeFillField(paymentField, self.currentRecord.payment_method)) {{
-                    success = false;
-                }}
-                
-                console.log('→ Entering amount: $' + self.currentRecord.amount);
-                var amountField = document.getElementsByName('ctl00$ContentPlaceHolder1$txtAmount')[0];
-                if (!safeFillField(amountField, self.currentRecord.amount)) {{
-                    success = false;
-                }}
-                
-                console.log('→ Entering customer: ' + self.currentRecord.customer);
-                var customerField = document.getElementsByName('ctl00$ContentPlaceHolder1$txtCheckName')[0];
-                if (!safeFillField(customerField, self.currentRecord.customer)) {{
-                    success = false;
-                }}
-                
-                // Auto-save after filling all fields
-                setTimeout(function() {{
-                    if (success) {{
-                        console.log('SUCCESS: All fields filled successfully!');
-                        console.log('PROCESSING: Auto-saving...');
-                        if (self.clickButtonByText('Save')) {{
-                            console.log('SUCCESS: Payment saved successfully!');
-                            self.nextRecord();
-                            console.log('NOTE: Ready for next record. Navigate to batch page and run() again.');
-                        }} else {{
-                            console.log('ERROR: Save button not found - please save manually');
-                        }}
-                    }} else {{
-                        console.log('ERROR: Some fields failed to fill - please verify manually');
-                    }}
-                    self.isProcessing = false;
-                }}, 1000);
-            }}, 300);
-        }} catch (e) {{
-            console.error('ERROR: Error filling form:', e);
-            self.isProcessing = false;
-        }}
-    }}, 500);
-}};
-
-CreditCardBatchAutomation.prototype.executeStepSave = function() {{
-    console.log('PROCESSING: Ready to save...');
-    var self = this;
-    
-    setTimeout(function() {{
-        try {{
-            if (self.clickButtonByText('Save')) {{
-                console.log('SUCCESS: Payment saved!');
-                self.nextRecord();
-                console.log('NOTE: Ready for next record. Navigate to batch page and run() again.');
-            }} else {{
-                console.log('ERROR: Save button not found or not clickable');
-            }}
-        }} catch (e) {{
-            console.error('ERROR: Error saving:', e);
-        }}
-        self.isProcessing = false;
-    }}, 500);
-}};
-
-CreditCardBatchAutomation.prototype.nextRecord = function() {{
+HeadlessAutomation.prototype.nextRecord = function() {{
     this.currentRecordIndex++;
-    this.setCookie('ccAutomationIndex', this.currentRecordIndex.toString());
+    this.setCookie('automationIndex', this.currentRecordIndex.toString());
     
     if (this.currentRecordIndex < PAYMENT_DATA.length) {{
         this.currentRecord = PAYMENT_DATA[this.currentRecordIndex];
         console.log('');
-        console.log('NEXT: Next record ready: ' + this.currentRecord.invoice + ' - ' + this.currentRecord.customer);
+        console.log('Next record: ' + this.currentRecord.invoiceNumber);
     }} else {{
         this.currentRecord = null;
-        this.setCookie('ccAutomationIndex', '0'); // Reset for next batch
         console.log('');
-        console.log('COMPLETE: ALL {len(records_data)} RECORDS COMPLETED!');
-        console.log('COMPLETE: Credit card batch processing finished successfully!');
+        console.log('ALL RECORDS COMPLETED!');
     }}
 }};
 
-// UTILITY FUNCTIONS
-CreditCardBatchAutomation.prototype.clickButtonByText = function(buttonText) {{
+// UTILITY FUNCTIONS WITH ENHANCED SAFETY
+HeadlessAutomation.prototype.clickButton = function(buttonText) {{
     var buttons = document.getElementsByTagName('input');
     for (var i = 0; i < buttons.length; i++) {{
         if (buttons[i].value === buttonText && 
@@ -644,44 +527,58 @@ CreditCardBatchAutomation.prototype.clickButtonByText = function(buttonText) {{
             return safeClick(buttons[i]);
         }}
     }}
+    console.log('Button "' + buttonText + '" not found');
     return false;
 }};
 
-CreditCardBatchAutomation.prototype.selectDropdown = function(dropdownName, value) {{
+HeadlessAutomation.prototype.fillFieldSafe = function(fieldName, value) {{
+    var field = document.getElementsByName(fieldName)[0];
+    if (field && isElementVisible(field) && !field.disabled) {{
+        return safeFillField(field, value);
+    }}
+    console.log('Field "' + fieldName + '" not found or not accessible');
+    return false;
+}};
+
+HeadlessAutomation.prototype.selectDropdown = function(dropdownName, value) {{
     var dropdown = document.getElementsByName(dropdownName)[0];
     if (dropdown && isElementVisible(dropdown) && !dropdown.disabled) {{
         for (var i = 0; i < dropdown.options.length; i++) {{
-            if (dropdown.options[i].text.toUpperCase().indexOf(value.toUpperCase()) !== -1) {{
+            if (dropdown.options[i].text.indexOf(value) !== -1) {{
                 dropdown.selectedIndex = i;
                 dropdown.value = dropdown.options[i].value;
                 if (dropdown.onchange) dropdown.onchange();
-                dropdown.dispatchEvent(new Event('change', {{ bubbles: true }}));
+                try {{
+                    dropdown.dispatchEvent(new Event('change', {{ bubbles: true }}));
+                }} catch (e) {{
+                    // Fallback for older browsers
+                }}
                 return true;
             }}
         }}
     }}
+    console.log('Dropdown "' + dropdownName + '" or option "' + value + '" not found');
     return false;
 }};
 
-CreditCardBatchAutomation.prototype.cleanInvoiceNumber = function(invoice) {{
+HeadlessAutomation.prototype.cleanInvoiceNumber = function(invoice) {{
     return invoice.replace(/^[RP]/i, '');
 }};
 
-CreditCardBatchAutomation.prototype.determinePaymentType = function(method) {{
+HeadlessAutomation.prototype.determinePaymentType = function(method) {{
     var methodUpper = method.toUpperCase();
     if (methodUpper.indexOf('AMEX') !== -1) return 'AMEX';
     if (methodUpper.indexOf('VISA') !== -1) return 'VISA';
-    if (methodUpper.indexOf('MC') !== -1 || methodUpper.indexOf('MASTER') !== -1) return 'MasterCard';
-    if (methodUpper.indexOf('DISC') !== -1 || methodUpper.indexOf('DISCOVER') !== -1) return 'Discover';
+    if (methodUpper.indexOf('MC') !== -1) return 'MasterCard';
+    if (methodUpper.indexOf('DISC') !== -1) return 'Discover';
     return 'Check';
 }};
 
-CreditCardBatchAutomation.prototype.setCookie = function(name, value) {{
-    document.cookie = name + '=' + value + '; path=/; expires=' + 
-        new Date(Date.now() + 24*60*60*1000).toUTCString();
+HeadlessAutomation.prototype.setCookie = function(name, value) {{
+    document.cookie = name + '=' + value + '; path=/';
 }};
 
-CreditCardBatchAutomation.prototype.getCookie = function(name) {{
+HeadlessAutomation.prototype.getCookie = function(name) {{
     var cookies = document.cookie.split(';');
     for (var i = 0; i < cookies.length; i++) {{
         var cookie = cookies[i].trim();
@@ -692,34 +589,24 @@ CreditCardBatchAutomation.prototype.getCookie = function(name) {{
     return null;
 }};
 
-// INITIALIZE AUTOMATION
-var ccAuto = new CreditCardBatchAutomation();
+// INITIALIZE AND EXECUTE IMMEDIATELY
+var auto = new HeadlessAutomation();
+auto.execute();
 
-// CREATE EASY-TO-USE FUNCTIONS
+// Create run function for easy re-execution
 window.run = function() {{
-    ccAuto = new CreditCardBatchAutomation();
-    ccAuto.execute();
+    auto = new HeadlessAutomation();
+    auto.execute();
 }};
 
+// Reset function if needed
 window.reset = function() {{
-    document.cookie = 'ccAutomationIndex=0; path=/; expires=' + 
-        new Date(Date.now() + 24*60*60*1000).toUTCString();
-    console.log('PROCESSING: Reset to first record');
-    ccAuto = new CreditCardBatchAutomation();
+    document.cookie = 'automationIndex=0; path=/';
+    console.log('Reset to first record');
 }};
-
-window.status = function() {{
-    ccAuto = new CreditCardBatchAutomation();
-    // Status already shown in constructor
-}};
-
-// INITIAL EXECUTION
-ccAuto.execute();
 
 console.log('');
-console.log('TIP: COMMANDS: run() = execute | reset() = restart | status() = show progress');
-console.log('🛡️  ENHANCED: Built-in safety checks, element visibility verification');
-console.log('⚡ IMPROVED: Fill all fields at once, no sequential delays');
-console.log('ALAEAUTOMATES: ALAEAUTOMATES: Faster, safer, more reliable automation!');'''
+console.log('TIP: Type run() to execute | reset() to start over');
+console.log('SIMPLIFIED: Always syncs to current page!');'''
 
     return code

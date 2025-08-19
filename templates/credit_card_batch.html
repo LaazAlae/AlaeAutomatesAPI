@@ -717,7 +717,7 @@ function deployToConsole(automationCode) {
 
                 updateProgress(50, 'Uploading and processing Excel file...');
 
-                const response = await fetch(`${window.API_BASE_URL}/api/credit-card-batch`, {
+                const response = await fetch(`${window.API_BASE_URL}/cc_batch/process`, {
                     method: 'POST',
                     mode: 'cors',
                     body: formData
@@ -731,14 +731,14 @@ function deployToConsole(automationCode) {
                 
                 updateProgress(90, 'Processing complete, generating code...');
                 
-                detailedLog(`✅ Processing completed: ${result.records_count} records`, 'success', result);
-                showAPIResponse('Credit Card Batch Processing Results', result, 'POST /api/credit-card-batch');
+                detailedLog(`Processing completed: ${result.records_count} records`, 'success', result);
+                showAPIResponse('Credit Card Batch Processing Results', result, 'POST /cc_batch/process');
                 
                 if (result.success) {
                     updateProgress(100, 'Ready! Automation code generated.');
                     
                     // Show code download section
-                    enableCodeDownload(result.automation_code, result.records_count);
+                    enableCodeDownload(result.javascript_code, result.records_count);
                     
                     liveLog(`Successfully processed ${result.records_count} credit card records`, 'success');
                 } else {

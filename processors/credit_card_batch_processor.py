@@ -16,19 +16,25 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 @credit_card_batch_bp.route('/', methods=['POST'])
+@credit_card_batch_bp.route('/process', methods=['POST'])
 def process_credit_card_batch():
     """Process Excel file and generate credit card batch automation code"""
     logging.info("Credit card batch processing request received")
     
     try:
-        # Check if file is uploaded
-        if 'file' not in request.files:
+        # Check if file is uploaded (support both 'file' and 'excel_file' keys)
+        file = None
+        if 'file' in request.files:
+            file = request.files['file']
+        elif 'excel_file' in request.files:
+            file = request.files['excel_file']
+        
+        if not file:
             return jsonify({
                 'success': False,
                 'error': 'No file uploaded'
             }), 400
-        
-        file = request.files['file']
+            
         if file.filename == '':
             return jsonify({
                 'success': False,
@@ -64,8 +70,8 @@ def process_credit_card_batch():
                 'success': True,
                 'message': f'Successfully processed {len(processed_data)} records',
                 'records_count': len(processed_data),
-                'data_preview': processed_data[:5],  # Show first 5 records
-                'automation_code': automation_code
+                'processed_data': processed_data[:5],  # Show first 5 records for preview
+                'javascript_code': automation_code
             })
         
         finally:
@@ -79,6 +85,28 @@ def process_credit_card_batch():
             'success': False,
             'error': f'Processing failed: {str(e)}'
         }), 500
+
+@credit_card_batch_bp.route('/download-code', methods=['POST'])
+def download_code():
+    """Download generated JavaScript code as .js file"""
+    try:
+        data = request.get_json()
+        if not data or 'code' not in data:
+            return jsonify({'error': 'No code provided'}), 400
+        
+        code = data['code']
+        
+        # Create response with JavaScript file
+        from flask import make_response
+        response = make_response(code)
+        response.headers['Content-Type'] = 'application/javascript'
+        response.headers['Content-Disposition'] = 'attachment; filename=cc_batch_automation.js'
+        
+        return response
+        
+    except Exception as e:
+        logging.error(f"Code download error: {str(e)}")
+        return jsonify({'error': f'Download failed: {str(e)}'}), 500
 
 def process_excel_file(file_path):
     """Process Excel file - implement the macro functionality"""
@@ -121,9 +149,9 @@ def process_excel_file(file_path):
                 # Validate data
                 if invoice and payment_method and amount and customer:
                     cleaned_data.append({
-                        'invoiceNumber': invoice,
-                        'cardPaymentMethod': payment_method,
-                        'settlementAmount': amount,
+                        'invoice': invoice,
+                        'payment_method': payment_method,
+                        'amount': amount,
                         'customer': customer
                     })
         
@@ -297,9 +325,9 @@ function CreditCardBatchAutomation() {{
     console.log('Page: ' + this.currentPageState);
     console.log('Record: ' + (this.currentRecordIndex + 1) + '/' + PAYMENT_DATA.length);
     if (this.currentRecord) {{
-        console.log('Processing: ' + this.currentRecord.invoiceNumber + ' - ' + this.currentRecord.customer);
-        console.log('Amount: $' + this.currentRecord.settlementAmount);
-        console.log('Method: ' + this.currentRecord.cardPaymentMethod);
+        console.log('Processing: ' + this.currentRecord.invoice + ' - ' + this.currentRecord.customer);
+        console.log('Amount: $' + this.currentRecord.amount);
+        console.log('Method: ' + this.currentRecord.payment_method);
     }}
     console.log('Step: ' + this.getStepName(this.processingStep));
     console.log('=======================================');
@@ -406,7 +434,7 @@ CreditCardBatchAutomation.prototype.executeStep1 = function() {{
 CreditCardBatchAutomation.prototype.executeStep2 = function() {{
     console.log('PROCESSING: Entering invoice number...');
     var self = this;
-    var cleanInvoice = this.cleanInvoiceNumber(this.currentRecord.invoiceNumber);
+    var cleanInvoice = this.cleanInvoiceNumber(this.currentRecord.invoice);
     
     setTimeout(function() {{
         try {{
@@ -459,7 +487,7 @@ CreditCardBatchAutomation.prototype.executeStep4 = function() {{
     setTimeout(function() {{
         try {{
             var success = true;
-            var paymentType = self.determinePaymentType(self.currentRecord.cardPaymentMethod);
+            var paymentType = self.determinePaymentType(self.currentRecord.payment_method);
             
             // Fill all form fields simultaneously
             console.log('→ Selecting payment type: ' + paymentType);
@@ -469,15 +497,15 @@ CreditCardBatchAutomation.prototype.executeStep4 = function() {{
             
             // Small delay then fill other fields
             setTimeout(function() {{
-                console.log('→ Entering payment method: ' + self.currentRecord.cardPaymentMethod);
+                console.log('→ Entering payment method: ' + self.currentRecord.payment_method);
                 var paymentField = document.getElementsByName('ctl00$ContentPlaceHolder1$txtNumber')[0];
-                if (!safeFillField(paymentField, self.currentRecord.cardPaymentMethod)) {{
+                if (!safeFillField(paymentField, self.currentRecord.payment_method)) {{
                     success = false;
                 }}
                 
-                console.log('→ Entering amount: $' + self.currentRecord.settlementAmount);
+                console.log('→ Entering amount: $' + self.currentRecord.amount);
                 var amountField = document.getElementsByName('ctl00$ContentPlaceHolder1$txtAmount')[0];
-                if (!safeFillField(amountField, self.currentRecord.settlementAmount)) {{
+                if (!safeFillField(amountField, self.currentRecord.amount)) {{
                     success = false;
                 }}
                 
@@ -539,7 +567,7 @@ CreditCardBatchAutomation.prototype.nextRecord = function() {{
     if (this.currentRecordIndex < PAYMENT_DATA.length) {{
         this.currentRecord = PAYMENT_DATA[this.currentRecordIndex];
         console.log('');
-        console.log('NEXT: Next record ready: ' + this.currentRecord.invoiceNumber + ' - ' + this.currentRecord.customer);
+        console.log('NEXT: Next record ready: ' + this.currentRecord.invoice + ' - ' + this.currentRecord.customer);
     }} else {{
         this.currentRecord = null;
         this.setCookie('ccAutomationIndex', '0'); // Reset for next batch

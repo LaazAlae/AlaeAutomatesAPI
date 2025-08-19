@@ -22,6 +22,9 @@ app = Flask(__name__)
 app.register_blueprint(invoice_processor_bp, url_prefix='/api/invoice-processor')
 app.register_blueprint(credit_card_batch_bp, url_prefix='/api/credit-card-batch')
 
+# Also register credit card batch with alternative URL pattern for compatibility
+app.register_blueprint(credit_card_batch_bp, url_prefix='/cc_batch')
+
 # Configure enterprise-grade logging
 logging.basicConfig(
     level=logging.INFO,

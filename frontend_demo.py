@@ -21,7 +21,7 @@ def home():
 
 @frontend_app.route('/monthly-statements')
 def monthly_statements():
-    return render_template('api_integration_hub.html', api_url=API_BASE_URL)
+    return render_template('monthly_statements.html', api_url=API_BASE_URL)
 
 @frontend_app.route('/invoice-separator')
 def invoice_separator():

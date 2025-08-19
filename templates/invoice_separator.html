@@ -159,7 +159,7 @@
 
                         <div class="endpoint-card">
                             <span class="endpoint-method method-get">GET</span>
-                            <strong>/invoice-processor</strong>
+                            <strong>/api/invoice-processor</strong>
                             <p>Get service information</p>
                             <div class="code-block" data-lang="Response">
 {
@@ -171,7 +171,7 @@
 
                         <div class="endpoint-card">
                             <span class="endpoint-method method-post">POST</span>
-                            <strong>/invoice-processor</strong>
+                            <strong>/api/invoice-processor</strong>
                             <p>Upload PDF file for invoice separation</p>
                             <div class="code-block" data-lang="FormData">
 FormData:
@@ -218,7 +218,7 @@ class InvoiceProcessor {
       formData.append('file', pdfFile);
 
       // 2. Upload and process in one step
-      const response = await fetch(`${this.apiUrl}/invoice-processor`, {
+      const response = await fetch(`${this.apiUrl}/api/invoice-processor`, {
         method: 'POST',
         mode: 'cors',
         body: formData
@@ -319,7 +319,7 @@ function InvoiceProcessor() {
       const formData = new FormData();
       formData.append('file', pdfFile);
       
-      const response = await fetch('/invoice-processor', {
+      const response = await fetch('/api/invoice-processor', {
         method: 'POST',
         body: formData
       });
@@ -400,7 +400,7 @@ class InvoiceProcessorClient:
             with open(pdf_path, 'rb') as pdf_file:
                 files = {'file': pdf_file}
                 response = requests.post(
-                    f"{self.api_url}/invoice-processor",
+                    f"{self.api_url}/api/invoice-processor",
                     files=files,
                     timeout=300  # 5 minute timeout for large files
                 )
@@ -537,7 +537,7 @@ class InvoiceRequestManager {
       const formData = new FormData();
       formData.append('file', pdfFile);
       
-      const response = await fetch(`${this.apiUrl}/invoice-processor`, {
+      const response = await fetch(`${this.apiUrl}/api/invoice-processor`, {
         method: 'POST',
         body: formData,
         signal: AbortSignal.timeout(300000) // 5 minute timeout
@@ -732,7 +732,7 @@ class InvoiceRequestManager {
                     
                     // Test invoice processor endpoint
                     try {
-                        const invoiceResponse = await fetch(`${window.API_BASE_URL}/invoice-processor`, {
+                        const invoiceResponse = await fetch(`${window.API_BASE_URL}/api/invoice-processor`, {
                             method: 'GET',
                             mode: 'cors'
                         });
@@ -760,7 +760,7 @@ class InvoiceRequestManager {
                     'Check_1': 'Verify Railway deployment is running',
                     'Check_2': 'Check CORS configuration',
                     'Health_URL': `${window.API_BASE_URL}/health`,
-                    'Invoice_URL': `${window.API_BASE_URL}/invoice-processor`
+                    'Invoice_URL': `${window.API_BASE_URL}/api/invoice-processor`
                 });
             }
         }
@@ -856,7 +856,7 @@ class InvoiceRequestManager {
 
                 // 2. Upload and process in one step
                 updateProgress(50, 'Processing invoices...');
-                const response = await fetch(`${window.API_BASE_URL}/invoice-processor`, {
+                const response = await fetch(`${window.API_BASE_URL}/api/invoice-processor`, {
                     method: 'POST',
                     mode: 'cors',
                     body: formData
@@ -869,7 +869,7 @@ class InvoiceRequestManager {
                 const result = await response.json();
                 
                 detailedLog(`✅ Invoice processing completed`, 'success', result);
-                showAPIResponse('Invoice Processing Results', result, 'POST /invoice-processor');
+                showAPIResponse('Invoice Processing Results', result, 'POST /api/invoice-processor');
                 
                 if (result.success && result.download_url) {
                     updateProgress(90, 'Invoices separated! Preparing download...');

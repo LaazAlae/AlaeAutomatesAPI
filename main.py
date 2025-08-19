@@ -18,7 +18,7 @@ from processors.invoice_processor import invoice_processor_bp
 app = Flask(__name__)
 
 # Register blueprints
-app.register_blueprint(invoice_processor_bp, url_prefix='/invoice-processor')
+app.register_blueprint(invoice_processor_bp, url_prefix='/api/invoice-processor')
 
 # Configure enterprise-grade logging
 logging.basicConfig(
@@ -99,13 +99,13 @@ def log_request():
         logger.info(f"[REQUEST] Multipart form data with files: {list(request.files.keys())}")
 
 # Add OPTIONS handler for CORS preflight
-@app.route('/api/v1/session', methods=['OPTIONS'])
-@app.route('/api/v1/session/<session_id>/upload', methods=['OPTIONS'])
-@app.route('/api/v1/session/<session_id>/process', methods=['OPTIONS'])
-@app.route('/api/v1/session/<session_id>/questions', methods=['OPTIONS'])
-@app.route('/api/v1/session/<session_id>/answers', methods=['OPTIONS'])
-@app.route('/api/v1/session/<session_id>/download', methods=['OPTIONS'])
-@app.route('/api/v1/session/<session_id>/status', methods=['OPTIONS'])
+@app.route('/api/statement-processor', methods=['OPTIONS'])
+@app.route('/api/statement-processor/<session_id>/upload', methods=['OPTIONS'])
+@app.route('/api/statement-processor/<session_id>/process', methods=['OPTIONS'])
+@app.route('/api/statement-processor/<session_id>/questions', methods=['OPTIONS'])
+@app.route('/api/statement-processor/<session_id>/answers', methods=['OPTIONS'])
+@app.route('/api/statement-processor/<session_id>/download', methods=['OPTIONS'])
+@app.route('/api/statement-processor/<session_id>/status', methods=['OPTIONS'])
 def handle_options(session_id=None):
     return '', 200
 
@@ -135,8 +135,8 @@ def root():
         'endpoints': {
             'health': '/health',
             'logs': '/logs',
-            'statement_api': '/api/v1/session',
-            'invoice_api': '/invoice-processor'
+            'statement_api': '/api/statement-processor',
+            'invoice_api': '/api/invoice-processor'
         },
         'documentation': 'See API_DOCUMENTATION.md for complete integration guide'
     })
@@ -167,7 +167,7 @@ def get_logs():
         logger.error(f"[ERROR] Failed to read logs: {str(e)}")
         return jsonify({'error': f'Failed to read logs: {str(e)}'}), 500
 
-@app.route('/api/v1/session', methods=['POST'])
+@app.route('/api/statement-processor', methods=['POST'])
 def create_session():
     # Load fresh sessions to get latest state
     load_sessions()
@@ -193,7 +193,7 @@ def create_session():
         'session_id': session_id
     })
 
-@app.route('/api/v1/session/<session_id>/upload', methods=['POST'])
+@app.route('/api/statement-processor/<session_id>/upload', methods=['POST'])
 def upload_files(session_id):
     # Load fresh sessions to get latest state from other workers
     load_sessions()
@@ -255,7 +255,7 @@ def upload_files(session_id):
         logger.error(f"[ERROR] File upload failed for session {session_id}: {str(e)}")
         return jsonify({'error': f'File upload failed: {str(e)}', 'session_id': session_id}), 500
 
-@app.route('/api/v1/session/<session_id>/process', methods=['POST'])
+@app.route('/api/statement-processor/<session_id>/process', methods=['POST'])
 def process_statements(session_id):
     load_sessions()  # Load fresh session state
     
@@ -316,7 +316,7 @@ def process_statements(session_id):
         save_sessions()  # Save error state
         return jsonify({'error': f'Processing failed: {str(e)}'}), 500
 
-@app.route('/api/v1/session/<session_id>/questions', methods=['GET'])
+@app.route('/api/statement-processor/<session_id>/questions', methods=['GET'])
 def get_questions(session_id):
     load_sessions()  # Load fresh session state
     
@@ -332,7 +332,7 @@ def get_questions(session_id):
         'processing_type': 'REAL QUESTIONS FROM YOUR PDF'
     })
 
-@app.route('/api/v1/session/<session_id>/answers', methods=['POST'])
+@app.route('/api/statement-processor/<session_id>/answers', methods=['POST'])
 def submit_answers(session_id):
     load_sessions()  # Load fresh session state
     logger.info(f"[ANSWERS] Answers submission for session: {session_id}")
@@ -376,7 +376,7 @@ def submit_answers(session_id):
         'answers_count': len(answers)
     })
 
-@app.route('/api/v1/session/<session_id>/download', methods=['GET'])
+@app.route('/api/statement-processor/<session_id>/download', methods=['GET'])
 def download_results(session_id):
     load_sessions()  # Load fresh session state
     
@@ -480,7 +480,7 @@ Excel: {session_data['files']['excel_name']}
         logger.error(f"Error creating download ZIP: {e}")
         return jsonify({'error': f'Failed to create download package: {str(e)}'}), 500
 
-@app.route('/api/v1/session/<session_id>/status', methods=['GET'])
+@app.route('/api/statement-processor/<session_id>/status', methods=['GET'])
 def get_session_status(session_id):
     load_sessions()  # Load fresh session state
     
@@ -515,8 +515,8 @@ if __name__ == '__main__':
     print("  / - API info and service overview")
     print("  /health - Health status")
     print("  /logs - System logs")
-    print("  /api/v1/session/* - Statement processing API")
-    print("  /invoice-processor/* - Invoice processing API")
+    print("  /api/statement-processor/* - Statement processing API")
+    print("  /api/invoice-processor/* - Invoice processing API")
     print("=" * 60)
     print("This is the BACKEND API ONLY")
     print("For frontend demo, run: python frontend_demo.py")

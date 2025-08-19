@@ -64,8 +64,8 @@ Access-Control-Allow-Methods: GET,PUT,POST,DELETE,OPTIONS
 
 ### **Endpoints Overview**
 - **Health Check**: `/health`
-- **Invoice Processing**: `/invoice-processor` 
-- **Statement Processing**: `/api/v1/session`
+- **Invoice Processing**: `/api/invoice-processor` 
+- **Statement Processing**: `/api/statement-processor`
 - **System Logs**: `/logs`
 
 **Services Available:**
@@ -90,7 +90,7 @@ GET /health
 
 ### **2. Create Processing Session**
 ```http
-POST /api/v1/session
+POST /api/statement-processor
 ```
 **Response:**
 ```json
@@ -102,7 +102,7 @@ POST /api/v1/session
 
 ### **3. Upload Files**
 ```http
-POST /api/v1/session/{session_id}/upload
+POST /api/statement-processor/{session_id}/upload
 Content-Type: multipart/form-data
 ```
 **Form Data:**
@@ -123,7 +123,7 @@ Content-Type: multipart/form-data
 
 ### **4. Process Files**
 ```http
-POST /api/v1/session/{session_id}/process
+POST /api/statement-processor/{session_id}/process
 ```
 **Response:**
 ```json
@@ -137,7 +137,7 @@ POST /api/v1/session/{session_id}/process
 
 ### **5. Get Manual Review Questions**
 ```http
-GET /api/v1/session/{session_id}/questions
+GET /api/statement-processor/{session_id}/questions
 ```
 **Response:**
 ```json
@@ -158,7 +158,7 @@ GET /api/v1/session/{session_id}/questions
 
 ### **6. Submit Answers**
 ```http
-POST /api/v1/session/{session_id}/answers
+POST /api/statement-processor/{session_id}/answers
 Content-Type: application/json
 ```
 **Request Body:**
@@ -183,13 +183,13 @@ Content-Type: application/json
 
 ### **7. Download Results**
 ```http
-GET /api/v1/session/{session_id}/download
+GET /api/statement-processor/{session_id}/download
 ```
 **Response:** File download (TXT containing processing results)
 
 ### **8. Session Status**
 ```http
-GET /api/v1/session/{session_id}/status
+GET /api/statement-processor/{session_id}/status
 ```
 **Response:**
 ```json
@@ -209,7 +209,7 @@ GET /api/v1/session/{session_id}/status
 
 ### **1. Upload and Process Invoice**
 ```http
-POST /invoice-processor
+POST /api/invoice-processor
 Content-Type: multipart/form-data
 ```
 **Form Data:**
@@ -221,19 +221,19 @@ Content-Type: multipart/form-data
   "message": "Invoices separated successfully. Find PDF files in your downloads.",
   "success": true,
   "zip_filename": "InvoiceGroup1075938_1204657_1204661_1207520_1207522_1213466_1242170.zip",
-  "download_url": "/invoice-processor/downloads/InvoiceGroup1075938_1204657_1204661_1207520_1207522_1213466_1242170.zip"
+  "download_url": "/api/invoice-processor/downloads/InvoiceGroup1075938_1204657_1204661_1207520_1207522_1213466_1242170.zip"
 }
 ```
 
 ### **2. Download Separated Invoices**
 ```http
-GET /invoice-processor/downloads/{zip_filename}
+GET /api/invoice-processor/downloads/{zip_filename}
 ```
 **Response:** ZIP file download containing separated invoice PDFs
 
 ### **3. Clear Results**
 ```http
-POST /invoice-processor/clear_results
+POST /api/invoice-processor/clear_results
 ```
 **Response:**
 ```json
@@ -244,7 +244,7 @@ POST /invoice-processor/clear_results
 
 ### **4. Delete All Results**
 ```http
-POST /invoice-processor/delete_separate_results
+POST /api/invoice-processor/delete_separate_results
 ```
 **Response:**
 ```json
@@ -269,7 +269,7 @@ const StatementProcessor = () => {
 
   // Step 1: Create session
   const createSession = async () => {
-    const response = await fetch(`${API_BASE}/api/v1/session`, {
+    const response = await fetch(`${API_BASE}/api/statement-processor`, {
       method: 'POST'
     });
     const data = await response.json();
@@ -283,7 +283,7 @@ const StatementProcessor = () => {
     formData.append('pdf', pdfFile);
     formData.append('excel', excelFile);
 
-    const response = await fetch(`${API_BASE}/api/v1/session/${sessionId}/upload`, {
+    const response = await fetch(`${API_BASE}/api/statement-processor/${sessionId}/upload`, {
       method: 'POST',
       body: formData
     });
@@ -292,7 +292,7 @@ const StatementProcessor = () => {
 
   // Step 3: Process files
   const processFiles = async () => {
-    const response = await fetch(`${API_BASE}/api/v1/session/${sessionId}/process`, {
+    const response = await fetch(`${API_BASE}/api/statement-processor/${sessionId}/process`, {
       method: 'POST'
     });
     return response.json();
@@ -300,7 +300,7 @@ const StatementProcessor = () => {
 
   // Step 4: Get questions
   const getQuestions = async () => {
-    const response = await fetch(`${API_BASE}/api/v1/session/${sessionId}/questions`);
+    const response = await fetch(`${API_BASE}/api/statement-processor/${sessionId}/questions`);
     const data = await response.json();
     setQuestions(data.questions);
     return data;
@@ -308,7 +308,7 @@ const StatementProcessor = () => {
 
   // Step 5: Submit answers
   const submitAnswers = async () => {
-    const response = await fetch(`${API_BASE}/api/v1/session/${sessionId}/answers`, {
+    const response = await fetch(`${API_BASE}/api/statement-processor/${sessionId}/answers`, {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({ answers })
@@ -318,7 +318,7 @@ const StatementProcessor = () => {
 
   // Step 6: Download results
   const downloadResults = async () => {
-    const response = await fetch(`${API_BASE}/api/v1/session/${sessionId}/download`);
+    const response = await fetch(`${API_BASE}/api/statement-processor/${sessionId}/download`);
     const blob = await response.blob();
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -349,7 +349,7 @@ class StatementProcessorAPI {
   }
 
   async createSession() {
-    const response = await fetch(`${this.baseUrl}/api/v1/session`, {
+    const response = await fetch(`${this.baseUrl}/api/statement-processor`, {
       method: 'POST'
     });
     const data = await response.json();
@@ -362,7 +362,7 @@ class StatementProcessorAPI {
     formData.append('pdf', pdfFile);
     formData.append('excel', excelFile);
 
-    const response = await fetch(`${this.baseUrl}/api/v1/session/${this.sessionId}/upload`, {
+    const response = await fetch(`${this.baseUrl}/api/statement-processor/${this.sessionId}/upload`, {
       method: 'POST',
       body: formData
     });
@@ -370,19 +370,19 @@ class StatementProcessorAPI {
   }
 
   async processFiles() {
-    const response = await fetch(`${this.baseUrl}/api/v1/session/${this.sessionId}/process`, {
+    const response = await fetch(`${this.baseUrl}/api/statement-processor/${this.sessionId}/process`, {
       method: 'POST'
     });
     return response.json();
   }
 
   async getQuestions() {
-    const response = await fetch(`${this.baseUrl}/api/v1/session/${this.sessionId}/questions`);
+    const response = await fetch(`${this.baseUrl}/api/statement-processor/${this.sessionId}/questions`);
     return response.json();
   }
 
   async submitAnswers(answers) {
-    const response = await fetch(`${this.baseUrl}/api/v1/session/${this.sessionId}/answers`, {
+    const response = await fetch(`${this.baseUrl}/api/statement-processor/${this.sessionId}/answers`, {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({ answers })
@@ -391,7 +391,7 @@ class StatementProcessorAPI {
   }
 
   async downloadResults() {
-    const response = await fetch(`${this.baseUrl}/api/v1/session/${this.sessionId}/download`);
+    const response = await fetch(`${this.baseUrl}/api/statement-processor/${this.sessionId}/download`);
     const blob = await response.blob();
     const url = window.URL.createObjectURL(blob);
     
@@ -428,7 +428,7 @@ class StatementProcessorClient:
         self.session_id = None
     
     def create_session(self):
-        response = requests.post(f"{self.base_url}/api/v1/session")
+        response = requests.post(f"{self.base_url}/api/statement-processor")
         data = response.json()
         self.session_id = data["session_id"]
         return data
@@ -439,33 +439,33 @@ class StatementProcessorClient:
             'excel': open(excel_path, 'rb')
         }
         response = requests.post(
-            f"{self.base_url}/api/v1/session/{self.session_id}/upload",
+            f"{self.base_url}/api/statement-processor/{self.session_id}/upload",
             files=files
         )
         return response.json()
     
     def process_files(self):
         response = requests.post(
-            f"{self.base_url}/api/v1/session/{self.session_id}/process"
+            f"{self.base_url}/api/statement-processor/{self.session_id}/process"
         )
         return response.json()
     
     def get_questions(self):
         response = requests.get(
-            f"{self.base_url}/api/v1/session/{self.session_id}/questions"
+            f"{self.base_url}/api/statement-processor/{self.session_id}/questions"
         )
         return response.json()
     
     def submit_answers(self, answers):
         response = requests.post(
-            f"{self.base_url}/api/v1/session/{self.session_id}/answers",
+            f"{self.base_url}/api/statement-processor/{self.session_id}/answers",
             json={"answers": answers}
         )
         return response.json()
     
     def download_results(self, save_path):
         response = requests.get(
-            f"{self.base_url}/api/v1/session/{self.session_id}/download"
+            f"{self.base_url}/api/statement-processor/{self.session_id}/download"
         )
         with open(save_path, 'wb') as f:
             f.write(response.content)
@@ -526,7 +526,7 @@ def validate_file(file, allowed_types):
 ```javascript
 // Frontend error handling
 try {
-  const response = await fetch('/api/v1/session', {method: 'POST'});
+  const response = await fetch('/api/statement-processor', {method: 'POST'});
   if (!response.ok) {
     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
   }
@@ -607,7 +607,7 @@ python app.py
 curl http://localhost:8000/health
 
 # Test session creation
-curl -X POST http://localhost:8000/api/v1/session
+curl -X POST http://localhost:8000/api/statement-processor
 ```
 
 ### **Integration Testing**
@@ -621,7 +621,7 @@ python real_processing_api.py  # Port 9000
 ```
 
 ### **Frontend Testing**
-Open `api_integration_hub.html` in browser for complete testing environment with:
+Use the frontend demo server for complete testing environment with:
 - **Documentation mode**: API reference and examples
 - **Live testing mode**: Real file uploads and processing
 - **Interactive Q&A**: Manual review simulation

@@ -1,6 +1,6 @@
-# Document Processing API
+# AlaeAutomates API
 
-A professional Flask-based backend API for processing PDF documents with two main services. The backend runs on Railway, and the frontend demo runs locally for development and testing.
+A professional Flask-based backend API for processing PDF documents and Excel automation with three main services. The backend runs on Railway, and the frontend demo runs locally for development and testing.
 
 ## Architecture
 
@@ -25,6 +25,11 @@ A professional Flask-based backend API for processing PDF documents with two mai
 - Extracts invoice numbers from PDF files using pattern recognition
 - Splits multi-invoice PDFs into separate files by invoice number
 - Packages results in downloadable ZIP files
+
+### Credit Card Batch Automation
+- Processes Excel files with credit card data 
+- Generates enhanced JavaScript automation code for Legacy Edge browsers
+- Includes safety checks, element visibility verification, and error handling
 
 ## Quick Start
 
@@ -64,12 +69,14 @@ main.py                      # Backend API (Railway deployment)
 frontend_demo.py             # Frontend demo server (local only)
 start_frontend.py            # Quick start script
 processors/
-├── statement_processor.py   # Statement processing logic
-└── invoice_processor.py     # Invoice processing logic  
+├── statement_processor.py       # Statement processing logic
+├── invoice_processor.py         # Invoice processing logic
+└── credit_card_batch_processor.py # Credit card batch automation
 templates/
-├── index.html               # Homepage
-├── monthly_statements.html  # Statement processing interface  
-└── invoice_processor.html   # Invoice processing interface
+├── index.html                   # Homepage
+├── monthly_statements.html      # Statement processing interface  
+├── invoice_separator.html       # Invoice processing interface
+└── credit_card_batch.html       # Credit card batch automation
 static/
 ├── css/
 │   └── styles.css          # Application styles
@@ -80,24 +87,26 @@ static/
 ## API Endpoints
 
 ### Statement Processing
-- `POST /api/v1/session` - Create processing session
-- `POST /api/v1/session/{id}/upload` - Upload PDF and Excel files
-- `POST /api/v1/session/{id}/process` - Process uploaded files
-- `GET /api/v1/session/{id}/questions` - Get manual review questions
-- `POST /api/v1/session/{id}/answers` - Submit manual review answers
-- `GET /api/v1/session/{id}/download` - Download processing results
+- `POST /api/statement-processor` - Create processing session
+- `POST /api/statement-processor/{id}/upload` - Upload PDF and Excel files
+- `POST /api/statement-processor/{id}/process` - Process uploaded files
+- `GET /api/statement-processor/{id}/questions` - Get manual review questions
+- `POST /api/statement-processor/{id}/answers` - Submit manual review answers
+- `GET /api/statement-processor/{id}/download` - Download processing results
 
 ### Invoice Processing
-- `POST /invoice-processor/` - Upload and process invoice PDF
-- `GET /invoice-processor/downloads/{filename}` - Download separated invoices
-- `POST /invoice-processor/clear_results` - Clear processing results
+- `POST /api/invoice-processor` - Upload and process invoice PDF
+- `GET /api/invoice-processor/downloads/{filename}` - Download separated invoices
+- `POST /api/invoice-processor/clear_results` - Clear processing results
+
+### Credit Card Batch Processing
+- `POST /api/credit-card-batch` - Process Excel file and generate automation code
 
 ## Requirements
 
 - Python 3.8+
 - Flask 2.3.3
 - PyMuPDF 1.23.5
-- pandas 2.1.1
 - openpyxl 3.1.2
 - thefuzz 0.19.0
 

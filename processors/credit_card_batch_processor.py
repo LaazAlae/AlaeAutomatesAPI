@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-import pandas as pd
+import openpyxl
 import json
 import logging
 import os
@@ -83,19 +83,20 @@ def process_credit_card_batch():
 def process_excel_file(file_path):
     """Process Excel file - implement the macro functionality"""
     try:
-        # Read Excel file
-        df = pd.read_excel(file_path, header=None)
+        # Read Excel file using openpyxl
+        workbook = openpyxl.load_workbook(file_path)
+        worksheet = workbook.active
         
         # Clean the data (implement macro functionality)
         cleaned_data = []
         
-        for index, row in df.iterrows():
+        for row in worksheet.iter_rows(values_only=True):
             # Skip empty rows
-            if row.isna().all():
+            if not any(cell for cell in row if cell is not None):
                 continue
             
             # Skip header rows (contains "invoice", "amount", etc.)
-            row_text = ' '.join([str(cell).lower() for cell in row if pd.notna(cell)])
+            row_text = ' '.join([str(cell).lower() for cell in row if cell is not None])
             if any(header in row_text for header in ['invoice', 'amount', 'customer', 'payment', 'total']):
                 continue
             
@@ -106,7 +107,7 @@ def process_excel_file(file_path):
             # Extract data from row (expecting 4+ columns)
             row_data = []
             for cell in row:
-                if pd.notna(cell):
+                if cell is not None:
                     row_data.append(str(cell).strip())
             
             # Must have at least 4 columns: Invoice, Payment Method, Amount, Customer
@@ -126,6 +127,7 @@ def process_excel_file(file_path):
                         'customer': customer
                     })
         
+        workbook.close()
         logging.info(f"Processed {len(cleaned_data)} valid records from Excel")
         return cleaned_data
     
@@ -135,7 +137,7 @@ def process_excel_file(file_path):
 
 def clean_amount(amount_str):
     """Clean and validate amount string"""
-    if pd.isna(amount_str):
+    if amount_str is None or amount_str == '':
         return "0.00"
     
     # Convert to string and clean

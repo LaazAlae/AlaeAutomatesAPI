@@ -7,7 +7,6 @@ PyPDF2==3.0.1
 
 # Excel file reading
 openpyxl==3.1.2
-pandas==2.1.1
 
 # String matching for statement processor
 thefuzz==0.19.0

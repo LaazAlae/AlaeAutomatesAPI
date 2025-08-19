@@ -594,10 +594,8 @@ web: python app.py
 Flask==2.3.3
 PyMuPDF==1.23.5
 PyPDF2==3.0.1
-pandas==2.1.1
 openpyxl==3.1.2
 thefuzz==0.19.0
-python-Levenshtein==0.21.1
 ```
 
 5. **Deploy:**

@@ -276,7 +276,8 @@ def process_statements(session_id):
                         'similar_to': best_match.get('company_name', ''),
                         'percentage': best_match.get('percentage', ''),
                         'current_destination': stmt.get('destination', ''),
-                        'all_matches': similar_matches  # Include all matches for frontend
+                        'all_matches': similar_matches,  # Include all matches for frontend
+                        'first_page_number': stmt.get('first_page_number', 1)  # NEW: Page number for display
                     })
         
         # Store real results
@@ -418,6 +419,8 @@ Excel: {session_data['files']['excel_name']}
             results_content += f"Destination: {stmt.get('destination', 'Unknown')}\n"
             results_content += f"Location: {stmt.get('location', 'Unknown')}\n"
             results_content += f"Pages: {stmt.get('number_of_pages', 'Unknown')}\n"
+            results_content += f"First Page: {stmt.get('first_page_number', 'Unknown')}\n"
+            results_content += f"Page Range: {stmt.get('page_number_in_uploaded_pdf', 'Unknown')}\n"
             # Handle new similar_matches format
             similar_matches = stmt.get('similar_matches', [])
             if similar_matches:

@@ -216,6 +216,7 @@ FormData:
       "similar_to": "ABC Corporation",
       "percentage": "85.5%",
       "current_destination": "Natio Single",
+      "first_page_number": 12,
       "all_matches": [
         {"company_name": "ABC Corporation", "percentage": "85.5%"},
         {"company_name": "ABC Industries Inc", "percentage": "72.3%"},
@@ -1061,7 +1062,10 @@ class SessionManager {
                 
                 questionDiv.innerHTML = `
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px;">
-                        <h4 style="margin: 0; color: #2c3e50;">Question ${index + 1} of ${questions.length}</h4>
+                        <div>
+                            <h4 style="margin: 0; color: #2c3e50;">Question ${index + 1} of ${questions.length}</h4>
+                            <p style="margin: 5px 0 0 0; color: #667eea; font-size: 0.9rem; font-weight: 600;">Company found on page ${question.first_page_number || 'Unknown'}</p>
+                        </div>
                         <span style="background: #667eea; color: white; padding: 4px 12px; border-radius: 12px; font-size: 0.8rem; font-weight: 600;">
                             ${question.percentage} match
                         </span>
@@ -1089,8 +1093,8 @@ class SessionManager {
                     </div>
                     
                     <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin-bottom: 15px;">
-                        <strong>❓ Are "${question.company_name}" and "${question.similar_to}" the same company?</strong>
-                        <p style="margin: 5px 0 0 0; color: #6c757d; font-size: 0.9rem;">If they're the same, the document will be moved to the DNM list. Review all potential matches above before deciding.</p>
+                        <strong>❓ Company "${question.company_name}" on page ${question.first_page_number || 'Unknown'} - is this the same as "${question.similar_to}"?</strong>
+                        <p style="margin: 5px 0 0 0; color: #6c757d; font-size: 0.9rem;">If they're the same company, the document will be moved to the DNM list. Review all potential matches above before deciding.</p>
                     </div>
                     
                     <div class="question-buttons">

@@ -316,12 +316,14 @@ class StatementProcessor:
         location = self._detect_location(rest_text)
         exact_match, similar_matches = self._find_company_match(company_name)
         
-        # Calculate page range
+        # Calculate page range and first page (O(1) operation)
         if total_pages == 1:
             page_range = str(page_num)
+            first_page = page_num
         else:
             start_page = page_num - (current_page - 1)
             page_range = "-".join(map(str, range(start_page, start_page + total_pages)))
+            first_page = start_page
         
         # Determine processing flags based on similar matches
         has_email = "email" in rest_text.lower()
@@ -343,7 +345,7 @@ class StatementProcessor:
         return {
             "company_name": company_name,
             "exact_match": exact_match,
-            "similar_matches": similar_matches,  # New: All matches above 60%
+            "similar_matches": similar_matches,  # All matches above 60%
             "manual_required": manual_required,
             "ask_question": ask_question,
             "rest_of_lines": rest_text,
@@ -351,6 +353,7 @@ class StatementProcessor:
             "paging": f"page {current_page} of {total_pages}",
             "number_of_pages": str(total_pages),
             "page_number_in_uploaded_pdf": page_range,
+            "first_page_number": first_page,  # New: First page of statement
             "destination": destination
         }
     

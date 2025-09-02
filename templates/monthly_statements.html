@@ -215,7 +215,12 @@ FormData:
       "company_name": "ABC Corp Inc",
       "similar_to": "ABC Corporation",
       "percentage": "85.5%",
-      "current_destination": "Natio Single"
+      "current_destination": "Natio Single",
+      "all_matches": [
+        {"company_name": "ABC Corporation", "percentage": "85.5%"},
+        {"company_name": "ABC Industries Inc", "percentage": "72.3%"},
+        {"company_name": "ABC Holdings LLC", "percentage": "68.9%"}
+      ]
     }
   ],
   "total_statements": 25
@@ -1064,13 +1069,28 @@ class SessionManager {
                     
                     <div style="margin-bottom: 15px;">
                         <p style="margin: 8px 0;"><strong>Found Company:</strong> <code>${question.company_name}</code></p>
-                        <p style="margin: 8px 0;"><strong>Similar to DNM:</strong> <code>${question.similar_to}</code></p>
+                        <p style="margin: 8px 0;"><strong>Best Match:</strong> <code>${question.similar_to}</code></p>
                         <p style="margin: 8px 0;"><strong>Current Destination:</strong> <span style="background: #f8f9fa; padding: 2px 8px; border-radius: 4px;">${question.current_destination}</span></p>
+                        
+                        <!-- Show all potential matches -->
+                        ${question.all_matches && question.all_matches.length > 1 ? `
+                        <div style="margin: 15px 0; padding: 12px; background: #f8f9fa; border-radius: 6px; border-left: 4px solid #667eea;">
+                            <strong>All Potential Matches Found:</strong>
+                            <ul style="margin: 8px 0; padding-left: 20px;">
+                                ${question.all_matches.map((match, idx) => `
+                                    <li style="margin: 4px 0; ${idx === 0 ? 'font-weight: bold; color: #667eea;' : ''}">
+                                        ${match.company_name} <span style="font-weight: bold; color: #28a745;">(${match.percentage})</span>
+                                        ${idx === 0 ? ' <em style="color: #667eea;">← Best Match</em>' : ''}
+                                    </li>
+                                `).join('')}
+                            </ul>
+                        </div>
+                        ` : ''}
                     </div>
                     
                     <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin-bottom: 15px;">
-                        <strong>❓ Are these the same company?</strong>
-                        <p style="margin: 5px 0 0 0; color: #6c757d; font-size: 0.9rem;">If they're the same, it will be moved to the DNM list.</p>
+                        <strong>❓ Are "${question.company_name}" and "${question.similar_to}" the same company?</strong>
+                        <p style="margin: 5px 0 0 0; color: #6c757d; font-size: 0.9rem;">If they're the same, the document will be moved to the DNM list. Review all potential matches above before deciding.</p>
                     </div>
                     
                     <div class="question-buttons">

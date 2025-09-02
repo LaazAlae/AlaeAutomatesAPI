@@ -262,17 +262,22 @@ def process_statements(session_id):
         # Extract statements from real PDF using real Excel DNM list
         statements = processor.extract_statements()
         
-        # Find questions that need manual review
+        # Find questions that need manual review - Updated for multiple matches format
         questions = []
         for stmt in statements:
             if stmt.get('ask_question', False):
-                questions.append({
-                    'id': str(uuid.uuid4()),
-                    'company_name': stmt.get('company_name', ''),
-                    'similar_to': stmt.get('similar_to', ''),
-                    'percentage': stmt.get('percentage', ''),
-                    'current_destination': stmt.get('destination', '')
-                })
+                similar_matches = stmt.get('similar_matches', [])
+                if similar_matches:
+                    # Use the best match (first one, already sorted by percentage)
+                    best_match = similar_matches[0]
+                    questions.append({
+                        'id': str(uuid.uuid4()),
+                        'company_name': stmt.get('company_name', ''),
+                        'similar_to': best_match.get('company_name', ''),
+                        'percentage': best_match.get('percentage', ''),
+                        'current_destination': stmt.get('destination', ''),
+                        'all_matches': similar_matches  # Include all matches for frontend
+                    })
         
         # Store real results
         sessions[session_id]['statements'] = statements
@@ -333,7 +338,7 @@ def submit_answers(session_id):
     
     logger.info(f"[INFO] Received {len(answers)} answers for session {session_id}")
     
-    # Apply answers to real statements
+    # Apply answers to real statements - Updated for new format
     session_data = sessions[session_id]
     statements = session_data.get('statements', [])
     
@@ -413,8 +418,12 @@ Excel: {session_data['files']['excel_name']}
             results_content += f"Destination: {stmt.get('destination', 'Unknown')}\n"
             results_content += f"Location: {stmt.get('location', 'Unknown')}\n"
             results_content += f"Pages: {stmt.get('number_of_pages', 'Unknown')}\n"
-            if stmt.get('similar_to'):
-                results_content += f"Similar To: {stmt.get('similar_to')} ({stmt.get('percentage', 'N/A')})\n"
+            # Handle new similar_matches format
+            similar_matches = stmt.get('similar_matches', [])
+            if similar_matches:
+                results_content += f"Similar Matches ({len(similar_matches)} found):\n"
+                for i, match in enumerate(similar_matches[:3], 1):  # Show top 3 matches
+                    results_content += f"  {i}. {match.get('company_name', 'Unknown')} ({match.get('percentage', 'N/A')})\n"
             if stmt.get('user_answered'):
                 results_content += f"User Answer: {stmt.get('user_answered')}\n"
         

@@ -211,52 +211,55 @@ class StatementProcessor:
         except Exception as e:
             raise RuntimeError(f"Failed to load DNM companies: {e}")
     
-    def _find_company_match(self, company_name: str) -> Tuple[Optional[str], Optional[str], Optional[str]]:
-        """Find company match with O(1) exact match and O(k) fuzzy match where k << n."""
+    def _find_company_match(self, company_name: str) -> Tuple[Optional[str], List[Dict[str, str]]]:
+        """Find all company matches above 60% threshold with industry-standard fuzzy matching."""
         # O(1) exact match check
         if company_name in self.dnm_companies:
-            return company_name, None, None
+            return company_name, []
         
         # O(1) normalized exact match
         normalized = self._normalize_company_name(company_name)
         if normalized in self.normalized_company_map:
-            return self.normalized_company_map[normalized], None, None
+            return self.normalized_company_map[normalized], []
         
-        # O(k) fuzzy match where k is small subset
+        # Industry-standard fuzzy matching: Check ALL companies above 60% threshold
+        similar_matches = []
         if normalized:
-            matches = get_close_matches(normalized, list(self.normalized_company_map.keys()), n=1, cutoff=0.6)
-            if matches:
-                best_match = self.normalized_company_map[matches[0]]
-                similarity = f"{round(SequenceMatcher(None, normalized, matches[0]).ratio() * 100, 1)}%"
-                return None, best_match, similarity
+            # Calculate similarity scores for ALL companies
+            for norm_company, original_company in self.normalized_company_map.items():
+                similarity_score = SequenceMatcher(None, normalized, norm_company).ratio() * 100
+                if similarity_score >= 60.0:  # Only matches above 60%
+                    similar_matches.append({
+                        "company_name": original_company,
+                        "percentage": f"{round(similarity_score, 1)}%"
+                    })
+            
+            # Sort by similarity score (highest first)
+            similar_matches.sort(key=lambda x: float(x["percentage"].replace('%', '')), reverse=True)
         
-        return None, None, None
+        return None, similar_matches
     
     def _detect_location(self, text: str) -> str:
         """Detect location using optimized state detection - O(k) where k = 50 states."""
         text_upper = f" {text.upper()} "
         return "National" if any(f" {state} " in text_upper for state in self.US_STATES) else "Foreign"
     
-    def _determine_destination(self, exact_match: Optional[str], text: str, location: str, 
-                            pages: int, similarity_percent: Optional[str]) -> str:
-        """Determine destination using business logic - O(1) operation."""
+    def _determine_destination_enhanced(self, exact_match: Optional[str], text: str, location: str, 
+                            pages: int, best_percentage: float, has_email: bool) -> str:
+        """Enhanced destination logic with improved accuracy."""
         if exact_match:
             return "DNM"
-        if "email" in text.lower():
+        if has_email:
             return "DNM"
-        if similarity_percent:
-            try:
-                if float(similarity_percent.replace('%', '')) >= 90.0:
-                    return "DNM"
-            except ValueError:
-                pass
+        if best_percentage >= 90.0:
+            return "DNM"
         
         if location == "Foreign":
             return "Foreign"
         return "Natio Single" if pages == 1 else "Natio Multi"
     
     def _extract_statement_data(self, text: str, page_num: int) -> Optional[Dict[str, Any]]:
-        """Extract statement data from page text - O(1) per page operation."""
+        """Extract statement data from page text with enhanced multi-line company name extraction."""
         # Parse page information
         page_match = self.patterns['page'].search(text)
         current_page, total_pages = (int(page_match.group(1)), int(page_match.group(2))) if page_match else (1, 1)
@@ -281,16 +284,37 @@ class StatementProcessor:
         if not lines:
             return None
         
-        # Extract company name
+        # Enhanced company name extraction - handle multi-line names
         due_match = self.patterns['total_due'].search(text)
-        company_name = (
-            self.patterns['whitespace'].sub(' ', due_match.group(1).strip())
-            if due_match else lines[0].strip()
-        )
+        if due_match:
+            company_name = self.patterns['whitespace'].sub(' ', due_match.group(1).strip())
+        else:
+            # Industry approach: Combine first few lines until we hit address patterns
+            company_parts = []
+            address_patterns = [
+                r'\d+\s+[NSEW]?\s*\w+\s+(ST|STREET|AVE|AVENUE|RD|ROAD|BLVD|BOULEVARD|WAY|LANE|LN|DR|DRIVE|CT|COURT|CIR|CIRCLE|PL|PLACE)',
+                r'P\.?O\.?\s+BOX\s+\d+',
+                r'\b(SUITE|STE|UNIT|APT|APARTMENT)\s+\w+',
+                r'\d{5}(-\d{4})?$',  # ZIP code
+                r'\b[A-Z]{2}\s+\d{5}',  # State + ZIP
+            ]
+            
+            for line in lines[:4]:  # Check up to 4 lines for company name
+                # Stop if we hit an address pattern
+                if any(re.search(pattern, line, re.IGNORECASE) for pattern in address_patterns):
+                    break
+                # Only add lines with letters (skip pure numbers/symbols)
+                if re.search(r'[A-Za-z]', line):
+                    company_parts.append(line.strip())
+            
+            company_name = ' '.join(company_parts) if company_parts else lines[0].strip()
         
-        rest_text = "\n".join(lines[1:])
+        # Find remaining content after company name extraction
+        company_line_count = len(company_name.split()) if company_name else 1
+        rest_text = "\n".join(lines[min(company_line_count, len(lines)):])
+        
         location = self._detect_location(rest_text)
-        exact_match, similar_match, similarity_percent = self._find_company_match(company_name)
+        exact_match, similar_matches = self._find_company_match(company_name)
         
         # Calculate page range
         if total_pages == 1:
@@ -299,23 +323,27 @@ class StatementProcessor:
             start_page = page_num - (current_page - 1)
             page_range = "-".join(map(str, range(start_page, start_page + total_pages)))
         
-        # Determine processing flags
+        # Determine processing flags based on similar matches
         has_email = "email" in rest_text.lower()
-        is_high_confidence = similarity_percent and float(similarity_percent.replace('%', '')) >= 90.0
+        best_match = similar_matches[0] if similar_matches else None
+        best_percentage = float(best_match["percentage"].replace('%', '')) if best_match else 0
+        is_high_confidence = best_percentage >= 90.0
         
         manual_required = False
         ask_question = False
         
         if not (has_email or is_high_confidence or exact_match):
-            manual_required = similar_match is not None
-            if manual_required and similarity_percent:
-                ask_question = float(similarity_percent.replace('%', '')) < 90.0
+            manual_required = len(similar_matches) > 0
+            if manual_required:
+                ask_question = best_percentage < 90.0
+        
+        # Determine destination
+        destination = self._determine_destination_enhanced(exact_match, rest_text, location, total_pages, best_percentage, has_email)
         
         return {
             "company_name": company_name,
             "exact_match": exact_match,
-            "similar_to": similar_match,
-            "percentage": similarity_percent,
+            "similar_matches": similar_matches,  # New: All matches above 60%
             "manual_required": manual_required,
             "ask_question": ask_question,
             "rest_of_lines": rest_text,
@@ -323,7 +351,7 @@ class StatementProcessor:
             "paging": f"page {current_page} of {total_pages}",
             "number_of_pages": str(total_pages),
             "page_number_in_uploaded_pdf": page_range,
-            "destination": self._determine_destination(exact_match, rest_text, location, total_pages, similarity_percent)
+            "destination": destination
         }
     
     def extract_statements(self) -> List[Dict[str, Any]]:

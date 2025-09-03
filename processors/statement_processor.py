@@ -72,11 +72,22 @@ class StatementProcessor:
             'exact_matches_found': 0,
             'fuzzy_matches_found': 0,
             'no_matches_found': 0,
+            'last_total_due_extractions': 0,
+            'fallback_extractions': 0,
             'multiline_companies': [],
             'exact_match_companies': [],
             'high_confidence_matches': [],
-            'question_requiring_companies': []
+            'question_requiring_companies': [],
+            'extraction_logs': []  # NEW: Detailed extraction logs
         }
+        
+        # INDUSTRY-LEVEL LOGGING: Create detailed extraction log file
+        self.extraction_log_path = 'extraction_debug_log.txt'
+        with open(self.extraction_log_path, 'w', encoding='utf-8') as f:
+            f.write("=" * 100 + "\n")
+            f.write("STATEMENT PROCESSOR - DETAILED EXTRACTION LOG\n")
+            f.write(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+            f.write("=" * 100 + "\n\n")
         
         # Memory optimization: Clear unused references
         gc.collect()
@@ -297,12 +308,63 @@ class StatementProcessor:
         if not lines:
             return None
         
-        # Enhanced company name extraction - handle multi-line names with DEBUG tracking
-        due_match = self.patterns['total_due'].search(text)
-        if due_match:
-            company_name = self.patterns['whitespace'].sub(' ', due_match.group(1).strip())
-            extraction_method = "total_due_pattern"
-        else:
+        # INDUSTRY-LEVEL EXTRACTION WITH COMPREHENSIVE LOGGING
+        self._log_page_extraction_start(page_num, text)
+        
+        # Strategy: Find the line that contains "Total Due $" and extract company name from that line only
+        text_lines = text.split('\n')
+        total_due_lines = []
+        
+        # Log all lines for debugging
+        self._log_all_lines_analysis(page_num, text_lines)
+        
+        for line in text_lines:
+            if re.search(r'Total Due\s+\$', line, re.IGNORECASE):
+                total_due_lines.append(line.strip())
+        
+        company_name = None
+        extraction_method = "no_total_due_found"
+        
+        # Log Total Due line findings
+        self._log_total_due_analysis(page_num, total_due_lines)
+        
+        if total_due_lines:
+            # Use the LAST "Total Due" line (most accurate for company name)
+            last_total_due_line = total_due_lines[-1]
+            
+            # Extract company name: everything before "Total Due $"
+            match = re.search(r'^(.+?)\s+Total Due\s+\$', last_total_due_line, re.IGNORECASE)
+            if match:
+                raw_company_name = match.group(1).strip()
+                company_name = self.patterns['whitespace'].sub(' ', raw_company_name)
+                extraction_method = f"last_total_due_line_{len(total_due_lines)}_found"
+                
+                # Log successful extraction
+                self._log_successful_extraction(page_num, last_total_due_line, raw_company_name, company_name)
+                
+                # DEBUG: Track this extraction with details
+                self.debug_stats['last_total_due_extractions'] += 1
+                self.debug_stats['single_line_extractions'] += 1
+                
+                # Store debug info about this extraction
+                if 'correct_extractions' not in self.debug_stats:
+                    self.debug_stats['correct_extractions'] = []
+                
+                self.debug_stats['correct_extractions'].append({
+                    'page': page_num,
+                    'company_name': company_name,
+                    'source_line': last_total_due_line,
+                    'total_due_lines_found': len(total_due_lines),
+                    'extraction_method': extraction_method
+                })
+            else:
+                # Log extraction failure
+                self._log_extraction_failure(page_num, last_total_due_line)
+                company_name = None
+        
+        
+        if not company_name:
+            # Fallback: Use the old method if no "Total Due" pattern found
             # Industry approach: Combine first few lines until we hit address patterns
             company_parts = []
             address_patterns = [
@@ -332,12 +394,14 @@ class StatementProcessor:
                     'page': page_num,
                     'lines_used': lines_used,
                     'final_name': company_name,
-                    'original_first_line': lines[0] if lines else 'N/A'
+                    'original_first_line': lines[0] if lines else 'N/A',
+                    'extraction_method': 'fallback_multiline'
                 })
-                extraction_method = f"multiline_{len(lines_used)}_lines"
+                extraction_method = f"fallback_multiline_{len(lines_used)}_lines"
             else:
+                self.debug_stats['fallback_extractions'] += 1
                 self.debug_stats['single_line_extractions'] += 1
-                extraction_method = "single_line"
+                extraction_method = "fallback_single_line"
         
         # Find remaining content after company name extraction
         company_line_count = len(company_name.split()) if company_name else 1
@@ -437,7 +501,7 @@ class StatementProcessor:
                 
                 if statement_data:
                     statements.append(statement_data)
-                    print(f"✓ Extracted: {statement_data['company_name']}")
+                    print(f" Extracted: {statement_data['company_name']}")
                     
                     # Mark pages as processed to avoid reprocessing
                     total_pages = int(statement_data["number_of_pages"])
@@ -452,6 +516,9 @@ class StatementProcessor:
             # DEBUG: Print comprehensive analysis
             self._print_debug_analysis(statements)
             
+            # INDUSTRY-LEVEL: Create visual extraction report
+            self._create_visual_extraction_report(statements)
+            
             return statements
             
         except Exception as e:
@@ -460,7 +527,7 @@ class StatementProcessor:
     def _print_debug_analysis(self, statements: List[Dict[str, Any]]) -> None:
         """Print comprehensive debug analysis of extraction changes."""
         print("\n" + "=" * 80)
-        print("📊 COMPANY EXTRACTION ANALYSIS - WHY QUESTION COUNT CHANGED")
+        print(" COMPANY EXTRACTION ANALYSIS - WHY QUESTION COUNT CHANGED")
         print("=" * 80)
         
         # Overall statistics
@@ -470,7 +537,7 @@ class StatementProcessor:
         fuzzy_matches = self.debug_stats['fuzzy_matches_found']
         no_matches = self.debug_stats['no_matches_found']
         
-        print(f"📈 OVERALL STATISTICS:")
+        print(f" OVERALL STATISTICS:")
         print(f"   Total Statements Found: {total_statements}")
         print(f"   Questions Required: {questions_needed}")
         print(f"   Exact Matches (no questions): {exact_matches}")
@@ -481,12 +548,12 @@ class StatementProcessor:
         multiline_count = self.debug_stats['multiline_extractions']
         single_line_count = self.debug_stats['single_line_extractions']
         
-        print(f"\n🔍 COMPANY NAME EXTRACTION:")
+        print(f"\n COMPANY NAME EXTRACTION:")
         print(f"   Multi-line extractions: {multiline_count}")
         print(f"   Single-line extractions: {single_line_count}")
         
         if multiline_count > 0:
-            print(f"\n📋 MULTI-LINE COMPANY NAMES FOUND:")
+            print(f"\n MULTI-LINE COMPANY NAMES FOUND:")
             for i, company in enumerate(self.debug_stats['multiline_companies'][:10], 1):
                 print(f"   {i}. Page {company['page']}: '{company['final_name']}'")
                 print(f"      Lines used: {company['lines_used']}")
@@ -498,7 +565,7 @@ class StatementProcessor:
         
         # Exact matches that reduce questions
         if exact_matches > 0:
-            print(f"\n✅ EXACT MATCHES FOUND (Reducing Questions):")
+            print(f"\n EXACT MATCHES FOUND (Reducing Questions):")
             for i, match in enumerate(self.debug_stats['exact_match_companies'][:10], 1):
                 print(f"   {i}. Page {match['page']}: '{match['company_name']}'")
                 print(f"      Exact match: '{match['exact_match']}'")
@@ -508,7 +575,7 @@ class StatementProcessor:
         # High confidence matches (90%+) that reduce questions
         high_conf_count = len(self.debug_stats['high_confidence_matches'])
         if high_conf_count > 0:
-            print(f"\n🎯 HIGH CONFIDENCE MATCHES (90%+, Reducing Questions):")
+            print(f"\n HIGH CONFIDENCE MATCHES (90%+, Reducing Questions):")
             for i, match in enumerate(self.debug_stats['high_confidence_matches'][:10], 1):
                 print(f"   {i}. Page {match['page']}: '{match['company_name']}'")
                 print(f"      Best match: '{match['best_match']['company_name']}' ({match['best_match']['percentage']})")
@@ -516,7 +583,7 @@ class StatementProcessor:
                 print()
         
         # Companies still requiring questions
-        print(f"\n❓ COMPANIES REQUIRING MANUAL QUESTIONS:")
+        print(f"\n COMPANIES REQUIRING MANUAL QUESTIONS:")
         for i, company in enumerate(self.debug_stats['question_requiring_companies'][:15], 1):
             best_match = company['best_match']
             print(f"   {i}. Page {company['page']}: '{company['company_name']}'")
@@ -530,14 +597,191 @@ class StatementProcessor:
             print(f"   ... and {remaining} more companies requiring questions")
         
         # Summary of why count changed
-        print(f"\n🎯 SUMMARY - WHY QUESTION COUNT CHANGED:")
+        print(f"\n SUMMARY - WHY QUESTION COUNT CHANGED:")
         print(f"   • Exact matches found: {exact_matches} (these don't need questions)")
         print(f"   • High confidence matches (90%+): {high_conf_count} (these don't need questions)")
         print(f"   • Multi-line extraction improvements: {multiline_count} names now captured better")
         print(f"   • Enhanced matching found exact matches that were previously missed")
         print(f"   • Total reduction in questions: Better accuracy means fewer uncertain matches")
         
-        print("\n" + "=" * 80 + "\n")
+        print("\n" + "=" * 80)
+        print(f" DETAILED EXTRACTION LOG SAVED TO: {self.extraction_log_path}")
+        print(f" Review this file to see EXACTLY what was read from each page")
+        print(f" VISUAL REPORT SAVED TO: extraction_report.html")
+        print(f" Open extraction_report.html in browser for easy review")
+        print("=" * 80 + "\n")
+    
+    def _log_page_extraction_start(self, page_num: int, text: str) -> None:
+        """Log the start of page extraction with full text."""
+        with open(self.extraction_log_path, 'a', encoding='utf-8') as f:
+            f.write(f"\n{'='*60}\n")
+            f.write(f"PAGE {page_num} EXTRACTION START\n")
+            f.write(f"{'='*60}\n")
+            f.write(f"FULL PAGE TEXT ({len(text)} characters):\n")
+            f.write(f"{'-'*40}\n")
+            f.write(text[:2000])  # First 2000 chars
+            if len(text) > 2000:
+                f.write(f"\n... [TRUNCATED - Total {len(text)} characters] ...\n")
+            f.write(f"\n{'-'*40}\n\n")
+    
+    def _log_all_lines_analysis(self, page_num: int, text_lines: List[str]) -> None:
+        """Log analysis of all lines on the page."""
+        with open(self.extraction_log_path, 'a', encoding='utf-8') as f:
+            f.write(f"LINE-BY-LINE ANALYSIS - PAGE {page_num}:\n")
+            f.write(f"Total lines found: {len(text_lines)}\n\n")
+            
+            for i, line in enumerate(text_lines[:50], 1):  # Log first 50 lines
+                f.write(f"Line {i:2d}: '{line}'\n")
+            
+            if len(text_lines) > 50:
+                f.write(f"... [TRUNCATED - Total {len(text_lines)} lines] ...\n")
+            f.write("\n")
+    
+    def _log_total_due_analysis(self, page_num: int, total_due_lines: List[str]) -> None:
+        """Log analysis of Total Due lines found."""
+        with open(self.extraction_log_path, 'a', encoding='utf-8') as f:
+            f.write(f"TOTAL DUE LINES ANALYSIS - PAGE {page_num}:\n")
+            f.write(f"Number of 'Total Due' lines found: {len(total_due_lines)}\n\n")
+            
+            if total_due_lines:
+                for i, line in enumerate(total_due_lines, 1):
+                    f.write(f"  Total Due Line {i}: '{line}'\n")
+                f.write(f"\n>>> SELECTED (LAST): '{total_due_lines[-1]}'\n\n")
+            else:
+                f.write("   NO 'Total Due' LINES FOUND\n\n")
+    
+    def _log_successful_extraction(self, page_num: int, source_line: str, raw_name: str, clean_name: str) -> None:
+        """Log successful company name extraction."""
+        with open(self.extraction_log_path, 'a', encoding='utf-8') as f:
+            f.write(f" SUCCESSFUL EXTRACTION - PAGE {page_num}:\n")
+            f.write(f"  Source line: '{source_line}'\n")
+            f.write(f"  Raw extracted: '{raw_name}'\n")
+            f.write(f"  Clean result: '{clean_name}'\n")
+            f.write(f"  Method: Last Total Due line extraction\n\n")
+    
+    def _log_extraction_failure(self, page_num: int, source_line: str) -> None:
+        """Log extraction failure."""
+        with open(self.extraction_log_path, 'a', encoding='utf-8') as f:
+            f.write(f" EXTRACTION FAILURE - PAGE {page_num}:\n")
+            f.write(f"  Source line: '{source_line}'\n")
+            f.write(f"  Reason: Regex pattern did not match\n")
+            f.write(f"  Pattern: r'^(.+?)\\s+Total Due\\s+\\$'\n\n")
+    
+    def _create_visual_extraction_report(self, statements: List[Dict[str, Any]]) -> None:
+        """Create an HTML report for easy visual review of extractions."""
+        html_content = f'''
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Statement Extraction Report</title>
+    <style>
+        body {{ font-family: Arial, sans-serif; margin: 20px; }}
+        .header {{ background: #f0f8ff; padding: 15px; border-radius: 5px; margin-bottom: 20px; }}
+        .statement {{ border: 1px solid #ddd; margin: 15px 0; border-radius: 5px; }}
+        .statement-header {{ background: #e8f5e8; padding: 10px; font-weight: bold; }}
+        .extraction-success {{ background: #d4edda; }}
+        .extraction-failure {{ background: #f8d7da; }}
+        .extraction-details {{ padding: 15px; }}
+        .source-line {{ background: #fff3cd; padding: 10px; border-radius: 3px; font-family: monospace; margin: 10px 0; }}
+        .company-name {{ background: #d1ecf1; padding: 5px; border-radius: 3px; font-weight: bold; }}
+        .stats {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin: 20px 0; }}
+        .stat-card {{ background: #f8f9fa; padding: 15px; border-radius: 5px; text-align: center; }}
+        .stat-number {{ font-size: 2em; font-weight: bold; color: #0066cc; }}
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1> Statement Extraction Report</h1>
+        <p>Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
+        <p>Total Statements: {len(statements)}</p>
+    </div>
+    
+    <div class="stats">
+        <div class="stat-card">
+            <div class="stat-number">{self.debug_stats.get('last_total_due_extractions', 0)}</div>
+            <div>Correct Extractions</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{self.debug_stats.get('fallback_extractions', 0)}</div>
+            <div>Fallback Extractions</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{self.debug_stats.get('exact_matches_found', 0)}</div>
+            <div>Exact Matches</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{sum(1 for s in statements if s.get('ask_question', False))}</div>
+            <div>Questions Needed</div>
+        </div>
+    </div>
+    
+    <h2> Extraction Details by Page</h2>
+'''
+        
+        # Add details for each statement
+        for i, statement in enumerate(statements, 1):
+            page_num = statement.get('page_number_in_uploaded_pdf', 'Unknown')
+            company_name = statement.get('company_name', 'Not extracted')
+            exact_match = statement.get('exact_match')
+            similar_matches = statement.get('similar_matches', [])
+            
+            # Find extraction details from debug logs
+            extraction_details = None
+            if 'correct_extractions' in self.debug_stats:
+                for ext in self.debug_stats['correct_extractions']:
+                    if ext.get('company_name') == company_name:
+                        extraction_details = ext
+                        break
+            
+            success_class = "extraction-success" if extraction_details else "extraction-failure"
+            
+            html_content += f'''
+    <div class="statement">
+        <div class="statement-header {success_class}">
+            Statement #{i} - Page {page_num}
+        </div>
+        <div class="extraction-details">
+            <h4> Extracted Company Name:</h4>
+            <div class="company-name">{company_name}</div>
+            
+            {f'''
+            <h4> Source Information:</h4>
+            <div class="source-line">Source Line: {extraction_details['source_line']}</div>
+            <p><strong>Method:</strong> {extraction_details['extraction_method']}</p>
+            <p><strong>Total Due Lines Found:</strong> {extraction_details['total_due_lines_found']}</p>
+            ''' if extraction_details else '<p style="color: red;"> No extraction details found - used fallback method</p>'}
+            
+            <h4> Matching Results:</h4>
+            {f'<p style="color: green;"><strong> Exact Match:</strong> {exact_match}</p>' if exact_match else ''}
+            
+            {f'''
+            <p><strong>Similar Matches Found:</strong> {len(similar_matches)}</p>
+            <ul>
+            {''.join(f"<li>{match['company_name']} ({match['percentage']})</li>" for match in similar_matches[:5])}
+            </ul>
+            ''' if similar_matches else '<p>No similar matches found</p>'}
+        </div>
+    </div>
+'''
+        
+        html_content += '''
+    <div class="header" style="margin-top: 40px;">
+        <h3> How to Use This Report</h3>
+        <ul>
+            <li><strong>Review Extracted Company Names:</strong> Verify they match what you see in the PDF</li>
+            <li><strong>Check Source Lines:</strong> Confirm extractions came from the correct "Total Due" lines</li>
+            <li><strong>Validate Matching:</strong> Ensure similar matches make sense</li>
+            <li><strong>Identify Issues:</strong> Red backgrounds indicate extraction problems</li>
+        </ul>
+        <p><strong> Tip:</strong> If extractions look wrong, check the detailed log file: <code>extraction_debug_log.txt</code></p>
+    </div>
+</body>
+</html>
+        '''
+        
+        # Save the HTML report
+        with open('extraction_report.html', 'w', encoding='utf-8') as f:
+            f.write(html_content)
     
     def process_interactive_questions(self, statements: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Process interactive questions for companies requiring manual review."""
@@ -550,7 +794,7 @@ class StatementProcessor:
     def _print_debug_analysis(self, statements: List[Dict[str, Any]]) -> None:
         """Print comprehensive debug analysis of extraction changes."""
         print("\n" + "=" * 80)
-        print("📊 COMPANY EXTRACTION ANALYSIS - WHY QUESTION COUNT CHANGED")
+        print(" COMPANY EXTRACTION ANALYSIS - WHY QUESTION COUNT CHANGED")
         print("=" * 80)
         
         # Overall statistics
@@ -560,7 +804,7 @@ class StatementProcessor:
         fuzzy_matches = self.debug_stats['fuzzy_matches_found']
         no_matches = self.debug_stats['no_matches_found']
         
-        print(f"📈 OVERALL STATISTICS:")
+        print(f" OVERALL STATISTICS:")
         print(f"   Total Statements Found: {total_statements}")
         print(f"   Questions Required: {questions_needed}")
         print(f"   Exact Matches (no questions): {exact_matches}")
@@ -571,12 +815,12 @@ class StatementProcessor:
         multiline_count = self.debug_stats['multiline_extractions']
         single_line_count = self.debug_stats['single_line_extractions']
         
-        print(f"\n🔍 COMPANY NAME EXTRACTION:")
+        print(f"\n COMPANY NAME EXTRACTION:")
         print(f"   Multi-line extractions: {multiline_count}")
         print(f"   Single-line extractions: {single_line_count}")
         
         if multiline_count > 0:
-            print(f"\n📋 MULTI-LINE COMPANY NAMES FOUND:")
+            print(f"\n MULTI-LINE COMPANY NAMES FOUND:")
             for i, company in enumerate(self.debug_stats['multiline_companies'][:10], 1):
                 print(f"   {i}. Page {company['page']}: '{company['final_name']}'")
                 print(f"      Lines used: {company['lines_used']}")
@@ -588,7 +832,7 @@ class StatementProcessor:
         
         # Exact matches that reduce questions
         if exact_matches > 0:
-            print(f"\n✅ EXACT MATCHES FOUND (Reducing Questions):")
+            print(f"\n EXACT MATCHES FOUND (Reducing Questions):")
             for i, match in enumerate(self.debug_stats['exact_match_companies'][:10], 1):
                 print(f"   {i}. Page {match['page']}: '{match['company_name']}'")
                 print(f"      Exact match: '{match['exact_match']}'")
@@ -598,7 +842,7 @@ class StatementProcessor:
         # High confidence matches (90%+) that reduce questions
         high_conf_count = len(self.debug_stats['high_confidence_matches'])
         if high_conf_count > 0:
-            print(f"\n🎯 HIGH CONFIDENCE MATCHES (90%+, Reducing Questions):")
+            print(f"\n HIGH CONFIDENCE MATCHES (90%+, Reducing Questions):")
             for i, match in enumerate(self.debug_stats['high_confidence_matches'][:10], 1):
                 print(f"   {i}. Page {match['page']}: '{match['company_name']}'")
                 print(f"      Best match: '{match['best_match']['company_name']}' ({match['best_match']['percentage']})")
@@ -606,7 +850,7 @@ class StatementProcessor:
                 print()
         
         # Companies still requiring questions
-        print(f"\n❓ COMPANIES REQUIRING MANUAL QUESTIONS:")
+        print(f"\n COMPANIES REQUIRING MANUAL QUESTIONS:")
         for i, company in enumerate(self.debug_stats['question_requiring_companies'][:15], 1):
             best_match = company['best_match']
             print(f"   {i}. Page {company['page']}: '{company['company_name']}'")
@@ -620,7 +864,7 @@ class StatementProcessor:
             print(f"   ... and {remaining} more companies requiring questions")
         
         # Summary of why count changed
-        print(f"\n🎯 SUMMARY - WHY QUESTION COUNT CHANGED:")
+        print(f"\n SUMMARY - WHY QUESTION COUNT CHANGED:")
         print(f"   • Exact matches found: {exact_matches} (these don't need questions)")
         print(f"   • High confidence matches (90%+): {high_conf_count} (these don't need questions)")
         print(f"   • Multi-line extraction improvements: {multiline_count} names now captured better")
@@ -665,7 +909,7 @@ class StatementProcessor:
                         
                         statement['destination'] = 'DNM'
                         statement['user_answered'] = 'yes'
-                        print(f"✓ Marked '{company_name}' as DNM")
+                        print(f" Marked '{company_name}' as DNM")
                         i += 1  # Move to next question
                         break
                         
@@ -680,14 +924,14 @@ class StatementProcessor:
                         })
                         
                         statement['user_answered'] = 'no'
-                        print(f"✓ Kept '{company_name}' as {statement['destination']}")
+                        print(f" Kept '{company_name}' as {statement['destination']}")
                         i += 1  # Move to next question
                         break
                         
                     elif response == 's':
                         skip_all = True
                         statement['user_answered'] = 'skip'
-                        print("✓ Skipping remaining questions")
+                        print(" Skipping remaining questions")
                         break
                         
                     elif response == 'p':
@@ -724,7 +968,7 @@ class StatementProcessor:
     def _print_debug_analysis(self, statements: List[Dict[str, Any]]) -> None:
         """Print comprehensive debug analysis of extraction changes."""
         print("\n" + "=" * 80)
-        print("📊 COMPANY EXTRACTION ANALYSIS - WHY QUESTION COUNT CHANGED")
+        print(" COMPANY EXTRACTION ANALYSIS - WHY QUESTION COUNT CHANGED")
         print("=" * 80)
         
         # Overall statistics
@@ -734,7 +978,7 @@ class StatementProcessor:
         fuzzy_matches = self.debug_stats['fuzzy_matches_found']
         no_matches = self.debug_stats['no_matches_found']
         
-        print(f"📈 OVERALL STATISTICS:")
+        print(f" OVERALL STATISTICS:")
         print(f"   Total Statements Found: {total_statements}")
         print(f"   Questions Required: {questions_needed}")
         print(f"   Exact Matches (no questions): {exact_matches}")
@@ -745,12 +989,12 @@ class StatementProcessor:
         multiline_count = self.debug_stats['multiline_extractions']
         single_line_count = self.debug_stats['single_line_extractions']
         
-        print(f"\n🔍 COMPANY NAME EXTRACTION:")
+        print(f"\n COMPANY NAME EXTRACTION:")
         print(f"   Multi-line extractions: {multiline_count}")
         print(f"   Single-line extractions: {single_line_count}")
         
         if multiline_count > 0:
-            print(f"\n📋 MULTI-LINE COMPANY NAMES FOUND:")
+            print(f"\n MULTI-LINE COMPANY NAMES FOUND:")
             for i, company in enumerate(self.debug_stats['multiline_companies'][:10], 1):
                 print(f"   {i}. Page {company['page']}: '{company['final_name']}'")
                 print(f"      Lines used: {company['lines_used']}")
@@ -762,7 +1006,7 @@ class StatementProcessor:
         
         # Exact matches that reduce questions
         if exact_matches > 0:
-            print(f"\n✅ EXACT MATCHES FOUND (Reducing Questions):")
+            print(f"\n EXACT MATCHES FOUND (Reducing Questions):")
             for i, match in enumerate(self.debug_stats['exact_match_companies'][:10], 1):
                 print(f"   {i}. Page {match['page']}: '{match['company_name']}'")
                 print(f"      Exact match: '{match['exact_match']}'")
@@ -772,7 +1016,7 @@ class StatementProcessor:
         # High confidence matches (90%+) that reduce questions
         high_conf_count = len(self.debug_stats['high_confidence_matches'])
         if high_conf_count > 0:
-            print(f"\n🎯 HIGH CONFIDENCE MATCHES (90%+, Reducing Questions):")
+            print(f"\n HIGH CONFIDENCE MATCHES (90%+, Reducing Questions):")
             for i, match in enumerate(self.debug_stats['high_confidence_matches'][:10], 1):
                 print(f"   {i}. Page {match['page']}: '{match['company_name']}'")
                 print(f"      Best match: '{match['best_match']['company_name']}' ({match['best_match']['percentage']})")
@@ -780,7 +1024,7 @@ class StatementProcessor:
                 print()
         
         # Companies still requiring questions
-        print(f"\n❓ COMPANIES REQUIRING MANUAL QUESTIONS:")
+        print(f"\n COMPANIES REQUIRING MANUAL QUESTIONS:")
         for i, company in enumerate(self.debug_stats['question_requiring_companies'][:15], 1):
             best_match = company['best_match']
             print(f"   {i}. Page {company['page']}: '{company['company_name']}'")
@@ -794,7 +1038,7 @@ class StatementProcessor:
             print(f"   ... and {remaining} more companies requiring questions")
         
         # Summary of why count changed
-        print(f"\n🎯 SUMMARY - WHY QUESTION COUNT CHANGED:")
+        print(f"\n SUMMARY - WHY QUESTION COUNT CHANGED:")
         print(f"   • Exact matches found: {exact_matches} (these don't need questions)")
         print(f"   • High confidence matches (90%+): {high_conf_count} (these don't need questions)")
         print(f"   • Multi-line extraction improvements: {multiline_count} names now captured better")
@@ -850,7 +1094,7 @@ class StatementProcessor:
                     with open(output_path, 'wb') as f:
                         writer.write(f)
                     results[dest] = pages_added
-                    print(f"✓ Created {output_path} with {pages_added} pages")
+                    print(f" Created {output_path} with {pages_added} pages")
             
             return results
             
@@ -879,7 +1123,7 @@ class StatementProcessor:
             with open(output_path, 'w', encoding='utf-8') as f:
                 json.dump(data, f, indent=2, ensure_ascii=False)
             
-            print(f"✓ Results saved to {output_path}")
+            print(f" Results saved to {output_path}")
             return output_path
             
         except Exception as e:
@@ -895,33 +1139,33 @@ class StatementProcessor:
             print()
             
             # Step 1: Extract statements
-            print("📋 Step 1: Extracting statements from PDF...")
+            print(" Step 1: Extracting statements from PDF...")
             statements = self.extract_statements()
-            print(f"✅ Extracted {len(statements)} statements")
+            print(f" Extracted {len(statements)} statements")
             
             # Step 2: Process interactive questions (skip if requested)
             if not skip_questions:
-                print("\n📋 Step 2: Processing manual questions...")
+                print("\n Step 2: Processing manual questions...")
                 statements = self.process_interactive_questions(statements)
-                print("✅ Manual questions processed")
+                print(" Manual questions processed")
             else:
-                print("\n📋 Step 2: Skipping interactive questions...")
-                print("✅ Questions skipped for comparison")
+                print("\n Step 2: Skipping interactive questions...")
+                print(" Questions skipped for comparison")
             
             # Step 3: Save results
-            print("\n📋 Step 3: Saving results...")
+            print("\n Step 3: Saving results...")
             output_file = self.save_results(statements)
-            print("✅ Results saved")
+            print(" Results saved")
             
             if not skip_questions:
                 # Step 4: Create split PDFs
-                print("\n📋 Step 4: Creating destination PDFs...")
+                print("\n Step 4: Creating destination PDFs...")
                 split_results = self.create_split_pdfs(statements)
-                print("✅ PDFs created successfully")
+                print(" PDFs created successfully")
                 
                 # Final summary
                 print("\n" + "=" * 60)
-                print("🎉 WORKFLOW COMPLETED SUCCESSFULLY!")
+                print(" WORKFLOW COMPLETED SUCCESSFULLY!")
                 print("=" * 60)
                 
                 print(f"Total statements processed: {len(statements)}")
@@ -932,7 +1176,7 @@ class StatementProcessor:
             else:
                 # Comparison mode summary
                 print("\n" + "=" * 60)
-                print("🎯 EXTRACTION COMPLETED FOR COMPARISON")
+                print(" EXTRACTION COMPLETED FOR COMPARISON")
                 print("=" * 60)
                 
                 manual_count = sum(1 for s in statements if s.get('manual_required', False))
@@ -948,7 +1192,7 @@ class StatementProcessor:
             return True
             
         except Exception as e:
-            print(f"\n❌ Workflow failed: {e}")
+            print(f"\n Workflow failed: {e}")
             return False
 
 
@@ -983,13 +1227,13 @@ def get_file_paths() -> Tuple[str, str]:
         pdf_path = input("Enter PDF file path: ").strip().strip('"')
         if os.path.exists(pdf_path) and pdf_path.lower().endswith('.pdf'):
             break
-        print("❌ Invalid PDF file path")
+        print(" Invalid PDF file path")
     
     while True:
         excel_path = input("Enter Excel file path: ").strip().strip('"')
         if os.path.exists(excel_path) and excel_path.lower().endswith(('.xlsx', '.xls')):
             break
-        print("❌ Invalid Excel file path")
+        print(" Invalid Excel file path")
     
     return pdf_path, excel_path
 
@@ -1011,10 +1255,10 @@ def main() -> int:
         return 0 if success else 1
         
     except KeyboardInterrupt:
-        print("\n\n❌ Process interrupted by user")
+        print("\n\n Process interrupted by user")
         return 1
     except Exception as e:
-        print(f"\n❌ Fatal error: {e}")
+        print(f"\n Fatal error: {e}")
         return 1
 
 

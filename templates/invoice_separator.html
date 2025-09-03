@@ -413,7 +413,7 @@ class InvoiceProcessorClient:
             if result['status'] != 'success':
                 raise Exception(f"Processing failed: {result.get('message', 'Unknown error')}")
             
-            print(f"✅ Found {result['invoices_found']} invoices")
+            print(f" Found {result['invoices_found']} invoices")
             
             # Download separated invoices
             if result.get('file_path') and result['invoices_found'] > 0:
@@ -441,7 +441,7 @@ class InvoiceProcessorClient:
             for chunk in response.iter_content(chunk_size=8192):
                 f.write(chunk)
         
-        print(f"✅ Downloaded separated invoices to: {output_path}")
+        print(f" Downloaded separated invoices to: {output_path}")
         return output_path
 
 # Usage example
@@ -652,7 +652,7 @@ class InvoiceRequestManager {
             
             // Also show critical errors in the UI
             if (type === 'error') {
-                alert(`❌ Error: ${message}\n\nCheck console for details.`);
+                alert(` Error: ${message}\n\nCheck console for details.`);
             }
         }
 
@@ -869,7 +869,7 @@ class InvoiceRequestManager {
                 
                 const result = await response.json();
                 
-                detailedLog(`✅ Invoice processing completed`, 'success', result);
+                detailedLog(` Invoice processing completed`, 'success', result);
                 showAPIResponse('Invoice Processing Results', result, 'POST /api/invoice-processor');
                 
                 if (result.success && result.download_url) {
@@ -914,7 +914,7 @@ class InvoiceRequestManager {
             downloadDiv.id = 'downloadSection';
             downloadDiv.innerHTML = `
                 <div class="response-header">
-                    <span class="direction-icon received">📥</span>
+                    <span class="direction-icon received"></span>
                     <span class="response-title">Download Separated Invoices</span>
                     <span class="direction-text">Ready for Download</span>
                 </div>
@@ -973,7 +973,7 @@ class InvoiceRequestManager {
         
         // Initialize page
         document.addEventListener('DOMContentLoaded', function() {
-            detailedLog('🌐 Page loaded, testing API connection...', 'info');
+            detailedLog(' Page loaded, testing API connection...', 'info');
             showTab('overview');
             testAPIConnection();
             

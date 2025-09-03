@@ -53,7 +53,7 @@ Processes Excel files with credit card data and generates enhanced JavaScript au
 4. **Review** uncertain matches through interactive questions
 5. **Download** results as split PDFs + JSON summary
 
-## 🔌 **API Integration Guide**
+##  **API Integration Guide**
 
 ### **Base URL**
 ```
@@ -71,7 +71,7 @@ Access-Control-Allow-Headers: Content-Type,Authorization
 Access-Control-Allow-Methods: GET,PUT,POST,DELETE,OPTIONS
 ```
 
-## 📡 **API Endpoints Reference**
+##  **API Endpoints Reference**
 
 ### **Endpoints Overview**
 - **Health Check**: `/health`
@@ -265,7 +265,7 @@ POST /api/invoice-processor/delete_separate_results
 }
 ```
 
-## 💻 **Frontend Integration Examples**
+##  **Frontend Integration Examples**
 
 ### **React Integration**
 
@@ -500,7 +500,7 @@ client.submit_answers(answers)
 client.download_results("results.txt")
 ```
 
-## ⚡ **Performance & Optimization**
+##  **Performance & Optimization**
 
 ### **Time Complexity: O(n)**
 - **Pre-compiled regex patterns** for fast text extraction
@@ -519,7 +519,7 @@ client.download_results("results.txt")
 - **Network**: 100GB bandwidth/month
 - **Sleep mode**: Handles cold starts gracefully
 
-## 🔒 **Security & Best Practices**
+##  **Security & Best Practices**
 
 ### **File Validation**
 ```python
@@ -559,7 +559,7 @@ try {
 - **Memory management** prevents resource exhaustion
 - **CORS properly configured** for browser security
 
-## 🚀 **Deployment Guide**
+##  **Deployment Guide**
 
 ### **Railway Deployment**
 
@@ -606,7 +606,7 @@ git push origin main
 # Connect to Railway and deploy
 ```
 
-## 🧪 **Testing**
+##  **Testing**
 
 ### **Local Testing**
 ```bash
@@ -637,7 +637,7 @@ Use the frontend demo server for complete testing environment with:
 - **Interactive Q&A**: Manual review simulation
 - **Download testing**: Result file generation
 
-## 🔄 **Complete Integration Workflow**
+##  **Complete Integration Workflow**
 
 ### **1. Session Lifecycle**
 ```
@@ -659,7 +659,7 @@ Create Session → Upload Files → Process → Get Questions → Submit Answers
 - **Auto-save** answers during review
 - **Download confirmation** with file info
 
-## 📋 **API Response Status Codes**
+##  **API Response Status Codes**
 
 | Code | Meaning | Description |
 |------|---------|-------------|
@@ -699,4 +699,4 @@ Create Session → Upload Files → Process → Get Questions → Submit Answers
 
 ---
 
-**This API is production-ready and optimized for Railway's free tier with enterprise-grade features and complete documentation for seamless integration! 🚀**
+**This API is production-ready and optimized for Railway's free tier with enterprise-grade features and complete documentation for seamless integration! **

@@ -413,6 +413,7 @@ class StatementProcessor:
         result["first_page_number"] = first_page
         result["destination"] = destination
         result["extraction_method"] = extraction_method  # Track extraction method
+        result["fallbackUsed"] = extraction_method == "first_line_fallback"  # Track if fallback was used
             
         return result
     

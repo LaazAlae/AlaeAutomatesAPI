@@ -394,6 +394,15 @@ class StatementProcessor:
             
         result["exact_match"] = exact_match
         result["similar_matches"] = similar_matches  # ALL matches above 60%
+        
+        # Backwards compatibility fields for frontend
+        if similar_matches:
+            result["similar_to"] = similar_matches[0]["company_name"]
+            result["percentage"] = similar_matches[0]["percentage"]
+        else:
+            result["similar_to"] = None
+            result["percentage"] = None
+            
         result["manual_required"] = manual_required
         result["ask_question"] = ask_question
         result["rest_of_lines"] = rest_text

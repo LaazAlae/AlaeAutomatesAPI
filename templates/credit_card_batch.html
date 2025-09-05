@@ -227,8 +227,8 @@ class CreditCardBatchProcessor {
   deployToConsole(automationCode) {
     // Copy to clipboard for console deployment
     navigator.clipboard.writeText(automationCode).then(() => {
-      console.log('✅ Code copied to clipboard!');
-      console.log('📋 Paste in Legacy Edge console and type run()');
+      console.log(' Code copied to clipboard!');
+      console.log(' Paste in Legacy Edge console and type run()');
     });
   }
 }</div>
@@ -314,7 +314,7 @@ function CreditCardBatchProcessor() {
         <div className="result">
           <h3>Processing Complete!</h3>
           <p>Processed {result.records_count} records</p>
-          <p>✅ Automation code copied to clipboard</p>
+          <p> Automation code copied to clipboard</p>
           <button onClick={() => navigator.clipboard.writeText(result.automation_code)}>
             Copy Code Again
           </button>
@@ -349,7 +349,7 @@ class CreditCardBatchClient:
             if not data['success']:
                 raise Exception(f"Processing Error: {data.get('error')}")
             
-            print(f"✅ Processed {data['records_count']} records")
+            print(f" Processed {data['records_count']} records")
             
             # Save automation code to file
             with open('automation_code.js', 'w') as f:
@@ -432,8 +432,8 @@ async function processWithErrorHandling(file) {
 function deployToConsole(automationCode) {
   // Copy to clipboard
   navigator.clipboard.writeText(automationCode).then(() => {
-    console.log('✅ Code copied to clipboard');
-    console.log('📋 Instructions:');
+    console.log(' Code copied to clipboard');
+    console.log(' Instructions:');
     console.log('1. Open Legacy Edge and navigate to batch page');
     console.log('2. Press F12 to open console');
     console.log('3. Paste the code and press Enter');
@@ -762,7 +762,7 @@ function deployToConsole(automationCode) {
             downloadDiv.id = 'codeDownloadSection';
             downloadDiv.innerHTML = `
                 <div class="response-header">
-                    <span class="direction-icon received">📋</span>
+                    <span class="direction-icon received"></span>
                     <span class="response-title">Automation Code Ready</span>
                     <span class="direction-text">Copy to Console</span>
                 </div>
@@ -806,7 +806,7 @@ function deployToConsole(automationCode) {
                 navigator.clipboard.writeText(code).then(() => {
                     const button = document.getElementById('copyCodeBtn');
                     const originalText = button.textContent;
-                    button.textContent = '✅ Code Copied!';
+                    button.textContent = ' Code Copied!';
                     button.style.background = 'var(--success)';
                     
                     setTimeout(() => {
@@ -837,7 +837,7 @@ function deployToConsole(automationCode) {
 
         // Initialize page
         document.addEventListener('DOMContentLoaded', function() {
-            detailedLog('🏦 Credit Card Batch API interface loaded', 'info');
+            detailedLog(' Credit Card Batch API interface loaded', 'info');
             showTab('overview');
             testAPIConnection();
         });

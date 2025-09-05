@@ -1,11 +1,20 @@
 #!/usr/bin/env python3
 """
-Production Statement Processing System
+Enhanced Statement Processing System
+====================================
 
-Optimized for O(n) performance and Railway deployment.
-Memory-efficient, secure, and production-ready.
+Integrates the minimal processor improvements into a class-based architecture
+suitable for web API usage. Maintains the clean formatting and enhanced 
+features while providing proper encapsulation for different input sources.
 
-Version: 3.0 - Production Ready
+Key Features:
+- Enhanced company name extraction with 4 regex patterns
+- Improved fuzzy matching with 60%+ threshold  
+- Interactive Q&A system with back navigation
+- Professional output formatting
+- API-compatible class structure
+
+Version: 4.0 - Enhanced Production Ready
 """
 
 import fitz
@@ -26,27 +35,37 @@ from collections import OrderedDict
 
 class StatementProcessor:
     """
-    Professional statement processor with O(n) complexity optimizations.
+    Enhanced statement processor with improved extraction methods.
     
-    Handles PDF text extraction, company matching against DNM lists,
-    interactive questioning, and PDF splitting operations.
+    Integrates the minimal processor improvements while maintaining
+    class-based architecture for API compatibility.
     """
     
-    # Class constants for better performance and maintainability
+    # Enhanced patterns from minimal processor
+    PATTERNS = {
+        'page': re.compile(r'Page\s*(\d+)\s*of\s*(\d+)', re.IGNORECASE),
+        'total_due_subtotal': re.compile(r'Subtotal\s+\$[\d,]+\.\d{2}\s+([^\n\r]+?)\s+Total Due\s+\$[\d,]+\.\d{2}', re.IGNORECASE | re.MULTILINE),
+        'total_due_multiline': re.compile(r'([^\n\r]+\n[^\n\r]*?)\s+Total Due\s+\$[\d,]+\.\d{2}', re.IGNORECASE | re.MULTILINE),
+        'total_due_line': re.compile(r'(\S[^\n\r]*?)\s+Total Due\s+\$[\d,]+\.\d{2}', re.IGNORECASE | re.MULTILINE),
+        'business_suffix': re.compile(r'\b(?:inc|incorporated|corp|corporation|llc|ltd|limited|llp|lp|pc|pa|pllc|plc|co|company|companies|enterprise|enterprises|group|groups|holding|holdings|international|intl|global|solutions|services|systems|technologies|tech|industries|foundation|trust|association|society|institute|center|centre|organization|org)\b', re.IGNORECASE),
+        'clean_text': re.compile(r'[\s,.()\-_&]+'),
+        'whitespace': re.compile(r'\s+')
+    }
+    
     US_STATES = frozenset([
         "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA", "HI", "ID",
         "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD", "MA", "MI", "MN", "MS",
         "MO", "MT", "NE", "NV", "NH", "NJ", "NM", "NY", "NC", "ND", "OH", "OK",
-        "OR", "PA", "RI", "SC", "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV",
-        "WI", "WY", "DC"
+        "OR", "PA", "PR", "RI", "SC", "SD", "TN", "TX", "UT", "VT", "VA", "WA", 
+        "WV", "WI", "WY", "DC"
     ])
     
     START_MARKERS = ["914.949.9618", "302.703.8961", "www.unitedcorporate.com", "AR@UNITEDCORPORATE.COM"]
     END_MARKER = "STATEMENT OF OPEN INVOICE(S)"
-    SKIP_LINES = {"Statement Date:", "Total Due:", "www.unitedcorporate.com"}
+    SKIP_LINES = {"Statement Date:", "Total Due:", "www.unitedcorporate.com", "Amount", "Invoice Number", "Description", "Invoice Date", "Invoice Number Description Invoice Date Amount"}
     
     def __init__(self, pdf_path: str, excel_path: str):
-        """Initialize processor with file paths and pre-compile patterns for O(n) performance."""
+        """Initialize processor with file paths for API usage."""
         self.pdf_path = Path(pdf_path)
         self.excel_path = Path(excel_path)
         self.logger = logging.getLogger(self.__class__.__name__)
@@ -57,182 +76,72 @@ class StatementProcessor:
         if not self.excel_path.exists():
             raise FileNotFoundError(f"Excel file not found: {excel_path}")
         
-        # Pre-compile regex patterns for optimal performance
-        self._compile_patterns()
-        
         # Load and pre-process DNM companies for O(1) lookups
         self.dnm_companies, self.normalized_company_map = self._load_dnm_companies()
         
         # Cache for processed pages to avoid reprocessing
         self._processed_pages: Set[int] = set()
         
-        # Memory optimization: Clear unused references
+
+        # Extraction logging for analysis
+        self.extraction_log = []
+        
+        # Memory optimization
         gc.collect()
     
-    def _compile_patterns(self) -> None:
-        """Pre-compile all regex patterns for maximum performance."""
-        # Use the exact same business suffix list and pattern logic as the original code
-        suffixes = [
-            # Corporations
-            'inc', 'incorporated', 'incorporation', 'corp', 'corporation',
-            
-            # Limited Liability Companies
-            'llc', r'l\.l\.c\.?', 'limited liability company',
-            
-            # Limited Companies
-            'ltd', 'limited', 'ltda',
-            
-            # Partnerships
-            'llp', r'l\.l\.p\.?', 'limited liability partnership',
-            'lp', r'l\.p\.?', 'limited partnership',
-            'gp', 'general partnership',
-            
-            # Professional entities
-            'pc', r'p\.c\.?', 'professional corporation',
-            'pa', r'p\.a\.?', 'professional association',
-            'pllc', r'p\.l\.l\.c\.?', 'professional limited liability company',
-            'plc', r'p\.l\.c\.?', 'public limited company',
-            'professional company',
-            
-            # General business
-            'co', 'company', 'companies',
-            'enterprise', 'enterprises',
-            'group', 'groups',
-            'holding', 'holdings',
-            'international', 'intl',
-            'global',
-            'worldwide',
-            'solutions',
-            'services',
-            'systems',
-            'technologies', 'tech',
-            'industries',
-            
-            # Specific entity types
-            'sc', r's\.c\.?', 'service corporation',
-            'bc', r'b\.c\.?', 'benefit corporation',
-            'pbc', 'public benefit corporation',
-            'nonprofit', 'non-profit',
-            'foundation',
-            'trust',
-            'association', 'assn',
-            'society',
-            'institute',
-            'academy',
-            'center', 'centre',
-            'organization', 'org',
-            
-            # Regional variations
-            'pty', 'proprietary',
-            'pvt', 'private',
-            'pub', 'public',
-            'joint venture', 'jv',
-            'partnership',
-            'syndicate',
-            'consortium',
-            'cooperative', 'coop', 'co-op',
-            
-            # Financial
-            'bank', 'banking',
-            'credit union',
-            'mutual',
-            'insurance', 'ins',
-            'realty', 'real estate',
-            'investment', 'investments',
-            'capital',
-            'financial', 'finance',
-            
-            # Other common endings
-            'the', # Often appears at beginning or end
-            'and', '&',
-            'of',
-            'dba', 'd/b/a', 'doing business as',
-            'aka', 'a/k/a', 'also known as',
-            'fka', 'f/k/a', 'formerly known as',
-            'nka', 'n/k/a', 'now known as'
-        ]
-        
-        # Use exact same logic as original code for pattern creation
-        escaped_suffixes = []
-        for suffix in suffixes:
-            if suffix.startswith('r\'') or '\\' in suffix:
-                # Already a raw string or contains escapes, use as-is
-                escaped_suffixes.append(suffix)
-            else:
-                # Escape special regex characters
-                escaped_suffixes.append(re.escape(suffix))
-        
-        # Create pattern that matches these suffixes at word boundaries
-        pattern = r'\b(?:' + '|'.join(escaped_suffixes) + r')\b'
-        
-        self.patterns = {
-            'page': re.compile(r'Page\s*(\d+)\s*of\s*(\d+)', re.IGNORECASE),
-            'total_due_from_subtotal': re.compile(r'Subtotal\s+\$[\d,]+\.\d{2}\s+([^\n\r]+?)\s+Total Due\s+\$[\d,]+\.\d{2}', re.IGNORECASE | re.MULTILINE),
-            'total_due_multiline': re.compile(r'([^\n\r]+\n[^\n\r]*?)\s+Total Due\s+\$[\d,]+\.\d{2}', re.IGNORECASE | re.MULTILINE),
-            'total_due_line_end': re.compile(r'(\S[^\n\r]*?)\s+Total Due\s+\$[\d,]+\.\d{2}', re.IGNORECASE | re.MULTILINE),
-            'total_due_fallback': re.compile(r'(.+?)\s+Total Due\s+\$', re.IGNORECASE),
-            'business_suffixes': re.compile(pattern, re.IGNORECASE),
-            'clean_text': re.compile(r'[\s,.()\-_&]+'),
-            'whitespace': re.compile(r'\s+')
-        }
-    
-    def _normalize_company_name(self, name: str) -> str:
-        """Normalize company names for consistent matching - O(1) operation."""
-        if not name:
-            return ""
-        
-        normalized = str(name).lower().strip()
-        normalized = self.patterns['business_suffixes'].sub('', normalized)
-        normalized = self.patterns['clean_text'].sub('', normalized)
-        
-        return normalized.strip()
-    
+
+
     def _load_dnm_companies(self) -> Tuple[List[str], Dict[str, str]]:
         """Load and pre-process DNM companies for O(1) lookups."""
         try:
-            # Load Excel file with openpyxl instead of pandas
             workbook = load_workbook(self.excel_path, read_only=True)
             worksheet = workbook['10-2018']
             
             companies = []
+            normalized_map = {}
+            
             # Skip first 3 rows (2 header rows + 1 for 0-indexing)
             for row in worksheet.iter_rows(min_row=4, max_col=1, values_only=True):
                 cell_value = row[0]
                 if cell_value and str(cell_value).strip() and not str(cell_value).lower().startswith('name'):
-                    companies.append(str(cell_value).strip())
+                    company = str(cell_value).strip()
+                    companies.append(company)
+                    
+                    # Create normalized mapping for O(1) lookups
+                    normalized = str(company).lower().strip()
+                    normalized = self.PATTERNS['business_suffix'].sub('', normalized)
+                    normalized = self.PATTERNS['clean_text'].sub('', normalized).strip()
+                    if normalized:
+                        normalized_map[normalized] = company
             
             workbook.close()
-            
-            # Create normalized mapping for O(1) lookups
-            normalized_map = {}
-            for company in companies:
-                normalized = self._normalize_company_name(company)
-                if normalized:
-                    normalized_map[normalized] = company
-            
             return companies, normalized_map
             
         except Exception as e:
             raise RuntimeError(f"Failed to load DNM companies: {e}")
     
+
+
     def _find_company_match(self, company_name: str) -> Tuple[Optional[str], List[Dict[str, str]]]:
-        """Find all company matches above 60% threshold with industry-standard fuzzy matching."""
+        """Enhanced company matching with improved fuzzy logic."""
         # O(1) exact match check
         if company_name in self.dnm_companies:
             return company_name, []
         
         # O(1) normalized exact match
-        normalized = self._normalize_company_name(company_name)
+        normalized = str(company_name).lower().strip()
+        normalized = self.PATTERNS['business_suffix'].sub('', normalized)
+        normalized = self.PATTERNS['clean_text'].sub('', normalized).strip()
+        
         if normalized in self.normalized_company_map:
             return self.normalized_company_map[normalized], []
         
-        # Industry-standard fuzzy matching: Check ALL companies above 60% threshold
+        # Enhanced fuzzy matching: Check ALL companies above 60% threshold
         similar_matches = []
         if normalized:
-            # Calculate similarity scores for ALL companies
             for norm_company, original_company in self.normalized_company_map.items():
                 similarity_score = SequenceMatcher(None, normalized, norm_company).ratio() * 100
-                if similarity_score >= 60.0:  # Only matches above 60%
+                if similarity_score >= 60.0:
                     similar_matches.append({
                         "company_name": original_company,
                         "percentage": f"{round(similarity_score, 1)}%"
@@ -243,11 +152,15 @@ class StatementProcessor:
         
         return None, similar_matches
     
+
+
     def _detect_location(self, text: str) -> str:
-        """Detect location using optimized state detection - O(k) where k = 50 states."""
+        """Detect location using optimized state detection."""
         text_upper = f" {text.upper()} "
         return "National" if any(f" {state} " in text_upper for state in self.US_STATES) else "Foreign"
     
+
+
     def _determine_destination_enhanced(self, exact_match: Optional[str], text: str, location: str, 
                             pages: int, best_percentage: float, has_email: bool) -> str:
         """Enhanced destination logic with improved accuracy."""
@@ -262,67 +175,60 @@ class StatementProcessor:
             return "Foreign"
         return "Natio Single" if pages == 1 else "Natio Multi"
     
-    def _extract_company_name_ultimate(self, text: str, lines: List[str], page_num: int, 
-                                       current: int, total: int) -> Tuple[str, str, str]:
-        """Ultimate company name extraction with all fixes."""
-        # Get fallback method for comparison logging (top company name)
-        fallback_company = lines[0].strip() if lines else "N/A"
-        extraction_method = "unknown"
+
+
+
+    def _extract_company_name_enhanced(self, text: str, lines: List[str]) -> Tuple[str, str, bool, str]:
+        """Enhanced company name extraction using 4 patterns in priority order."""
+        fallback_company = lines[0].strip() if lines else "Unknown"
+        extraction_method, fallback_used, fallback_reason = "unknown", False, ""
         
-        # Method 1: Try to find company name between "Subtotal" and "Total Due" (most accurate)
-        subtotal_match = self.patterns['total_due_from_subtotal'].search(text)
-        if subtotal_match:
-            company_raw = subtotal_match.group(1).strip()
-            company = self.patterns['whitespace'].sub(' ', company_raw).strip()
-            extraction_method = "subtotal_to_total_pattern"
+        # Pattern 1: Subtotal pattern (highest priority)
+        match = self.PATTERNS['total_due_subtotal'].search(text)
+        if match:
+            company = self.PATTERNS['whitespace'].sub(' ', match.group(1).strip()).strip()
+            if company.startswith("Amount "):
+                company = company[7:].strip()
+            extraction_method = "subtotal_pattern"
         else:
-            # Method 2: Try multiline pattern for company names split across lines
-            multiline_match = self.patterns['total_due_multiline'].search(text)
-            if multiline_match:
-                company_raw = multiline_match.group(1).strip()
-                company = self.patterns['whitespace'].sub(' ', company_raw.replace('\n', ' ')).strip()
+            # Pattern 2: Multiline pattern
+            match = self.PATTERNS['total_due_multiline'].search(text)
+            if match:
+                company = self.PATTERNS['whitespace'].sub(' ', match.group(1).replace('\n', ' ').strip()).strip()
+                if company.startswith("Amount "):
+                    company = company[7:].strip()
                 extraction_method = "multiline_pattern"
                 
-                # Validate: if it's reasonable length (< 100 chars), use it
-                if len(company) <= 100:
-                    pass  # Keep the multiline result
-                else:
-                    # Too long, try single line pattern instead
-                    line_end_match = self.patterns['total_due_line_end'].search(text)
-                    if line_end_match:
-                        company_raw = line_end_match.group(1).strip()
-                        company = self.patterns['whitespace'].sub(' ', company_raw).strip()
-                        extraction_method = "line_end_pattern"
-                        if len(company) > 100:
-                            company = lines[0].strip()
-                            extraction_method = "first_line_fallback"
-                    else:
-                        company = lines[0].strip()
-                        extraction_method = "first_line_fallback"
-            else:
-                # Method 3: Look for company name at end of line before "Total Due $X.XX"
-                line_end_match = self.patterns['total_due_line_end'].search(text)
-                if line_end_match:
-                    company_raw = line_end_match.group(1).strip()
-                    company = self.patterns['whitespace'].sub(' ', company_raw).strip()
-                    extraction_method = "line_end_pattern"
-                    
-                    # Validate: if it's too long (> 100 chars), it likely captured invoice data
+                # Fallback if too long
+                if len(company) > 100:
+                    match = self.PATTERNS['total_due_line'].search(text)
+                    if match:
+                        company = self.PATTERNS['whitespace'].sub(' ', match.group(1).strip()).strip()
+                        extraction_method = "line_pattern"
                     if len(company) > 100:
-                        # Use first line instead
-                        company = lines[0].strip()
-                        extraction_method = "first_line_fallback"
+                        company, extraction_method, fallback_used, fallback_reason = fallback_company, "fallback", True, "Pattern extracted text too long"
+            else:
+                # Pattern 3: Line pattern
+                match = self.PATTERNS['total_due_line'].search(text)
+                if match:
+                    company = self.PATTERNS['whitespace'].sub(' ', match.group(1).strip()).strip()
+                    if company.startswith("Amount "):
+                        company = company[7:].strip()
+                    extraction_method = "line_pattern"
+                    
+                    if len(company) > 100:
+                        company, extraction_method, fallback_used, fallback_reason = fallback_company, "fallback", True, "Line pattern too long"
                 else:
-                    # Method 4: Last resort - use first line from cleaned content
-                    company = lines[0].strip()
-                    extraction_method = "first_line_fallback"
+                    # Pattern 4: Fallback to first line
+                    company, extraction_method, fallback_used, fallback_reason = fallback_company, "fallback", True, "No patterns found"
         
-        return company, extraction_method, fallback_company
+        return company, extraction_method, fallback_used, fallback_reason
     
+
     def _extract_statement_data(self, text: str, page_num: int) -> Optional[Dict[str, Any]]:
-        """Extract statement data from page text with enhanced multi-line company name extraction."""
+        """Enhanced statement data extraction with improved company name detection."""
         # Parse page information
-        page_match = self.patterns['page'].search(text)
+        page_match = self.PATTERNS['page'].search(text)
         current_page, total_pages = (int(page_match.group(1)), int(page_match.group(2))) if page_match else (1, 1)
         
         # Find content boundaries
@@ -345,18 +251,28 @@ class StatementProcessor:
         if not lines:
             return None
 
-        # Ultimate Company Name Extraction
-        company_name, extraction_method, top_company_name = self._extract_company_name_ultimate(
-            text, lines, page_num, current_page, total_pages
-        )
-
-        # Additional Data Processing
-        rest_text = "\n".join(lines[1:])
         
-        location = self._detect_location(rest_text)
-        exact_match, similar_matches = self._find_company_match(company_name)
+        # Enhanced company name extraction
+        fallback_company = lines[0].strip()
+        company, extraction_method, fallback_used, fallback_reason = self._extract_company_name_enhanced(text, lines)
+        
+        # Log extraction differences for analysis
+        if company.strip() != fallback_company.strip():
+            self.extraction_log.append({
+                'page_num': page_num, 'current_page': current_page, 'total_pages': total_pages,
+                'old_method': fallback_company, 'new_method': company,
+                'extraction_method': extraction_method, 'match': company.strip() == fallback_company.strip()
+            })
 
-        # Calculate Page Range (O(1) Operation)
+        
+        # Process remaining content
+        rest_text = "\n".join(lines[1:])
+        location = self._detect_location(rest_text)
+
+        exact_match, similar_matches = self._find_company_match(company)
+        
+        # Calculate page information
+
         if total_pages == 1:
             page_range = str(page_num)
             first_page = page_num
@@ -365,7 +281,9 @@ class StatementProcessor:
             page_range = "-".join(map(str, range(start_page, start_page + total_pages)))
             first_page = start_page
 
-        # Determine Processing Flags
+        
+        # Determine processing flags
+
         has_email = "email" in rest_text.lower()
         best_match = similar_matches[0] if similar_matches else None
         best_percentage = float(best_match["percentage"].replace('%', '')) if best_match else 0
@@ -379,30 +297,18 @@ class StatementProcessor:
             if manual_required:
                 ask_question = best_percentage < 90.0
 
-        # Determine Destination
-        destination = self._determine_destination_enhanced(
-            exact_match, rest_text, location, total_pages, best_percentage, has_email
-        )
-
-        # Build the result dictionary with proper field ordering
+        
+        # Determine destination
+        destination = self._determine_destination_enhanced(exact_match, rest_text, location, total_pages, best_percentage, has_email)
+        
+        # Build result with enhanced data
         result = OrderedDict()
-        result["company_name"] = company_name
-        
-        # ONLY add unusedCompanyName when bottom company name != top company name
-        if company_name.strip() != top_company_name.strip():
-            result["unusedCompanyName"] = top_company_name
-            
+        result["company_name"] = company
+        if company.strip() != fallback_company.strip():
+            result["unusedCompanyName"] = fallback_company
         result["exact_match"] = exact_match
-        result["similar_matches"] = similar_matches  # ALL matches above 60%
-        
-        # Backwards compatibility fields for frontend
-        if similar_matches:
-            result["similar_to"] = similar_matches[0]["company_name"]
-            result["percentage"] = similar_matches[0]["percentage"]
-        else:
-            result["similar_to"] = None
-            result["percentage"] = None
-            
+        result["similar_matches"] = similar_matches
+
         result["manual_required"] = manual_required
         result["ask_question"] = ask_question
         result["rest_of_lines"] = rest_text
@@ -412,13 +318,18 @@ class StatementProcessor:
         result["page_number_in_uploaded_pdf"] = page_range
         result["first_page_number"] = first_page
         result["destination"] = destination
-        result["extraction_method"] = extraction_method  # Track extraction method
-        result["fallbackUsed"] = extraction_method == "first_line_fallback"  # Track if fallback was used
+        result["extraction_method"] = extraction_method
+        result["fallbackUsed"] = fallback_used
+        if fallback_used:
+            result["fallbackReason"] = fallback_reason
+
             
         return result
     
+
+
     def extract_statements(self) -> List[Dict[str, Any]]:
-        """Extract all statements from PDF - O(n) where n = number of pages."""
+        """Extract all statements from PDF with enhanced processing."""
         try:
             doc = fitz.open(str(self.pdf_path))
             statements = []
@@ -431,28 +342,52 @@ class StatementProcessor:
                 if page_num in self._processed_pages:
                     continue
                 
-                statement_data = self._extract_statement_data(doc.load_page(page_idx).get_text(), page_num)
+                page_text = doc.load_page(page_idx).get_text()
                 
-                if statement_data:
-                    statements.append(statement_data)
-                    print(f" Extracted: {statement_data['company_name']}")
+
+                # Check for statement boundaries
+                page_match = self.PATTERNS['page'].search(page_text)
+                if not page_match:
+                    continue
+                
+                start_pos = min((page_text.find(marker) for marker in self.START_MARKERS if marker in page_text), default=-1)
+                end_pos = page_text.find(self.END_MARKER)
+                if start_pos == -1 or end_pos == -1:
+                    continue
+                
+                # Enhanced: Jump to last page for multi-page statements
+                total_pages = int(page_match.group(2))
+                current_page = int(page_match.group(1))
+                start_page = page_num - (current_page - 1)
+                last_page_num = start_page + total_pages - 1
+                
+                if last_page_num <= len(doc):
+                    # Process the last page (most efficient for company extraction)
+                    last_page_text = doc.load_page(last_page_num - 1).get_text()
+                    statement_data = self._extract_statement_data(last_page_text, last_page_num)
+
                     
-                    # Mark pages as processed to avoid reprocessing
-                    total_pages = int(statement_data["number_of_pages"])
-                    if total_pages > 1:
-                        page_range = statement_data["page_number_in_uploaded_pdf"].split("-")
-                        self._processed_pages.update(range(int(page_range[0]), int(page_range[-1]) + 1))
-                    else:
-                        self._processed_pages.add(page_num)
+                    if statement_data:
+                        statements.append(statement_data)
+                        print(f" Extracted: {statement_data['company_name']}")
+                        
+                        # Mark all pages as processed
+                        self._processed_pages.update(range(start_page, last_page_num + 1))
             
             doc.close()
+
+            
+            # Add extraction log to results for analysis
+            for statement in statements:
+                statement['_extraction_log'] = self.extraction_log
             return statements
             
         except Exception as e:
             raise RuntimeError(f"Failed to extract statements: {e}")
     
+
     def process_interactive_questions(self, statements: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """Process interactive questions for companies requiring manual review."""
+        """Enhanced interactive question processing with back navigation."""
         questions_needed = [stmt for stmt in statements if stmt.get('ask_question', False)]
         
         if not questions_needed:
@@ -462,7 +397,7 @@ class StatementProcessor:
         print(f"\nFound {len(questions_needed)} companies requiring manual review:")
         
         skip_all = False
-        history = []  # Track history of statement states
+        history = []  # Track history for back navigation
         i = 0  # Current question index
         
         while i < len(questions_needed):
@@ -498,7 +433,9 @@ class StatementProcessor:
                             statement['destination'] = 'DNM'
                             statement['user_answered'] = 'yes'
                             print(f" Marked '{company_name}' as DNM")
-                            i += 1  # Move to next question
+
+                            i += 1
+
                             break
                             
                         elif response == 'n':
@@ -513,7 +450,9 @@ class StatementProcessor:
                             
                             statement['user_answered'] = 'no'
                             print(f" Kept '{company_name}' as {statement['destination']}")
-                            i += 1  # Move to next question
+
+                            i += 1
+
                             break
                             
                         elif response == 's':
@@ -553,9 +492,10 @@ class StatementProcessor:
         
         return statements
     
+
     def create_split_pdfs(self, statements: List[Dict[str, Any]]) -> Dict[str, int]:
-        """Split PDF into destination-based files - O(n) operation."""
-        # Group statements by destination - O(n)
+        """Create split PDFs with enhanced organization."""
+        # Group statements by destination
         destinations = {"DNM": [], "Foreign": [], "Natio Single": [], "Natio Multi": []}
         
         for statement in statements:
@@ -607,8 +547,10 @@ class StatementProcessor:
         except Exception as e:
             raise RuntimeError(f"Failed to create split PDFs: {e}")
     
+
+
     def save_results(self, statements: List[Dict[str, Any]], output_path: Optional[str] = None) -> str:
-        """Save processing results to JSON file."""
+        """Save processing results with enhanced metadata."""
         if not output_path:
             today = datetime.now().strftime("%b%d%Y").lower()
             output_path = f"{today}.json"
@@ -618,11 +560,28 @@ class StatementProcessor:
                 output_path = f"{today}-{counter}.json"
                 counter += 1
         
+        # Extract and clean logs
+        extraction_log = []
+        for statement in statements:
+            if '_extraction_log' in statement:
+                extraction_log.extend(statement['_extraction_log'])
+                del statement['_extraction_log']
+        
         data = {
             "dnm_companies": self.dnm_companies,
             "extracted_statements": statements,
             "total_statements_found": len(statements),
-            "processing_timestamp": datetime.now().isoformat()
+            "processing_timestamp": datetime.now().isoformat(),
+            "extraction_comparison_log": {
+                "total_statements_with_different_extractions": len(extraction_log),
+                "extraction_details": extraction_log,
+                "summary": {
+                    "extraction_methods_used": list(set(comp['extraction_method'] for comp in extraction_log)),
+                    "pages_with_multiline_extraction": len([c for c in extraction_log if c['extraction_method'] == 'multiline_pattern']),
+                    "pages_with_subtotal_extraction": len([c for c in extraction_log if c['extraction_method'] == 'subtotal_pattern']),
+                    "pages_with_improved_accuracy": len([c for c in extraction_log if c['extraction_method'] != 'fallback'])
+                }
+            }
         }
         
         try:
@@ -635,11 +594,13 @@ class StatementProcessor:
         except Exception as e:
             raise RuntimeError(f"Failed to save results: {e}")
     
+
+
     def run_complete_workflow(self, skip_questions: bool = False) -> bool:
-        """Execute the complete statement processing workflow."""
+        """Execute the complete enhanced workflow."""
         try:
             print("=" * 60)
-            print("          PROFESSIONAL STATEMENT PROCESSOR")
+            print("       ENHANCED STATEMENT PROCESSOR")
             print("=" * 60)
             print(f"Started: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
             print()
@@ -656,7 +617,9 @@ class StatementProcessor:
                 print(" Manual questions processed")
             else:
                 print("\n Step 2: Skipping interactive questions...")
-                print(" Questions skipped for comparison")
+
+                print(" Questions skipped for analysis")
+
             
             # Step 3: Save results
             print("\n Step 3: Saving results...")
@@ -680,9 +643,11 @@ class StatementProcessor:
                 for dest, pages in split_results.items():
                     print(f"  • {dest}: {pages} pages")
             else:
-                # Comparison mode summary
+                # Analysis mode summary
                 print("\n" + "=" * 60)
-                print(" EXTRACTION COMPLETED FOR COMPARISON")
+
+                print(" EXTRACTION COMPLETED FOR ANALYSIS")
+
                 print("=" * 60)
                 
                 manual_count = sum(1 for s in statements if s.get('manual_required', False))
@@ -702,58 +667,19 @@ class StatementProcessor:
             return False
 
 
-def find_files_in_directory() -> Tuple[Optional[str], Optional[str]]:
-    """Find PDF and Excel files in current directory."""
-    pdf_files = list(Path('.').glob('*.pdf'))
-    excel_files = list(Path('.').glob('*.xlsx')) + list(Path('.').glob('*.xls'))
-    
-    if pdf_files and excel_files:
-        return str(pdf_files[0]), str(excel_files[0])
-    return None, None
 
-
-def get_file_paths() -> Tuple[str, str]:
-    """Get file paths from user input or auto-detect."""
-    # Try auto-detection first
-    pdf_path, excel_path = find_files_in_directory()
-    
-    if pdf_path and excel_path:
-        print(f"Found files:")
-        print(f"  PDF: {pdf_path}")
-        print(f"  Excel: {excel_path}")
-        
-        use_files = input("Use these files? (y/n): ").strip().lower()
-        if use_files == 'y':
-            return pdf_path, excel_path
-    
-    # Manual file selection
-    print("\nManual file selection:")
-    
-    while True:
-        pdf_path = input("Enter PDF file path: ").strip().strip('"')
-        if os.path.exists(pdf_path) and pdf_path.lower().endswith('.pdf'):
-            break
-        print(" Invalid PDF file path")
-    
-    while True:
-        excel_path = input("Enter Excel file path: ").strip().strip('"')
-        if os.path.exists(excel_path) and excel_path.lower().endswith(('.xlsx', '.xls')):
-            break
-        print(" Invalid Excel file path")
-    
-    return pdf_path, excel_path
-
+# Standalone execution support (for testing)
 
 def main() -> int:
-    """Main entry point for the statement processor."""
+    """Main entry point for standalone testing."""
+    if len(sys.argv) < 3:
+        print("Usage: python statement_processor.py <pdf_path> <excel_path>")
+        return 1
+    
     try:
-        print("Professional Statement Processing System v2.0")
-        print("=" * 50)
+        pdf_path = sys.argv[1]
+        excel_path = sys.argv[2]
         
-        # Get file paths
-        pdf_path, excel_path = get_file_paths()
-        
-        # Create and run processor
         processor = StatementProcessor(pdf_path, excel_path)
         skip_questions = '--skip-questions' in sys.argv
         success = processor.run_complete_workflow(skip_questions)

@@ -14,11 +14,12 @@ Extracts invoice numbers from PDF files and splits them into separate documents 
 Processes Excel files with credit card data and generates enhanced JavaScript automation code for Legacy Edge browsers. Automatically cleans data, removes headers and totals, and creates robust automation scripts with safety checks.
 
 ### **Statement Processing Features:**
-- **Extracts company names** from PDF bank statements using OCR and text parsing
-- **Matches companies** against DNM Excel list using fuzzy string matching
-- **Splits PDF statements** by company destination (DNM, Foreign, etc.)
-- **Handles manual review** for uncertain matches via interactive questions
-- **Optimized performance** - O(n) time complexity with pre-compiled regex patterns
+- **Enhanced company name extraction** using 4 regex patterns in priority order (subtotal, multiline, line, fallback)
+- **Improved fuzzy matching** with 60%+ threshold and comprehensive similarity scoring
+- **Interactive Q&A system** with back navigation and history tracking (y/n/s/p options)
+- **Timestamped output folders** with JSON results and extraction comparison logs
+- **Optimized last-page jumping** for multi-page statements (more efficient processing)
+- **Professional workflow display** with step-by-step progress indicators
 - **Production ready** - Error handling, memory management, CORS support
 
 ### **Invoice Processing Features:**

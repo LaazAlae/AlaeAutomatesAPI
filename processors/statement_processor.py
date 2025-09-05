@@ -224,26 +224,32 @@ class StatementProcessor:
         except Exception as e:
             raise RuntimeError(f"Failed to load DNM companies: {e}")
     
-    def _find_company_match(self, company_name: str) -> Tuple[Optional[str], Optional[str], Optional[str]]:
-        """Find company match with O(1) exact match and O(k) fuzzy match where k << n."""
+    def _find_company_match(self, company_name: str) -> Tuple[Optional[str], List[Dict[str, str]]]:
+        """Find company match with O(1) exact match and enhanced fuzzy matching like minimal version."""
         # O(1) exact match check
         if company_name in self.dnm_companies:
-            return company_name, None, None
+            return company_name, []
         
         # O(1) normalized exact match
         normalized = self._normalize_company_name(company_name)
         if normalized in self.normalized_company_map:
-            return self.normalized_company_map[normalized], None, None
+            return self.normalized_company_map[normalized], []
         
-        # O(k) fuzzy match where k is small subset
+        # Enhanced fuzzy matching: Check ALL companies above 60% threshold
+        similar_matches = []
         if normalized:
-            matches = get_close_matches(normalized, list(self.normalized_company_map.keys()), n=1, cutoff=0.6)
-            if matches:
-                best_match = self.normalized_company_map[matches[0]]
-                similarity = f"{round(SequenceMatcher(None, normalized, matches[0]).ratio() * 100, 1)}%"
-                return None, best_match, similarity
+            for norm_company, original_company in self.normalized_company_map.items():
+                similarity_score = SequenceMatcher(None, normalized, norm_company).ratio() * 100
+                if similarity_score >= 60.0:
+                    similar_matches.append({
+                        "company_name": original_company,
+                        "percentage": f"{round(similarity_score, 1)}%"
+                    })
+            
+            # Sort by similarity score (highest first)
+            similar_matches.sort(key=lambda x: float(x["percentage"].replace('%', '')), reverse=True)
         
-        return None, None, None
+        return None, similar_matches
     
     def _detect_location(self, text: str) -> str:
         """Detect location using optimized state detection - O(k) where k = 50 states."""
@@ -251,22 +257,14 @@ class StatementProcessor:
         return "National" if any(f" {state} " in text_upper for state in self.US_STATES) else "Foreign"
     
     def _determine_destination(self, exact_match: Optional[str], text: str, location: str, 
-                            pages: int, similarity_percent: Optional[str]) -> str:
+                            pages: int, best_percentage: float, has_email: bool) -> str:
         """Determine destination using business logic - O(1) operation."""
-        if exact_match:
+        if exact_match or has_email or best_percentage >= 90.0:
             return "DNM"
-        if "email" in text.lower():
-            return "DNM"
-        if similarity_percent:
-            try:
-                if float(similarity_percent.replace('%', '')) >= 90.0:
-                    return "DNM"
-            except ValueError:
-                pass
-        
-        if location == "Foreign":
+        elif location == "Foreign":
             return "Foreign"
-        return "Natio Single" if pages == 1 else "Natio Multi"
+        else:
+            return "Natio Single" if pages == 1 else "Natio Multi"
     
     def _extract_statement_data(self, text: str, page_num: int) -> Optional[Dict[str, Any]]:
         """Extract statement data from page text - O(1) per page operation."""
@@ -303,32 +301,35 @@ class StatementProcessor:
         
         rest_text = "\n".join(lines[1:])
         location = self._detect_location(rest_text)
-        exact_match, similar_match, similarity_percent = self._find_company_match(company_name)
+        exact_match, similar_matches = self._find_company_match(company_name)
         
         # Calculate page range
         if total_pages == 1:
             page_range = str(page_num)
+            first_page = page_num
         else:
             start_page = page_num - (current_page - 1)
             page_range = "-".join(map(str, range(start_page, start_page + total_pages)))
+            first_page = start_page
         
-        # Determine processing flags
+        # Determine processing flags (EXACTLY like minimal version)
         has_email = "email" in rest_text.lower()
-        is_high_confidence = similarity_percent and float(similarity_percent.replace('%', '')) >= 90.0
+        best_match = similar_matches[0] if similar_matches else None
+        best_percentage = float(best_match["percentage"].replace('%', '')) if best_match else 0
+        is_high_confidence = best_percentage >= 90.0
         
         manual_required = False
         ask_question = False
         
         if not (has_email or is_high_confidence or exact_match):
-            manual_required = similar_match is not None
-            if manual_required and similarity_percent:
-                ask_question = float(similarity_percent.replace('%', '')) < 90.0
+            manual_required = len(similar_matches) > 0
+            if manual_required:
+                ask_question = best_percentage < 90.0
         
         return {
             "company_name": company_name,
             "exact_match": exact_match,
-            "similar_to": similar_match,
-            "percentage": similarity_percent,
+            "similar_matches": similar_matches,
             "manual_required": manual_required,
             "ask_question": ask_question,
             "rest_of_lines": rest_text,
@@ -336,7 +337,8 @@ class StatementProcessor:
             "paging": f"page {current_page} of {total_pages}",
             "number_of_pages": str(total_pages),
             "page_number_in_uploaded_pdf": page_range,
-            "destination": self._determine_destination(exact_match, rest_text, location, total_pages, similarity_percent)
+            "first_page_number": first_page,
+            "destination": self._determine_destination(exact_match, rest_text, location, total_pages, best_percentage, has_email)
         }
     
     def extract_statements(self) -> List[Dict[str, Any]]:
@@ -395,81 +397,83 @@ class StatementProcessor:
             
             statement = questions_needed[i]
             company_name = statement.get('company_name', 'Unknown')
-            similar_to = statement.get('similar_to', 'Unknown')
+            similar_matches = statement.get('similar_matches', [])
             
-            print(f"\nQuestion {i + 1} of {len(questions_needed)}:")
-            print(f"Company '{company_name}' is similar to '{similar_to}' in DNM list")
-            print("Are they the same company? (y/n/s to skip all/p to go back)")
-            
-            while True:
-                try:
-                    response = input("> ").strip().lower()
-                    
-                    if response == 'y':
-                        # Save current state to history before making changes
-                        history.append({
-                            'index': i,
-                            'statement_state': {
-                                'destination': statement.get('destination'),
-                                'user_answered': statement.get('user_answered')
-                            }
-                        })
+            if similar_matches:
+                best_match = similar_matches[0]
+                print(f"\nQuestion {i + 1} of {len(questions_needed)}:")
+                print(f"Company '{company_name}' is similar to '{best_match['company_name']}' ({best_match['percentage']})")
+                print("Are they the same company? (y/n/s to skip all/p to go back)")
+                
+                while True:
+                    try:
+                        response = input("> ").strip().lower()
                         
-                        statement['destination'] = 'DNM'
-                        statement['user_answered'] = 'yes'
-                        print(f"✓ Marked '{company_name}' as DNM")
-                        i += 1  # Move to next question
-                        break
-                        
-                    elif response == 'n':
-                        # Save current state to history before making changes
-                        history.append({
-                            'index': i,
-                            'statement_state': {
-                                'destination': statement.get('destination'),
-                                'user_answered': statement.get('user_answered')
-                            }
-                        })
-                        
-                        statement['user_answered'] = 'no'
-                        print(f"✓ Kept '{company_name}' as {statement['destination']}")
-                        i += 1  # Move to next question
-                        break
-                        
-                    elif response == 's':
-                        skip_all = True
-                        statement['user_answered'] = 'skip'
-                        print("✓ Skipping remaining questions")
-                        break
-                        
-                    elif response == 'p':
-                        if not history:
-                            print("No previous questions to go back to")
-                            continue
-                        
-                        # Restore previous state
-                        previous = history.pop()
-                        prev_index = previous['index']
-                        prev_state = previous['statement_state']
-                        
-                        # Restore the previous statement's state
-                        prev_statement = questions_needed[prev_index]
-                        prev_statement['destination'] = prev_state['destination']
-                        if 'user_answered' in prev_state and prev_state['user_answered'] is not None:
-                            prev_statement['user_answered'] = prev_state['user_answered']
-                        elif 'user_answered' in prev_statement:
-                            del prev_statement['user_answered']
-                        
-                        i = prev_index  # Go back to previous question
-                        print(f"↩ Going back to question {i + 1}")
-                        break
-                        
-                    else:
-                        print("Please enter 'y', 'n', 's', or 'p'")
-                        
-                except (KeyboardInterrupt, EOFError):
-                    print("\nOperation cancelled.")
-                    sys.exit(0)
+                        if response == 'y':
+                            # Save current state to history before making changes
+                            history.append({
+                                'index': i,
+                                'statement_state': {
+                                    'destination': statement.get('destination'),
+                                    'user_answered': statement.get('user_answered')
+                                }
+                            })
+                            
+                            statement['destination'] = 'DNM'
+                            statement['user_answered'] = 'yes'
+                            print(f"✓ Marked '{company_name}' as DNM")
+                            i += 1  # Move to next question
+                            break
+                            
+                        elif response == 'n':
+                            # Save current state to history before making changes
+                            history.append({
+                                'index': i,
+                                'statement_state': {
+                                    'destination': statement.get('destination'),
+                                    'user_answered': statement.get('user_answered')
+                                }
+                            })
+                            
+                            statement['user_answered'] = 'no'
+                            print(f"✓ Kept '{company_name}' as {statement['destination']}")
+                            i += 1  # Move to next question
+                            break
+                            
+                        elif response == 's':
+                            skip_all = True
+                            statement['user_answered'] = 'skip'
+                            print("✓ Skipping remaining questions")
+                            break
+                            
+                        elif response == 'p':
+                            if not history:
+                                print("No previous questions to go back to")
+                                continue
+                            
+                            # Restore previous state
+                            previous = history.pop()
+                            prev_index = previous['index']
+                            prev_state = previous['statement_state']
+                            
+                            # Restore the previous statement's state
+                            prev_statement = questions_needed[prev_index]
+                            prev_statement['destination'] = prev_state['destination']
+                            if 'user_answered' in prev_state and prev_state['user_answered'] is not None:
+                                prev_statement['user_answered'] = prev_state['user_answered']
+                            elif 'user_answered' in prev_statement:
+                                del prev_statement['user_answered']
+                            
+                            i = prev_index  # Go back to previous question
+                            print(f"↩ Going back to question {i + 1}")
+                            break
+                            
+                        else:
+                            print("Please enter 'y', 'n', 's', or 'p'")
+                            
+                    except (KeyboardInterrupt, EOFError):
+                        print("\nOperation cancelled.")
+                        sys.exit(0)
         
         return statements
     

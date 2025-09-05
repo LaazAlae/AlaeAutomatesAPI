@@ -115,7 +115,7 @@
                         </div>
 
                         <div class="security-note">
-                            <strong>Performance:</strong> O(n) linear time complexity, optimized for large files. Memory efficient for Railway deployment.
+                            <strong>Performance:</strong> Optimized for large files with linear time complexity. Railway deployment ready.
                         </div>
 
                         <h3>Processing Flow</h3>
@@ -259,7 +259,7 @@ Contains:
 - Foreign.pdf (foreign companies)
 - natioSingle.pdf (single-page national)
 - natioMulti.pdf (multi-page national)
-- results.json (processing details)</div>
+- output/processing_results.json (detailed results)</div>
                         </div>
                     </div>
 
@@ -725,11 +725,6 @@ class SessionManager {
             const timestamp = new Date().toLocaleTimeString();
             console.log(`[${timestamp}] ${type.toUpperCase()}: ${message}`, data || '');
             liveLog(message, type, data);
-            
-            // Also show critical errors in the UI
-            if (type === 'error') {
-                alert(` Error: ${message}\n\nCheck console for details.`);
-            }
         }
 
         // Mode toggle functionality
@@ -821,16 +816,6 @@ class SessionManager {
                 apiStatus.className = 'status-indicator status-disconnected';
                 apiUrl.innerHTML = `API: ${window.API_BASE_URL} (FAILED)`;
                 detailedLog(`API connection failed: ${error.message}`, 'error');
-                
-                // Show troubleshooting info
-                console.error('Troubleshooting Info:', {
-                    'API_URL': window.API_BASE_URL,
-                    'Error': error.message,
-                    'Error_Stack': error.stack,
-                    'Check_1': 'Verify Railway deployment is running',
-                    'Check_2': 'Check CORS configuration',
-                    'Health_URL': `${window.API_BASE_URL}/health`
-                });
             }
         }
 
@@ -972,10 +957,7 @@ class SessionManager {
                 showAPIResponse('Processing Results', processData, `POST /api/statement-processor/{id}/process`);
                 liveLog(`Processing completed: ${processData.total_statements} statements, ${processData.questions_needed} questions`, 'success');
                 
-                // Show debug analysis if available
-                if (processData.debug_analysis) {
-                    showDebugAnalysis(processData.debug_analysis, processData.questions_needed);
-                }
+                // Processing insights available in API response
 
                 // 4. Check for questions
                 if (processData.questions_needed > 0) {
@@ -1280,13 +1262,7 @@ class SessionManager {
                 liveLog(`Answer submission failed: ${error.message}`, 'error');
                 updateProgress(90, 'Answer submission failed. Please try again.');
                 
-                // Show more detailed error for debugging
-                console.error('Answer submission error details:', {
-                    error: error.message,
-                    sessionId: currentSessionId,
-                    answers: userAnswers,
-                    apiUrl: `${window.API_BASE_URL}/api/statement-processor/${currentSessionId}/answers`
-                });
+                console.error('Answer submission failed:', error);
             }
         }
 
@@ -1308,9 +1284,9 @@ class SessionManager {
                 <button class="button success download-ready" onclick="downloadResults()" id="downloadBtn">
                     Download ZIP File
                 </button>
-                <div style="margin-top: 15px; padding: 8px; background: var(--surface-subtle); border-radius: 4px;">
-                    <strong>Download URL:</strong><br>
-                    <code>GET /api/statement-processor/${currentSessionId}/download</code>
+                <div style="margin-top: 15px; padding: 12px; background: #f8f9fa; border-radius: 6px; border-left: 4px solid #28a745;">
+                    <strong>Download Includes:</strong> Split PDFs + processing_results.json in output/ folder<br>
+                    <code style="color: #666;">GET /api/statement-processor/{session_id}/download</code>
                 </div>
             `;
             responseContainer.appendChild(downloadDiv);
@@ -1325,83 +1301,6 @@ class SessionManager {
             liveLog('Download initiated', 'success');
         }
         
-        // Show debug analysis
-        function showDebugAnalysis(debugData, questionsNeeded) {
-            const container = document.getElementById('responseContainer');
-            const debugDiv = document.createElement('div');
-            debugDiv.className = 'response-viewer debug-analysis';
-            
-            const multilineExamples = debugData.multiline_companies.map(company => 
-                `<li>Page ${company.page}: "${company.final_name}" (from ${company.lines_used.length} lines)</li>`
-            ).join('');
-            
-            const exactMatchExamples = debugData.exact_match_examples.map(match => 
-                `<li>Page ${match.page}: "${match.company_name}" → Exact match: "${match.exact_match}"</li>`
-            ).join('');
-            
-            debugDiv.innerHTML = `
-                <div class="response-header">
-                    <span class="direction-icon"></span>
-                    <span class="response-title">Debug Analysis - Why Question Count Changed</span>
-                </div>
-                
-                <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin: 15px 0;">
-                    <h4 style="margin: 0 0 10px 0; color: #2c3e50;"> Question Count Reduction Analysis</h4>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
-                        <div>
-                            <strong> Overall Results:</strong><br>
-                            <span style="color: #28a745; font-weight: bold;">Questions needed: ${questionsNeeded}</span><br>
-                            <span style="color: #666;">Previous count: ~140</span><br>
-                            <span style="color: #007bff;">Reduction: ~${140 - questionsNeeded} questions</span>
-                        </div>
-                        <div>
-                            <strong> Extraction Method:</strong><br>
-                            Multi-line: ${debugData.multiline_extractions}<br>
-                            Single-line: ${debugData.single_line_extractions}<br>
-                            <span style="color: #28a745;">Better extraction accuracy</span>
-                        </div>
-                    </div>
-                    
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                        <div>
-                            <strong> Exact Matches Found: ${debugData.exact_matches_found}</strong><br>
-                            <span style="color: #666; font-size: 0.9rem;">These don't need questions</span>
-                        </div>
-                        <div>
-                            <strong> High Confidence (90%+): ${debugData.high_confidence_matches}</strong><br>
-                            <span style="color: #666; font-size: 0.9rem;">Auto-categorized as DNM</span>
-                        </div>
-                    </div>
-                </div>
-                
-                ${debugData.multiline_companies.length > 0 ? `
-                <div style="margin: 15px 0;">
-                    <h4 style="color: #667eea; margin-bottom: 10px;"> Multi-line Company Names Found (Sample):</h4>
-                    <ul style="margin: 0; padding-left: 20px; color: #666;">
-                        ${multilineExamples}
-                    </ul>
-                </div>
-                ` : ''}
-                
-                ${debugData.exact_match_examples.length > 0 ? `
-                <div style="margin: 15px 0;">
-                    <h4 style="color: #28a745; margin-bottom: 10px;"> Exact Matches Found (Sample):</h4>
-                    <ul style="margin: 0; padding-left: 20px; color: #666;">
-                        ${exactMatchExamples}
-                    </ul>
-                    <p style="margin: 10px 0 0 0; color: #28a745; font-weight: bold;">These exact matches reduced the question count!</p>
-                </div>
-                ` : ''}
-                
-                <div style="background: #e3f2fd; padding: 12px; border-radius: 6px; margin-top: 15px;">
-                    <strong style="color: #1976d2;"> Why the reduction occurred:</strong><br>
-                    <span style="color: #666;">Enhanced matching algorithm found exact matches that were previously missed, and improved multi-line extraction captured company names more accurately. This results in fewer uncertain matches requiring manual review.</span>
-                </div>
-            `;
-            
-            container.appendChild(debugDiv);
-            liveLog(`Debug analysis: ${debugData.exact_matches_found} exact matches, ${debugData.high_confidence_matches} high-confidence matches found`, 'info');
-        }
         
         // Mobile navigation toggle
         function toggleMobileNav() {

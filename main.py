@@ -483,7 +483,7 @@ Excel: {session_data['files']['excel_name']}
                 }
             }
             
-            zip_file.writestr('results/results.json', json.dumps(data, indent=2, ensure_ascii=False))
+            zip_file.writestr('output/processing_results.json', json.dumps(data, indent=2, ensure_ascii=False))
             
             # Add split PDF files in root directory
             pdf_files = {

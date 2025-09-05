@@ -82,6 +82,7 @@ class StatementProcessor:
         # Cache for processed pages to avoid reprocessing
         self._processed_pages: Set[int] = set()
         
+
         # Extraction logging for analysis
         self.extraction_log = []
         
@@ -176,6 +177,7 @@ class StatementProcessor:
     
 
 
+
     def _extract_company_name_enhanced(self, text: str, lines: List[str]) -> Tuple[str, str, bool, str]:
         """Enhanced company name extraction using 4 patterns in priority order."""
         fallback_company = lines[0].strip() if lines else "Unknown"
@@ -223,7 +225,6 @@ class StatementProcessor:
         return company, extraction_method, fallback_used, fallback_reason
     
 
-
     def _extract_statement_data(self, text: str, page_num: int) -> Optional[Dict[str, Any]]:
         """Enhanced statement data extraction with improved company name detection."""
         # Parse page information
@@ -249,6 +250,7 @@ class StatementProcessor:
         
         if not lines:
             return None
+
         
         # Enhanced company name extraction
         fallback_company = lines[0].strip()
@@ -261,13 +263,16 @@ class StatementProcessor:
                 'old_method': fallback_company, 'new_method': company,
                 'extraction_method': extraction_method, 'match': company.strip() == fallback_company.strip()
             })
+
         
         # Process remaining content
         rest_text = "\n".join(lines[1:])
         location = self._detect_location(rest_text)
+
         exact_match, similar_matches = self._find_company_match(company)
         
         # Calculate page information
+
         if total_pages == 1:
             page_range = str(page_num)
             first_page = page_num
@@ -275,8 +280,10 @@ class StatementProcessor:
             start_page = page_num - (current_page - 1)
             page_range = "-".join(map(str, range(start_page, start_page + total_pages)))
             first_page = start_page
+
         
         # Determine processing flags
+
         has_email = "email" in rest_text.lower()
         best_match = similar_matches[0] if similar_matches else None
         best_percentage = float(best_match["percentage"].replace('%', '')) if best_match else 0
@@ -289,6 +296,7 @@ class StatementProcessor:
             manual_required = len(similar_matches) > 0
             if manual_required:
                 ask_question = best_percentage < 90.0
+
         
         # Determine destination
         destination = self._determine_destination_enhanced(exact_match, rest_text, location, total_pages, best_percentage, has_email)
@@ -300,6 +308,7 @@ class StatementProcessor:
             result["unusedCompanyName"] = fallback_company
         result["exact_match"] = exact_match
         result["similar_matches"] = similar_matches
+
         result["manual_required"] = manual_required
         result["ask_question"] = ask_question
         result["rest_of_lines"] = rest_text
@@ -313,6 +322,7 @@ class StatementProcessor:
         result["fallbackUsed"] = fallback_used
         if fallback_used:
             result["fallbackReason"] = fallback_reason
+
             
         return result
     
@@ -334,6 +344,7 @@ class StatementProcessor:
                 
                 page_text = doc.load_page(page_idx).get_text()
                 
+
                 # Check for statement boundaries
                 page_match = self.PATTERNS['page'].search(page_text)
                 if not page_match:
@@ -354,6 +365,7 @@ class StatementProcessor:
                     # Process the last page (most efficient for company extraction)
                     last_page_text = doc.load_page(last_page_num - 1).get_text()
                     statement_data = self._extract_statement_data(last_page_text, last_page_num)
+
                     
                     if statement_data:
                         statements.append(statement_data)
@@ -363,15 +375,17 @@ class StatementProcessor:
                         self._processed_pages.update(range(start_page, last_page_num + 1))
             
             doc.close()
+
             
+
             # Don't add extraction log to individual statements
             
+
             return statements
             
         except Exception as e:
             raise RuntimeError(f"Failed to extract statements: {e}")
     
-
 
     def process_interactive_questions(self, statements: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Enhanced interactive question processing with back navigation."""
@@ -420,7 +434,9 @@ class StatementProcessor:
                             statement['destination'] = 'DNM'
                             statement['user_answered'] = 'yes'
                             print(f" Marked '{company_name}' as DNM")
+
                             i += 1
+
                             break
                             
                         elif response == 'n':
@@ -435,7 +451,9 @@ class StatementProcessor:
                             
                             statement['user_answered'] = 'no'
                             print(f" Kept '{company_name}' as {statement['destination']}")
+
                             i += 1
+
                             break
                             
                         elif response == 's':
@@ -475,7 +493,6 @@ class StatementProcessor:
         
         return statements
     
-
 
     def create_split_pdfs(self, statements: List[Dict[str, Any]]) -> Dict[str, int]:
         """Create split PDFs with enhanced organization."""
@@ -597,7 +614,9 @@ class StatementProcessor:
                 print(" Manual questions processed")
             else:
                 print("\n Step 2: Skipping interactive questions...")
+
                 print(" Questions skipped for analysis")
+
             
             # Step 3: Save results
             print("\n Step 3: Saving results...")
@@ -623,7 +642,9 @@ class StatementProcessor:
             else:
                 # Analysis mode summary
                 print("\n" + "=" * 60)
+
                 print(" EXTRACTION COMPLETED FOR ANALYSIS")
+
                 print("=" * 60)
                 
                 manual_count = sum(1 for s in statements if s.get('manual_required', False))
@@ -643,7 +664,9 @@ class StatementProcessor:
             return False
 
 
+
 # Standalone execution support (for testing)
+
 def main() -> int:
     """Main entry point for standalone testing."""
     if len(sys.argv) < 3:

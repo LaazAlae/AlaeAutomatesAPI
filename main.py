@@ -75,7 +75,7 @@ def debug_sessions(action, session_id=None):
     """Debug helper to track session state"""
     logger.info(f"[DEBUG] SESSION DEBUG - {action}")
     logger.info(f"[INFO] Total sessions: {len(sessions)}")
-    logger.info(f"🗂️  Session IDs: {list(sessions.keys())}")
+    logger.info(f"️  Session IDs: {list(sessions.keys())}")
     if session_id:
         logger.info(f"[SEARCH] Looking for: {session_id}")
         logger.info(f"[RESULT] Found: {session_id in sessions}")
@@ -297,10 +297,13 @@ def process_statements(session_id):
             'single_line_extractions': debug_stats['single_line_extractions'],
             'exact_matches_found': debug_stats['exact_matches_found'],
             'high_confidence_matches': len(debug_stats['high_confidence_matches']),
+            'last_total_due_extractions': debug_stats.get('last_total_due_extractions', 0),
+            'fallback_extractions': debug_stats.get('fallback_extractions', 0),
             'question_reduction_reasons': {
+                'correct_extraction_method': debug_stats.get('last_total_due_extractions', 0),
                 'exact_matches': debug_stats['exact_matches_found'],
                 'high_confidence_90_plus': len(debug_stats['high_confidence_matches']),
-                'total_reduction': f"Questions reduced from ~140 to {len(questions)} due to improved accuracy"
+                'total_reduction': f"Questions reduced from ~140 to {len(questions)} due to MAJOR FIX: Now reading company names from LAST 'Total Due' line + improved matching"
             },
             'multiline_companies': debug_stats['multiline_companies'][:5],  # First 5 examples
             'exact_match_examples': debug_stats['exact_match_companies'][:5]  # First 5 examples

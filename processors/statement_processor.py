@@ -85,6 +85,19 @@ class StatementProcessor:
         # Extraction logging for analysis
         self.extraction_log = []
         
+        # DEBUG TRACKING: Initialize counters for API compatibility
+        self.debug_stats = {
+            'multiline_extractions': 0,
+            'single_line_extractions': 0,
+            'exact_matches_found': 0,
+            'fuzzy_matches_found': 0,
+            'no_matches_found': 0,
+            'multiline_companies': [],
+            'exact_match_companies': [],
+            'high_confidence_matches': [],
+            'question_requiring_companies': []
+        }
+        
         # Memory optimization
         gc.collect()
     
@@ -262,6 +275,17 @@ class StatementProcessor:
                 'extraction_method': extraction_method, 'match': company.strip() == fallback_company.strip()
             })
         
+        # Update debug stats for API compatibility
+        if extraction_method == "multiline_pattern":
+            self.debug_stats['multiline_extractions'] += 1
+            self.debug_stats['multiline_companies'].append({
+                'page': page_num,
+                'final_name': company,
+                'original_first_line': fallback_company
+            })
+        else:
+            self.debug_stats['single_line_extractions'] += 1
+        
         # Process remaining content
         rest_text = "\n".join(lines[1:])
         location = self._detect_location(rest_text)
@@ -289,6 +313,31 @@ class StatementProcessor:
             manual_required = len(similar_matches) > 0
             if manual_required:
                 ask_question = best_percentage < 90.0
+        
+        # Update debug stats for matching
+        if exact_match:
+            self.debug_stats['exact_matches_found'] += 1
+            self.debug_stats['exact_match_companies'].append({
+                'page': page_num,
+                'company_name': company,
+                'exact_match': exact_match
+            })
+        elif similar_matches:
+            self.debug_stats['fuzzy_matches_found'] += 1
+            if best_percentage >= 90.0:
+                self.debug_stats['high_confidence_matches'].append({
+                    'page': page_num,
+                    'company_name': company,
+                    'best_match': similar_matches[0]
+                })
+            if ask_question:
+                self.debug_stats['question_requiring_companies'].append({
+                    'page': page_num,
+                    'company_name': company,
+                    'best_match': similar_matches[0] if similar_matches else None
+                })
+        else:
+            self.debug_stats['no_matches_found'] += 1
         
         # Determine destination
         destination = self._determine_destination_enhanced(exact_match, rest_text, location, total_pages, best_percentage, has_email)

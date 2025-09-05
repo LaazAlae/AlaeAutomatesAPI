@@ -44,9 +44,9 @@ class StatementProcessor:
     # Enhanced patterns from minimal processor
     PATTERNS = {
         'page': re.compile(r'Page\s*(\d+)\s*of\s*(\d+)', re.IGNORECASE),
-        'total_due_subtotal': re.compile(r'Subtotal\s+\$[\d,]+\.\d{2}\s+([^\n\r]+?)\s+Total Due\s+\$[\d,]+\.\d{2}', re.IGNORECASE | re.MULTILINE),
-        'total_due_multiline': re.compile(r'([^\n\r]+\n[^\n\r]*?)\s+Total Due\s+\$[\d,]+\.\d{2}', re.IGNORECASE | re.MULTILINE),
-        'total_due_line': re.compile(r'(\S[^\n\r]*?)\s+Total Due\s+\$[\d,]+\.\d{2}', re.IGNORECASE | re.MULTILINE),
+        'total_due_subtotal': re.compile(r'Subtotal\s+\$[\d,]+\.\d{2}\s+([^\n\r*]+?)\s+Total Due\s+\$[\d,]+\.\d{2}', re.IGNORECASE | re.MULTILINE),
+        'total_due_multiline': re.compile(r'([^\n\r*]+\n[^\n\r*]*?)\s+Total Due\s+\$[\d,]+\.\d{2}', re.IGNORECASE | re.MULTILINE),
+        'total_due_line': re.compile(r'(\S[^\n\r*]*?)\s+Total Due\s+\$[\d,]+\.\d{2}', re.IGNORECASE | re.MULTILINE),
         'business_suffix': re.compile(r'\b(?:inc|incorporated|corp|corporation|llc|ltd|limited|llp|lp|pc|pa|pllc|plc|co|company|companies|enterprise|enterprises|group|groups|holding|holdings|international|intl|global|solutions|services|systems|technologies|tech|industries|foundation|trust|association|society|institute|center|centre|organization|org)\b', re.IGNORECASE),
         'clean_text': re.compile(r'[\s,.()\-_&]+'),
         'whitespace': re.compile(r'\s+')
@@ -364,9 +364,7 @@ class StatementProcessor:
             
             doc.close()
             
-            # Add extraction log to results for analysis
-            for statement in statements:
-                statement['_extraction_log'] = self.extraction_log
+            # Don't add extraction log to individual statements
             
             return statements
             
@@ -546,12 +544,8 @@ class StatementProcessor:
                 output_path = f"{today}-{counter}.json"
                 counter += 1
         
-        # Extract and clean logs
-        extraction_log = []
-        for statement in statements:
-            if '_extraction_log' in statement:
-                extraction_log.extend(statement['_extraction_log'])
-                del statement['_extraction_log']
+        # Use the class extraction_log directly
+        extraction_log = self.extraction_log
         
         data = {
             "dnm_companies": self.dnm_companies,

@@ -67,9 +67,9 @@ from collections import OrderedDict
 
 PATTERNS = {
     'page': re.compile(r'Page\s*(\d+)\s*of\s*(\d+)', re.IGNORECASE),
-    'total_due_subtotal': re.compile(r'Subtotal\s+\$[\d,]+\.\d{2}\s+([^\n\r]+?)\s+Total Due\s+\$[\d,]+\.\d{2}', re.IGNORECASE | re.MULTILINE),
-    'total_due_multiline': re.compile(r'([^\n\r]+\n[^\n\r]*?)\s+Total Due\s+\$[\d,]+\.\d{2}', re.IGNORECASE | re.MULTILINE),
-    'total_due_line': re.compile(r'(\S[^\n\r]*?)\s+Total Due\s+\$[\d,]+\.\d{2}', re.IGNORECASE | re.MULTILINE),
+    'total_due_subtotal': re.compile(r'Subtotal\s+\$[\d,]+\.\d{2}\s+([^\n\r*]+?)\s+Total Due\s+\$[\d,]+\.\d{2}', re.IGNORECASE | re.MULTILINE),
+    'total_due_multiline': re.compile(r'([^\n\r*]+\n[^\n\r*]*?)\s+Total Due\s+\$[\d,]+\.\d{2}', re.IGNORECASE | re.MULTILINE),
+    'total_due_line': re.compile(r'(\S[^\n\r*]*?)\s+Total Due\s+\$[\d,]+\.\d{2}', re.IGNORECASE | re.MULTILINE),
     'business_suffix': re.compile(r'\b(?:inc|incorporated|corp|corporation|llc|ltd|limited|llp|lp|pc|pa|pllc|plc|co|company|companies|enterprise|enterprises|group|groups|holding|holdings|international|intl|global|solutions|services|systems|technologies|tech|industries|foundation|trust|association|society|institute|center|centre|organization|org)\b', re.IGNORECASE),
     'clean_text': re.compile(r'[\s,.()\-_&]+'),
     'whitespace': re.compile(r'\s+')
@@ -132,7 +132,7 @@ def load_excel_data(excel_path: str) -> Tuple[List[str], Dict[str, str]]:
 # PDF PROCESSING
 ################################################################################
 
-def extract_statements(pdf_path: str, dnm_companies: List[str], normalized_map: Dict[str, str]) -> List[Dict[str, Any]]:
+def extract_statements(pdf_path: str, dnm_companies: List[str], normalized_map: Dict[str, str]) -> Tuple[List[Dict[str, Any]], List[Dict]]:
     doc = fitz.open(pdf_path)
     statements = []
     processed_pages = set()
@@ -171,10 +171,8 @@ def extract_statements(pdf_path: str, dnm_companies: List[str], normalized_map: 
     
     doc.close()
     
-    for statement in statements:
-        statement['_extraction_log'] = extraction_log
-    
-    return statements
+    # Return both statements and extraction log separately
+    return statements, extraction_log
 
 def process_statement(text: str, page_num: int, dnm_companies: List[str], normalized_map: Dict[str, str], extraction_log: List) -> Optional[Dict[str, Any]]:
     page_match = PATTERNS['page'].search(text)
@@ -453,17 +451,14 @@ def ask_questions(statements: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 # OUTPUT GENERATION - Creates timestamped folders with JSON and PDF outputs
 ################################################################################
 
-def save_outputs(pdf_path: str, statements: List[Dict[str, Any]], dnm_companies: List[str], skip_pdfs: bool = False) -> str:
+def save_outputs(pdf_path: str, statements: List[Dict[str, Any]], dnm_companies: List[str], extraction_log: List = None, skip_pdfs: bool = False) -> str:
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     output_dir = Path(f"output_{timestamp}")
     output_dir.mkdir(exist_ok=True)
     
-    # Extract and clean logs
-    extraction_log = []
-    for statement in statements:
-        if '_extraction_log' in statement:
-            extraction_log.extend(statement['_extraction_log'])
-            del statement['_extraction_log']
+    # Use passed extraction_log or empty list
+    if extraction_log is None:
+        extraction_log = []
     
     # Save JSON
     data = {
@@ -573,7 +568,7 @@ def main() -> int:
         
         # Step 2: Extract statements
         print("\n📋 Step 2: Extracting statements from PDF...")
-        statements = extract_statements(pdf_path, dnm_companies, normalized_map)
+        statements, extraction_log = extract_statements(pdf_path, dnm_companies, normalized_map)
         print(f"✅ Extracted {len(statements)} statements")
         
         # Step 3: Process interactive questions (skip if requested)
@@ -588,7 +583,7 @@ def main() -> int:
         
         # Step 4: Save outputs
         print("\n📋 Step 4: Saving results...")
-        result = save_outputs(pdf_path, statements, dnm_companies, skip_questions)
+        result = save_outputs(pdf_path, statements, dnm_companies, extraction_log, skip_questions)
         print("✅ Results saved")
         
         # Final summary

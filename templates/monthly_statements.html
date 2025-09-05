@@ -728,7 +728,7 @@ class SessionManager {
             
             // Also show critical errors in the UI
             if (type === 'error') {
-                alert(`❌ Error: ${message}\n\nCheck console for details.`);
+                alert(` Error: ${message}\n\nCheck console for details.`);
             }
         }
 
@@ -938,7 +938,7 @@ class SessionManager {
                 }
                 
                 currentSessionId = sessionData.session_id;
-                detailedLog(`✅ Session created: ${currentSessionId}`, 'success', sessionData);
+                detailedLog(` Session created: ${currentSessionId}`, 'success', sessionData);
                 showAPIResponse('Session Created', sessionData, 'POST /api/statement-processor');
 
                 // 2. Upload files
@@ -958,7 +958,7 @@ class SessionManager {
                     throw new Error(`File upload failed: ${uploadData.error || 'Unknown error'}`);
                 }
                 
-                detailedLog(`✅ Files uploaded successfully`, 'success', uploadData);
+                detailedLog(` Files uploaded successfully`, 'success', uploadData);
                 showAPIResponse('Files Uploaded', uploadData, `POST /api/statement-processor/{id}/upload`);
 
                 // 3. Process statements
@@ -1105,7 +1105,7 @@ class SessionManager {
                     </div>
                     
                     <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin-bottom: 15px;">
-                        <strong>❓ Company "${question.company_name}" on page ${question.first_page_number || 'Unknown'} - is this the same as "${question.similar_to}"?</strong>
+                        <strong> Company "${question.company_name}" on page ${question.first_page_number || 'Unknown'} - is this the same as "${question.similar_to}"?</strong>
                         <p style="margin: 5px 0 0 0; color: #6c757d; font-size: 0.9rem;">If they're the same company, the document will be moved to the DNM list. Review all potential matches above before deciding.</p>
                     </div>
                     
@@ -1298,7 +1298,7 @@ class SessionManager {
             downloadDiv.id = 'downloadSection';
             downloadDiv.innerHTML = `
                 <div class="response-header">
-                    <span class="direction-icon received">📥</span>
+                    <span class="direction-icon received"></span>
                     <span class="response-title">Download Results</span>
                     <span class="direction-text">Ready for Download</span>
                 </div>
@@ -1341,21 +1341,21 @@ class SessionManager {
             
             debugDiv.innerHTML = `
                 <div class="response-header">
-                    <span class="direction-icon">📊</span>
+                    <span class="direction-icon"></span>
                     <span class="response-title">Debug Analysis - Why Question Count Changed</span>
                 </div>
                 
                 <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin: 15px 0;">
-                    <h4 style="margin: 0 0 10px 0; color: #2c3e50;">🎯 Question Count Reduction Analysis</h4>
+                    <h4 style="margin: 0 0 10px 0; color: #2c3e50;"> Question Count Reduction Analysis</h4>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
                         <div>
-                            <strong>📈 Overall Results:</strong><br>
+                            <strong> Overall Results:</strong><br>
                             <span style="color: #28a745; font-weight: bold;">Questions needed: ${questionsNeeded}</span><br>
                             <span style="color: #666;">Previous count: ~140</span><br>
                             <span style="color: #007bff;">Reduction: ~${140 - questionsNeeded} questions</span>
                         </div>
                         <div>
-                            <strong>🔍 Extraction Method:</strong><br>
+                            <strong> Extraction Method:</strong><br>
                             Multi-line: ${debugData.multiline_extractions}<br>
                             Single-line: ${debugData.single_line_extractions}<br>
                             <span style="color: #28a745;">Better extraction accuracy</span>
@@ -1364,11 +1364,11 @@ class SessionManager {
                     
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                         <div>
-                            <strong>✅ Exact Matches Found: ${debugData.exact_matches_found}</strong><br>
+                            <strong> Exact Matches Found: ${debugData.exact_matches_found}</strong><br>
                             <span style="color: #666; font-size: 0.9rem;">These don't need questions</span>
                         </div>
                         <div>
-                            <strong>🎯 High Confidence (90%+): ${debugData.high_confidence_matches}</strong><br>
+                            <strong> High Confidence (90%+): ${debugData.high_confidence_matches}</strong><br>
                             <span style="color: #666; font-size: 0.9rem;">Auto-categorized as DNM</span>
                         </div>
                     </div>
@@ -1376,7 +1376,7 @@ class SessionManager {
                 
                 ${debugData.multiline_companies.length > 0 ? `
                 <div style="margin: 15px 0;">
-                    <h4 style="color: #667eea; margin-bottom: 10px;">📋 Multi-line Company Names Found (Sample):</h4>
+                    <h4 style="color: #667eea; margin-bottom: 10px;"> Multi-line Company Names Found (Sample):</h4>
                     <ul style="margin: 0; padding-left: 20px; color: #666;">
                         ${multilineExamples}
                     </ul>
@@ -1385,7 +1385,7 @@ class SessionManager {
                 
                 ${debugData.exact_match_examples.length > 0 ? `
                 <div style="margin: 15px 0;">
-                    <h4 style="color: #28a745; margin-bottom: 10px;">✅ Exact Matches Found (Sample):</h4>
+                    <h4 style="color: #28a745; margin-bottom: 10px;"> Exact Matches Found (Sample):</h4>
                     <ul style="margin: 0; padding-left: 20px; color: #666;">
                         ${exactMatchExamples}
                     </ul>
@@ -1394,7 +1394,7 @@ class SessionManager {
                 ` : ''}
                 
                 <div style="background: #e3f2fd; padding: 12px; border-radius: 6px; margin-top: 15px;">
-                    <strong style="color: #1976d2;">💡 Why the reduction occurred:</strong><br>
+                    <strong style="color: #1976d2;"> Why the reduction occurred:</strong><br>
                     <span style="color: #666;">Enhanced matching algorithm found exact matches that were previously missed, and improved multi-line extraction captured company names more accurately. This results in fewer uncertain matches requiring manual review.</span>
                 </div>
             `;
@@ -1470,7 +1470,7 @@ class SessionManager {
         
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
-            detailedLog('🌐 Page loaded, testing API connection...', 'info');
+            detailedLog(' Page loaded, testing API connection...', 'info');
             showTab('overview');
             testAPIConnection();
             

@@ -184,6 +184,17 @@ class StatementProcessor:
             'clean_text': re.compile(r'[\s,.()\-_&]+'),
             'whitespace': re.compile(r'\s+')
         }
+        
+        # Enhanced patterns for company extraction (EXACTLY like minimal version)
+        self.PATTERNS = {
+            'page': re.compile(r'Page\s*(\d+)\s*of\s*(\d+)', re.IGNORECASE),
+            'total_due_subtotal': re.compile(r'Subtotal\s+\$[\d,]+\.\d{2}\s+([^\n\r*]+?)\s+Total Due\s+\$[\d,]+\.\d{2}', re.IGNORECASE | re.MULTILINE),
+            'total_due_multiline': re.compile(r'([^\n\r*]+\n[^\n\r*]*?)\s+Total Due\s+\$[\d,]+\.\d{2}', re.IGNORECASE | re.MULTILINE),
+            'total_due_line': re.compile(r'(\S[^\n\r*]*?)\s+Total Due\s+\$[\d,]+\.\d{2}', re.IGNORECASE | re.MULTILINE),
+            'business_suffix': re.compile(r'\b(?:inc|incorporated|corp|corporation|llc|ltd|limited|llp|lp|pc|pa|pllc|plc|co|company|companies|enterprise|enterprises|group|groups|holding|holdings|international|intl|global|solutions|services|systems|technologies|tech|industries|foundation|trust|association|society|institute|center|centre|organization|org)\b', re.IGNORECASE),
+            'clean_text': re.compile(r'[\s,.()\-_&]+'),
+            'whitespace': re.compile(r'\s+')
+        }
     
     def _normalize_company_name(self, name: str) -> str:
         """Normalize company names for consistent matching - O(1) operation."""
@@ -191,8 +202,8 @@ class StatementProcessor:
             return ""
         
         normalized = str(name).lower().strip()
-        normalized = self.patterns['business_suffixes'].sub('', normalized)
-        normalized = self.patterns['clean_text'].sub('', normalized)
+        normalized = self.PATTERNS['business_suffix'].sub('', normalized)
+        normalized = self.PATTERNS['clean_text'].sub('', normalized)
         
         return normalized.strip()
     
@@ -292,12 +303,43 @@ class StatementProcessor:
         if not lines:
             return None
         
-        # Extract company name
-        due_match = self.patterns['total_due'].search(text)
-        company_name = (
-            self.patterns['whitespace'].sub(' ', due_match.group(1).strip())
-            if due_match else lines[0].strip()
-        )
+        # Enhanced company extraction (EXACTLY like minimal version)
+        fallback_company = lines[0].strip()
+        extraction_method, fallback_used, fallback_reason = "unknown", False, ""
+        
+        match = self.PATTERNS['total_due_subtotal'].search(text)
+        if match:
+            company_name = self.PATTERNS['whitespace'].sub(' ', match.group(1).strip()).strip()
+            if company_name.startswith("Amount "):
+                company_name = company_name[7:].strip()
+            extraction_method = "subtotal_pattern"
+        else:
+            match = self.PATTERNS['total_due_multiline'].search(text)
+            if match:
+                company_name = self.PATTERNS['whitespace'].sub(' ', match.group(1).replace('\n', ' ').strip()).strip()
+                if company_name.startswith("Amount "):
+                    company_name = company_name[7:].strip()
+                extraction_method = "multiline_pattern"
+                
+                if len(company_name) > 100:
+                    match = self.PATTERNS['total_due_line'].search(text)
+                    if match:
+                        company_name = self.PATTERNS['whitespace'].sub(' ', match.group(1).strip()).strip()
+                        extraction_method = "line_pattern"
+                    if len(company_name) > 100:
+                        company_name, extraction_method, fallback_used, fallback_reason = fallback_company, "fallback", True, "Pattern extracted text too long"
+            else:
+                match = self.PATTERNS['total_due_line'].search(text)
+                if match:
+                    company_name = self.PATTERNS['whitespace'].sub(' ', match.group(1).strip()).strip()
+                    if company_name.startswith("Amount "):
+                        company_name = company_name[7:].strip()
+                    extraction_method = "line_pattern"
+                    
+                    if len(company_name) > 100:
+                        company_name, extraction_method, fallback_used, fallback_reason = fallback_company, "fallback", True, "Line pattern too long"
+                else:
+                    company_name, extraction_method, fallback_used, fallback_reason = fallback_company, "fallback", True, "No patterns found"
         
         rest_text = "\n".join(lines[1:])
         location = self._detect_location(rest_text)
@@ -326,7 +368,8 @@ class StatementProcessor:
             if manual_required:
                 ask_question = best_percentage < 90.0
         
-        return {
+        # Build result with all required fields (EXACTLY like minimal version)
+        result = {
             "company_name": company_name,
             "exact_match": exact_match,
             "similar_matches": similar_matches,
@@ -338,8 +381,18 @@ class StatementProcessor:
             "number_of_pages": str(total_pages),
             "page_number_in_uploaded_pdf": page_range,
             "first_page_number": first_page,
-            "destination": self._determine_destination(exact_match, rest_text, location, total_pages, best_percentage, has_email)
+            "destination": self._determine_destination(exact_match, rest_text, location, total_pages, best_percentage, has_email),
+            "extraction_method": extraction_method,
+            "fallbackUsed": fallback_used
         }
+        
+        # Add optional fields (EXACTLY like minimal version)
+        if company_name.strip() != fallback_company.strip():
+            result["unusedCompanyName"] = fallback_company
+        if fallback_used:
+            result["fallbackReason"] = fallback_reason
+            
+        return result
     
     def extract_statements(self) -> List[Dict[str, Any]]:
         """Extract all statements from PDF - O(n) where n = number of pages."""
@@ -359,7 +412,7 @@ class StatementProcessor:
                 
                 if statement_data:
                     statements.append(statement_data)
-                    print(f"✓ Extracted: {statement_data['company_name']}")
+                    print(f" Extracted: {statement_data['company_name']}")
                     
                     # Mark pages as processed to avoid reprocessing
                     total_pages = int(statement_data["number_of_pages"])
@@ -421,7 +474,7 @@ class StatementProcessor:
                             
                             statement['destination'] = 'DNM'
                             statement['user_answered'] = 'yes'
-                            print(f"✓ Marked '{company_name}' as DNM")
+                            print(f" Marked '{company_name}' as DNM")
                             i += 1  # Move to next question
                             break
                             
@@ -436,14 +489,14 @@ class StatementProcessor:
                             })
                             
                             statement['user_answered'] = 'no'
-                            print(f"✓ Kept '{company_name}' as {statement['destination']}")
+                            print(f" Kept '{company_name}' as {statement['destination']}")
                             i += 1  # Move to next question
                             break
                             
                         elif response == 's':
                             skip_all = True
                             statement['user_answered'] = 'skip'
-                            print("✓ Skipping remaining questions")
+                            print(" Skipping remaining questions")
                             break
                             
                         elif response == 'p':
@@ -524,7 +577,7 @@ class StatementProcessor:
                     with open(output_path, 'wb') as f:
                         writer.write(f)
                     results[dest] = pages_added
-                    print(f"✓ Created {output_path} with {pages_added} pages")
+                    print(f" Created {output_path} with {pages_added} pages")
             
             return results
             
@@ -553,7 +606,7 @@ class StatementProcessor:
             with open(output_path, 'w', encoding='utf-8') as f:
                 json.dump(data, f, indent=2, ensure_ascii=False)
             
-            print(f"✓ Results saved to {output_path}")
+            print(f" Results saved to {output_path}")
             return output_path
             
         except Exception as e:
@@ -569,33 +622,33 @@ class StatementProcessor:
             print()
             
             # Step 1: Extract statements
-            print("📋 Step 1: Extracting statements from PDF...")
+            print(" Step 1: Extracting statements from PDF...")
             statements = self.extract_statements()
-            print(f"✅ Extracted {len(statements)} statements")
+            print(f" Extracted {len(statements)} statements")
             
             # Step 2: Process interactive questions (skip if requested)
             if not skip_questions:
-                print("\n📋 Step 2: Processing manual questions...")
+                print("\n Step 2: Processing manual questions...")
                 statements = self.process_interactive_questions(statements)
-                print("✅ Manual questions processed")
+                print(" Manual questions processed")
             else:
-                print("\n📋 Step 2: Skipping interactive questions...")
-                print("✅ Questions skipped for comparison")
+                print("\n Step 2: Skipping interactive questions...")
+                print(" Questions skipped for comparison")
             
             # Step 3: Save results
-            print("\n📋 Step 3: Saving results...")
+            print("\n Step 3: Saving results...")
             output_file = self.save_results(statements)
-            print("✅ Results saved")
+            print(" Results saved")
             
             if not skip_questions:
                 # Step 4: Create split PDFs
-                print("\n📋 Step 4: Creating destination PDFs...")
+                print("\n Step 4: Creating destination PDFs...")
                 split_results = self.create_split_pdfs(statements)
-                print("✅ PDFs created successfully")
+                print(" PDFs created successfully")
                 
                 # Final summary
                 print("\n" + "=" * 60)
-                print("🎉 WORKFLOW COMPLETED SUCCESSFULLY!")
+                print(" WORKFLOW COMPLETED SUCCESSFULLY!")
                 print("=" * 60)
                 
                 print(f"Total statements processed: {len(statements)}")
@@ -606,7 +659,7 @@ class StatementProcessor:
             else:
                 # Comparison mode summary
                 print("\n" + "=" * 60)
-                print("🎯 EXTRACTION COMPLETED FOR COMPARISON")
+                print(" EXTRACTION COMPLETED FOR COMPARISON")
                 print("=" * 60)
                 
                 manual_count = sum(1 for s in statements if s.get('manual_required', False))
@@ -622,7 +675,7 @@ class StatementProcessor:
             return True
             
         except Exception as e:
-            print(f"\n❌ Workflow failed: {e}")
+            print(f"\n Workflow failed: {e}")
             return False
 
 
@@ -657,13 +710,13 @@ def get_file_paths() -> Tuple[str, str]:
         pdf_path = input("Enter PDF file path: ").strip().strip('"')
         if os.path.exists(pdf_path) and pdf_path.lower().endswith('.pdf'):
             break
-        print("❌ Invalid PDF file path")
+        print(" Invalid PDF file path")
     
     while True:
         excel_path = input("Enter Excel file path: ").strip().strip('"')
         if os.path.exists(excel_path) and excel_path.lower().endswith(('.xlsx', '.xls')):
             break
-        print("❌ Invalid Excel file path")
+        print(" Invalid Excel file path")
     
     return pdf_path, excel_path
 
@@ -685,10 +738,10 @@ def main() -> int:
         return 0 if success else 1
         
     except KeyboardInterrupt:
-        print("\n\n❌ Process interrupted by user")
+        print("\n\n Process interrupted by user")
         return 1
     except Exception as e:
-        print(f"\n❌ Fatal error: {e}")
+        print(f"\n Fatal error: {e}")
         return 1
 
 

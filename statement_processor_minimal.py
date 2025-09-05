@@ -380,7 +380,7 @@ def ask_questions(statements: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
                         
                         statement['destination'] = 'DNM'
                         statement['user_answered'] = 'yes'
-                        print(f"✓ Marked '{company_name}' as DNM")
+                        print(f" Marked '{company_name}' as DNM")
                         i += 1  # Move to next question
                         break
                         
@@ -395,14 +395,14 @@ def ask_questions(statements: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
                         })
                         
                         statement['user_answered'] = 'no'
-                        print(f"✓ Kept '{company_name}' as {statement['destination']}")
+                        print(f" Kept '{company_name}' as {statement['destination']}")
                         i += 1  # Move to next question
                         break
                         
                     elif response == 's':
                         skip_all = True
                         statement['user_answered'] = 'skip'
-                        print("✓ Skipping remaining questions")
+                        print(" Skipping remaining questions")
                         break
                         
                     elif response == 'p':
@@ -562,39 +562,39 @@ def main() -> int:
         print()
         
         # Step 1: Load Excel data
-        print("📋 Step 1: Loading Excel data...")
+        print(" Step 1: Loading Excel data...")
         dnm_companies, normalized_map = load_excel_data(excel_path)
-        print(f"✅ Loaded {len(dnm_companies)} DNM companies")
+        print(f" Loaded {len(dnm_companies)} DNM companies")
         
         # Step 2: Extract statements
-        print("\n📋 Step 2: Extracting statements from PDF...")
+        print("\n Step 2: Extracting statements from PDF...")
         statements, extraction_log = extract_statements(pdf_path, dnm_companies, normalized_map)
-        print(f"✅ Extracted {len(statements)} statements")
+        print(f" Extracted {len(statements)} statements")
         
         # Step 3: Process interactive questions (skip if requested)
         skip_questions = '--skip-questions' in sys.argv
         if not skip_questions:
-            print("\n📋 Step 3: Processing manual questions...")
+            print("\n Step 3: Processing manual questions...")
             statements = ask_questions(statements)
-            print("✅ Manual questions processed")
+            print(" Manual questions processed")
         else:
-            print("\n📋 Step 3: Skipping interactive questions...")
-            print("✅ Questions skipped for comparison")
+            print("\n Step 3: Skipping interactive questions...")
+            print(" Questions skipped for comparison")
         
         # Step 4: Save outputs
-        print("\n📋 Step 4: Saving results...")
+        print("\n Step 4: Saving results...")
         result = save_outputs(pdf_path, statements, dnm_companies, extraction_log, skip_questions)
-        print("✅ Results saved")
+        print(" Results saved")
         
         # Final summary
         if not skip_questions:
             print("\n" + "=" * 60)
-            print("🎉 WORKFLOW COMPLETED SUCCESSFULLY!")
+            print(" WORKFLOW COMPLETED SUCCESSFULLY!")
             print("=" * 60)
             print(f"Total statements processed: {len(statements)}")
         else:
             print("\n" + "=" * 60)
-            print("🎯 EXTRACTION COMPLETED FOR COMPARISON")
+            print(" EXTRACTION COMPLETED FOR COMPARISON")
             print("=" * 60)
             
             manual_count = sum(1 for s in statements if s.get('manual_required', False))

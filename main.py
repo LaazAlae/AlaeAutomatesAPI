@@ -75,7 +75,7 @@ def debug_sessions(action, session_id=None):
     """Debug helper to track session state"""
     logger.info(f"[DEBUG] SESSION DEBUG - {action}")
     logger.info(f"[INFO] Total sessions: {len(sessions)}")
-    logger.info(f"🗂️  Session IDs: {list(sessions.keys())}")
+    logger.info(f"️  Session IDs: {list(sessions.keys())}")
     if session_id:
         logger.info(f"[SEARCH] Looking for: {session_id}")
         logger.info(f"[RESULT] Found: {session_id in sessions}")

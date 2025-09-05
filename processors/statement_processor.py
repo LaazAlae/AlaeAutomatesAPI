@@ -67,18 +67,6 @@ class StatementProcessor:
         # Cache for processed pages to avoid reprocessing
         self._processed_pages: Set[int] = set()
         
-        # API compatibility: Add debug_stats
-        self.debug_stats = {
-            'multiline_extractions': 0,
-            'single_line_extractions': 0,
-            'exact_matches_found': 0,
-            'fuzzy_matches_found': 0,
-            'no_matches_found': 0,
-            'multiline_companies': [],
-            'exact_match_companies': [],
-            'high_confidence_matches': [],
-            'question_requiring_companies': []
-        }
         
         # Memory optimization: Clear unused references
         gc.collect()
@@ -279,7 +267,7 @@ class StatementProcessor:
         else:
             return "Natio Single" if pages == 1 else "Natio Multi"
     
-    def _process_statement(self, text: str, page_num: int, extraction_log: List) -> Optional[Dict[str, Any]]:
+    def _process_statement(self, text: str, page_num: int) -> Optional[Dict[str, Any]]:
         """CRITICAL FIX: Process statement exactly like minimal version."""
         page_match = self.PATTERNS['page'].search(text)
         current_page, total_pages = (int(page_match.group(1)), int(page_match.group(2))) if page_match else (1, 1)
@@ -335,12 +323,7 @@ class StatementProcessor:
                 else:
                     company, extraction_method, fallback_used, fallback_reason = fallback_company, "fallback", True, "No patterns found"
         
-        if company.strip() != fallback_company.strip():
-            extraction_log.append({
-                'page_num': page_num, 'current_page': current_page, 'total_pages': total_pages,
-                'old_method': fallback_company, 'new_method': company,
-                'extraction_method': extraction_method, 'match': company.strip() == fallback_company.strip()
-            })
+        # Use the better extraction method result
         
         rest_text = "\n".join(lines[1:])
         location = self._detect_location(rest_text)
@@ -400,7 +383,6 @@ class StatementProcessor:
         doc = fitz.open(str(self.pdf_path))
         statements = []
         processed_pages = set()
-        extraction_log = []
         
         for page_idx in range(len(doc)):
             page_num = page_idx + 1
@@ -427,7 +409,7 @@ class StatementProcessor:
             # CRITICAL FIX: Jump to last page like minimal version
             if last_page_num <= len(doc):
                 last_page_text = doc.load_page(last_page_num - 1).get_text()
-                statement_data = self._process_statement(last_page_text, last_page_num, extraction_log)
+                statement_data = self._process_statement(last_page_text, last_page_num)
                 
                 if statement_data:
                     statements.append(statement_data)
@@ -436,9 +418,6 @@ class StatementProcessor:
         
         doc.close()
         
-        # Add extraction logs to statements
-        for statement in statements:
-            statement['_extraction_log'] = extraction_log
         
         return statements
     
@@ -599,34 +578,22 @@ class StatementProcessor:
             raise RuntimeError(f"Failed to create split PDFs: {e}")
     
     def save_results(self, statements: List[Dict[str, Any]], output_path: Optional[str] = None) -> str:
-        """CRITICAL FIX: Save results exactly like minimal version with extraction logs."""
+        """Save processing results to JSON file."""
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         output_dir = Path(f"output_{timestamp}")
         output_dir.mkdir(exist_ok=True)
         
-        # Extract and clean logs
-        extraction_log = []
+        # Clean up internal logging data
         for statement in statements:
             if '_extraction_log' in statement:
-                extraction_log.extend(statement['_extraction_log'])
                 del statement['_extraction_log']
         
-        # Save JSON exactly like minimal version
+        # Save clean JSON for API consumers
         data = {
             "dnm_companies": self.dnm_companies,
             "extracted_statements": statements,
             "total_statements_found": len(statements),
-            "processing_timestamp": datetime.now().isoformat(),
-            "extraction_comparison_log": {
-                "total_statements_with_different_extractions": len(extraction_log),
-                "extraction_details": extraction_log,
-                "summary": {
-                    "extraction_methods_used": list(set(comp['extraction_method'] for comp in extraction_log)),
-                    "pages_with_multiline_extraction": len([c for c in extraction_log if c['extraction_method'] == 'multiline_pattern']),
-                    "pages_with_subtotal_extraction": len([c for c in extraction_log if c['extraction_method'] == 'subtotal_pattern']),
-                    "pages_with_improved_accuracy": len([c for c in extraction_log if c['extraction_method'] != 'fallback'])
-                }
-            }
+            "processing_timestamp": datetime.now().isoformat()
         }
         
         json_path = output_dir / "results.json"

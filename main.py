@@ -290,29 +290,11 @@ def process_statements(session_id):
         
         print(f"[RESULTS] REAL RESULTS: {len(statements)} statements, {len(questions)} questions")
         
-        # Get debug statistics for frontend display
-        debug_stats = processor.debug_stats
-        debug_summary = {
-            'multiline_extractions': debug_stats['multiline_extractions'],
-            'single_line_extractions': debug_stats['single_line_extractions'],
-            'exact_matches_found': debug_stats['exact_matches_found'],
-            'high_confidence_matches': len(debug_stats['high_confidence_matches']),
-            'question_reduction_reasons': {
-                'exact_matches': debug_stats['exact_matches_found'],
-                'high_confidence_90_plus': len(debug_stats['high_confidence_matches']),
-                'total_reduction': f"Questions reduced from ~140 to {len(questions)} due to improved accuracy"
-            },
-            'multiline_companies': debug_stats['multiline_companies'][:5],  # First 5 examples
-            'exact_match_examples': debug_stats['exact_match_companies'][:5]  # First 5 examples
-        }
-        
         return jsonify({
             'status': 'success',
-            'message': 'REAL processing completed!',
+            'message': 'Processing completed',
             'total_statements': len(statements),
-            'questions_needed': len(questions),
-            'processing_type': 'ACTUAL PDF PROCESSING',
-            'debug_analysis': debug_summary  # NEW: Debug info for frontend
+            'questions_needed': len(questions)
         })
         
     except Exception as e:
@@ -457,30 +439,18 @@ Excel: {session_data['files']['excel_name']}
             # Add results file to results folder
             zip_file.writestr('results/processing_results.txt', results_content)
             
-            # Add statements data as JSON to results folder - FIXED to match minimal version format
-            # Extract and clean logs
-            extraction_log = []
+            # Add statements data as JSON to results folder
+            # Clean up internal logging data
             for statement in statements:
                 if '_extraction_log' in statement:
-                    extraction_log.extend(statement['_extraction_log'])
                     del statement['_extraction_log']
             
-            # Create the proper JSON structure like minimal version
+            # Create clean JSON structure for API consumers
             data = {
                 "dnm_companies": processor.dnm_companies,
                 "extracted_statements": statements,
                 "total_statements_found": len(statements),
-                "processing_timestamp": datetime.now().isoformat(),
-                "extraction_comparison_log": {
-                    "total_statements_with_different_extractions": len(extraction_log),
-                    "extraction_details": extraction_log,
-                    "summary": {
-                        "extraction_methods_used": list(set(comp['extraction_method'] for comp in extraction_log)),
-                        "pages_with_multiline_extraction": len([c for c in extraction_log if c['extraction_method'] == 'multiline_pattern']),
-                        "pages_with_subtotal_extraction": len([c for c in extraction_log if c['extraction_method'] == 'subtotal_pattern']),
-                        "pages_with_improved_accuracy": len([c for c in extraction_log if c['extraction_method'] != 'fallback'])
-                    }
-                }
+                "processing_timestamp": datetime.now().isoformat()
             }
             
             zip_file.writestr('output/processing_results.json', json.dumps(data, indent=2, ensure_ascii=False))

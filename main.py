@@ -457,8 +457,33 @@ Excel: {session_data['files']['excel_name']}
             # Add results file to results folder
             zip_file.writestr('results/processing_results.txt', results_content)
             
-            # Add statements data as JSON to results folder
-            zip_file.writestr('results/statements_data.json', json.dumps(statements, indent=2))
+            # Add statements data as JSON to results folder - FIXED to match minimal version format
+            # Extract and clean logs
+            extraction_log = []
+            for statement in statements:
+                if '_extraction_log' in statement:
+                    extraction_log.extend(statement['_extraction_log'])
+                    del statement['_extraction_log']
+            
+            # Create the proper JSON structure like minimal version
+            data = {
+                "dnm_companies": processor.dnm_companies,
+                "extracted_statements": statements,
+                "total_statements_found": len(statements),
+                "processing_timestamp": datetime.now().isoformat(),
+                "extraction_comparison_log": {
+                    "total_statements_with_different_extractions": len(extraction_log),
+                    "extraction_details": extraction_log,
+                    "summary": {
+                        "extraction_methods_used": list(set(comp['extraction_method'] for comp in extraction_log)),
+                        "pages_with_multiline_extraction": len([c for c in extraction_log if c['extraction_method'] == 'multiline_pattern']),
+                        "pages_with_subtotal_extraction": len([c for c in extraction_log if c['extraction_method'] == 'subtotal_pattern']),
+                        "pages_with_improved_accuracy": len([c for c in extraction_log if c['extraction_method'] != 'fallback'])
+                    }
+                }
+            }
+            
+            zip_file.writestr('results/results.json', json.dumps(data, indent=2, ensure_ascii=False))
             
             # Add split PDF files in root directory
             pdf_files = {

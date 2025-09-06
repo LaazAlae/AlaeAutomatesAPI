@@ -433,13 +433,13 @@ Excel: {session_data['files']['excel_name']}
         zip_buffer = BytesIO()
         
         with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
-            # Create results folder in ZIP
-            zip_file.writestr('results/', '')  # Create results directory
+            # Create logs folder in ZIP
+            zip_file.writestr('logs/', '')  # Create logs directory
             
-            # Add results file to results folder
-            zip_file.writestr('results/processing_results.txt', results_content)
+            # Add results file to logs folder
+            zip_file.writestr('logs/processing_results.txt', results_content)
             
-            # Add statements data as JSON to results folder
+            # Add statements data as JSON to logs folder
             # Clean up internal logging data
             for statement in statements:
                 if '_extraction_log' in statement:
@@ -453,7 +453,7 @@ Excel: {session_data['files']['excel_name']}
                 "processing_timestamp": datetime.now().isoformat()
             }
             
-            zip_file.writestr('output/processing_results.json', json.dumps(data, indent=2, ensure_ascii=False))
+            zip_file.writestr('logs/processing_results.json', json.dumps(data, indent=2, ensure_ascii=False))
             
             # Add split PDF files in root directory
             pdf_files = {
@@ -474,11 +474,17 @@ Excel: {session_data['files']['excel_name']}
         
         zip_buffer.seek(0)
         
+        # Create filename in monthlysttmnt(mm)(yyyy) format
+        current_date = datetime.now()
+        month = current_date.strftime("%m")
+        year = current_date.strftime("%Y")
+        filename = f'monthlysttmnt{month}{year}.zip'
+        
         return Response(
             zip_buffer.getvalue(),
             mimetype='application/zip',
             headers={
-                'Content-Disposition': f'attachment; filename=statements_results_{session_id[:8]}.zip'
+                'Content-Disposition': f'attachment; filename={filename}'
             }
         )
         

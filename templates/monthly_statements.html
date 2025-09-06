@@ -252,14 +252,16 @@ FormData:
                             <p>Download processed results as ZIP file</p>
                             <div class="code-block" data-lang="Response">
 Content-Type: application/zip
-Content-Disposition: attachment; filename=results.zip
+Content-Disposition: attachment; filename=monthlysttmnt{mm}{yyyy}.zip
 
-Contains:
-- DNM.pdf (companies in DNM list)
-- Foreign.pdf (foreign companies)
-- natioSingle.pdf (single-page national)
-- natioMulti.pdf (multi-page national)
-- output/processing_results.json (detailed results)</div>
+Structure:
+├── DNM.pdf (companies in DNM list)
+├── Foreign.pdf (foreign companies)  
+├── natioSingle.pdf (single-page national)
+├── natioMulti.pdf (multi-page national)
+└── logs/
+    ├── processing_results.json (API data)
+    └── processing_results.txt (detailed report)</div>
                         </div>
                     </div>
 
@@ -1285,7 +1287,7 @@ class SessionManager {
                     Download ZIP File
                 </button>
                 <div style="margin-top: 15px; padding: 12px; background: #f8f9fa; border-radius: 6px; border-left: 4px solid #28a745;">
-                    <strong>Download Includes:</strong> Split PDFs + processing_results.json in output/ folder<br>
+                    <strong>Download:</strong> monthlysttmnt{mm}{yyyy}.zip with PDFs in root + logs/ folder<br>
                     <code style="color: #666;">GET /api/statement-processor/{session_id}/download</code>
                 </div>
             `;

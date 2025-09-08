@@ -236,12 +236,12 @@ class StatementProcessor:
         if normalized in self.normalized_company_map:
             return self.normalized_company_map[normalized], []
         
-        # Enhanced fuzzy matching: Check ALL companies above 60% threshold
+        # Enhanced fuzzy matching: Check ALL companies above 50% threshold
         similar_matches = []
         if normalized:
             for norm_company, original_company in self.normalized_company_map.items():
                 similarity_score = SequenceMatcher(None, normalized, norm_company).ratio() * 100
-                if similarity_score >= 60.0:
+                if similarity_score >= 50.0:
                     similar_matches.append({
                         "company_name": original_company,
                         "percentage": f"{round(similarity_score, 1)}%"
@@ -336,19 +336,18 @@ class StatementProcessor:
             start_page = page_num - (current_page - 1)
             page_range, first_page = "-".join(map(str, range(start_page, start_page + total_pages))), start_page
         
-        # Determine processing flags exactly like minimal version
+        # Determine processing flags - ask about ALL similar matches
         has_email = "email" in rest_text.lower()
         best_match = similar_matches[0] if similar_matches else None
         best_percentage = float(best_match["percentage"].replace('%', '')) if best_match else 0
-        is_high_confidence = best_percentage >= 90.0
         
         manual_required, ask_question = False, False
-        if not (has_email or is_high_confidence or exact_match):
+        if not (has_email or exact_match):
             manual_required = len(similar_matches) > 0
             if manual_required:
-                ask_question = best_percentage < 90.0
+                ask_question = True  # Always ask questions for all matches
         
-        if exact_match or has_email or is_high_confidence:
+        if exact_match or has_email:
             destination = "DNM"
         elif location == "Foreign":
             destination = "Foreign"
@@ -422,104 +421,171 @@ class StatementProcessor:
         return statements
     
     def process_interactive_questions(self, statements: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """Process interactive questions for companies requiring manual review."""
+        """Process interactive questions for companies requiring manual review - asks about each similar company individually."""
         questions_needed = [stmt for stmt in statements if stmt.get('ask_question', False)]
         
         if not questions_needed:
             print("No manual questions required.")
             return statements
         
-        print(f"\nFound {len(questions_needed)} companies requiring manual review:")
-        
-        skip_all = False
-        history = []  # Track history of statement states
-        i = 0  # Current question index
-        
-        while i < len(questions_needed):
-            if skip_all:
-                for j in range(i, len(questions_needed)):
-                    questions_needed[j]['user_answered'] = 'skip'
-                break
-            
-            statement = questions_needed[i]
+        # Build individual questions for each similar company match
+        individual_questions = []
+        for stmt_idx, statement in enumerate(questions_needed):
             company_name = statement.get('company_name', 'Unknown')
             similar_matches = statement.get('similar_matches', [])
             
-            if similar_matches:
-                best_match = similar_matches[0]
-                print(f"\nQuestion {i + 1} of {len(questions_needed)}:")
-                print(f"Company '{company_name}' is similar to '{best_match['company_name']}' ({best_match['percentage']})")
-                print("Are they the same company? (y/n/s to skip all/p to go back)")
-                
-                while True:
-                    try:
-                        response = input("> ").strip().lower()
+            for match in similar_matches:
+                individual_questions.append({
+                    'statement_index': stmt_idx,
+                    'statement': statement,
+                    'company_name': company_name,
+                    'similar_company': match['company_name'],
+                    'percentage': match['percentage'],
+                    'answered': False
+                })
+        
+        if not individual_questions:
+            print("No similar companies found for questioning.")
+            return statements
+        
+        print(f"\nFound {len(individual_questions)} company similarity questions:")
+        
+        skip_all = False
+        history = []  # Track history of question states
+        i = 0  # Current question index
+        
+        # Initialize company equivalence mappings for each statement
+        for statement in questions_needed:
+            statement['company_equivalences'] = []
+            statement['user_answered'] = 'no'  # Will be updated when questions are answered
+        
+        while i < len(individual_questions):
+            if skip_all:
+                for j in range(i, len(individual_questions)):
+                    individual_questions[j]['answered'] = True
+                    individual_questions[j]['response'] = 'skip'
+                break
+            
+            question = individual_questions[i]
+            company_name = question['company_name']
+            similar_company = question['similar_company']
+            percentage = question['percentage']
+            
+            print(f"\nQuestion {i + 1} of {len(individual_questions)}:")
+            print(f"Is '{company_name}' the same company as '{similar_company}' ({percentage})?")
+            print("(y/n/s to skip all/p to go back)")
+            
+            while True:
+                try:
+                    response = input("> ").strip().lower()
+                    
+                    if response == 'y':
+                        # Save current state to history before making changes
+                        history.append({
+                            'question_index': i,
+                            'question_state': {
+                                'answered': question.get('answered', False),
+                                'response': question.get('response')
+                            }
+                        })
                         
-                        if response == 'y':
-                            # Save current state to history before making changes
-                            history.append({
-                                'index': i,
-                                'statement_state': {
-                                    'destination': statement.get('destination'),
-                                    'user_answered': statement.get('user_answered')
-                                }
-                            })
-                            
+                        question['answered'] = True
+                        question['response'] = 'yes'
+                        
+                        # Add to company equivalences
+                        statement = question['statement']
+                        statement['company_equivalences'].append({
+                            'dnm_company': similar_company,
+                            'percentage': percentage,
+                            'user_confirmed': True
+                        })
+                        
+                        # Check if this creates a DNM match
+                        if statement['destination'] != 'DNM':
                             statement['destination'] = 'DNM'
-                            statement['user_answered'] = 'yes'
-                            print(f" Marked '{company_name}' as DNM")
-                            i += 1  # Move to next question
-                            break
-                            
-                        elif response == 'n':
-                            # Save current state to history before making changes
-                            history.append({
-                                'index': i,
-                                'statement_state': {
-                                    'destination': statement.get('destination'),
-                                    'user_answered': statement.get('user_answered')
-                                }
-                            })
-                            
-                            statement['user_answered'] = 'no'
-                            print(f" Kept '{company_name}' as {statement['destination']}")
-                            i += 1  # Move to next question
-                            break
-                            
-                        elif response == 's':
-                            skip_all = True
-                            statement['user_answered'] = 'skip'
-                            print(" Skipping remaining questions")
-                            break
-                            
-                        elif response == 'p':
-                            if not history:
-                                print("No previous questions to go back to")
-                                continue
-                            
-                            # Restore previous state
-                            previous = history.pop()
-                            prev_index = previous['index']
-                            prev_state = previous['statement_state']
-                            
-                            # Restore the previous statement's state
-                            prev_statement = questions_needed[prev_index]
-                            prev_statement['destination'] = prev_state['destination']
-                            if 'user_answered' in prev_state and prev_state['user_answered'] is not None:
-                                prev_statement['user_answered'] = prev_state['user_answered']
-                            elif 'user_answered' in prev_statement:
-                                del prev_statement['user_answered']
-                            
-                            i = prev_index  # Go back to previous question
-                            print(f"↩ Going back to question {i + 1}")
-                            break
-                            
-                        else:
-                            print("Please enter 'y', 'n', 's', or 'p'")
-                            
-                    except (KeyboardInterrupt, EOFError):
-                        print("\nOperation cancelled.")
-                        sys.exit(0)
+                        
+                        print(f"  Confirmed: '{company_name}' = '{similar_company}'")
+                        i += 1  # Move to next question
+                        break
+                        
+                    elif response == 'n':
+                        # Save current state to history before making changes
+                        history.append({
+                            'question_index': i,
+                            'question_state': {
+                                'answered': question.get('answered', False),
+                                'response': question.get('response')
+                            }
+                        })
+                        
+                        question['answered'] = True
+                        question['response'] = 'no'
+                        
+                        # Add to company equivalences as non-match
+                        statement = question['statement']
+                        statement['company_equivalences'].append({
+                            'dnm_company': similar_company,
+                            'percentage': percentage,
+                            'user_confirmed': False
+                        })
+                        
+                        print(f"  Confirmed: '{company_name}' ≠ '{similar_company}'")
+                        i += 1  # Move to next question
+                        break
+                        
+                    elif response == 's':
+                        skip_all = True
+                        question['answered'] = True
+                        question['response'] = 'skip'
+                        print(" Skipping all remaining questions")
+                        break
+                        
+                    elif response == 'p':
+                        if not history:
+                            print("No previous questions to go back to")
+                            continue
+                        
+                        # Restore previous state
+                        previous = history.pop()
+                        prev_index = previous['question_index']
+                        prev_state = previous['question_state']
+                        
+                        # Restore the previous question's state
+                        prev_question = individual_questions[prev_index]
+                        prev_question['answered'] = prev_state['answered']
+                        if 'response' in prev_state and prev_state['response'] is not None:
+                            prev_question['response'] = prev_state['response']
+                        elif 'response' in prev_question:
+                            del prev_question['response']
+                        
+                        # Remove the equivalence from the statement if it was added
+                        prev_statement = prev_question['statement']
+                        if prev_statement['company_equivalences']:
+                            # Find and remove the last equivalence that matches this company
+                            for idx in range(len(prev_statement['company_equivalences']) - 1, -1, -1):
+                                equiv = prev_statement['company_equivalences'][idx]
+                                if equiv['dnm_company'] == prev_question['similar_company']:
+                                    prev_statement['company_equivalences'].pop(idx)
+                                    break
+                        
+                        i = prev_index  # Go back to previous question
+                        print(f"↩ Going back to question {i + 1}")
+                        break
+                        
+                    else:
+                        print("Please enter 'y', 'n', 's', or 'p'")
+                        
+                except (KeyboardInterrupt, EOFError):
+                    print("\nOperation cancelled.")
+                    sys.exit(0)
+        
+        # Final processing: determine final user_answered status for each statement
+        for statement in questions_needed:
+            equivalences = statement.get('company_equivalences', [])
+            if any(eq['user_confirmed'] for eq in equivalences):
+                statement['user_answered'] = 'yes'
+            else:
+                statement['user_answered'] = 'no'
         
         return statements
     

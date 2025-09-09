@@ -22,7 +22,7 @@ class DocumentProcessingAPI {
 
     // Statement Processing API Methods
     async createSession() {
-        const response = await fetch(`${this.baseUrl}/api/v1/session`, {
+        const response = await fetch(`${this.baseUrl}/api/statement-processor`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' }
         });
@@ -36,7 +36,7 @@ class DocumentProcessingAPI {
         formData.append('pdf', pdfFile);
         formData.append('excel', excelFile);
 
-        const response = await fetch(`${this.baseUrl}/api/v1/session/${this.sessionId}/upload`, {
+        const response = await fetch(`${this.baseUrl}/api/statement-processor/${this.sessionId}/upload`, {
             method: 'POST',
             body: formData
         });
@@ -44,19 +44,19 @@ class DocumentProcessingAPI {
     }
 
     async processFiles() {
-        const response = await fetch(`${this.baseUrl}/api/v1/session/${this.sessionId}/process`, {
+        const response = await fetch(`${this.baseUrl}/api/statement-processor/${this.sessionId}/process`, {
             method: 'POST'
         });
         return await response.json();
     }
 
     async getQuestions() {
-        const response = await fetch(`${this.baseUrl}/api/v1/session/${this.sessionId}/questions`);
+        const response = await fetch(`${this.baseUrl}/api/statement-processor/${this.sessionId}/questions`);
         return await response.json();
     }
 
     async submitAnswers(answers) {
-        const response = await fetch(`${this.baseUrl}/api/v1/session/${this.sessionId}/answers`, {
+        const response = await fetch(`${this.baseUrl}/api/statement-processor/${this.sessionId}/answers`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ answers })
@@ -65,7 +65,7 @@ class DocumentProcessingAPI {
     }
 
     async downloadResults() {
-        const response = await fetch(`${this.baseUrl}/api/v1/session/${this.sessionId}/download`);
+        const response = await fetch(`${this.baseUrl}/api/statement-processor/${this.sessionId}/download`);
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
         

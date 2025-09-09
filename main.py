@@ -15,6 +15,7 @@ from datetime import datetime
 from processors.statement_processor import StatementProcessor
 from processors.invoice_processor import invoice_processor_bp
 from processors.credit_card_batch_processor import credit_card_batch_bp
+from company_memory import memory_manager
 
 app = Flask(__name__)
 
@@ -262,39 +263,59 @@ def process_statements(session_id):
         # Extract statements from real PDF using real Excel DNM list
         statements = processor.extract_statements()
         
-        # Find questions that need manual review - Updated for multiple matches format
-        questions = []
+        # Build individual questions for similar company matches - MEMORY ENHANCED
+        # The StatementProcessor already applied memory decisions during processing!
+        # Only companies with unknown similarities will have ask_question=True
+        companies_requiring_review = []
+        memory_applied_count = 0
+        
         for stmt in statements:
             if stmt.get('ask_question', False):
                 similar_matches = stmt.get('similar_matches', [])
                 if similar_matches:
-                    # Use the best match (first one, already sorted by percentage)
-                    best_match = similar_matches[0]
-                    questions.append({
-                        'id': str(uuid.uuid4()),
-                        'company_name': stmt.get('company_name', ''),
-                        'similar_to': best_match.get('company_name', ''),
-                        'percentage': best_match.get('percentage', ''),
+                    # Create individual questions for each similar company
+                    # These are already filtered by the memory system in StatementProcessor
+                    individual_questions = []
+                    for match in similar_matches:
+                        individual_questions.append({
+                            'question_id': str(uuid.uuid4()),
+                            'dnm_company': match.get('company_name', ''),
+                            'similarity_percentage': match.get('percentage', '')
+                        })
+                    
+                    companies_requiring_review.append({
+                        'statement_id': str(uuid.uuid4()),
+                        'extracted_company': stmt.get('company_name', ''),
                         'current_destination': stmt.get('destination', ''),
-                        'all_matches': similar_matches,  # Include all matches for frontend
-                        'first_page_number': stmt.get('first_page_number', 1)  # NEW: Page number for display
+                        'page_info': stmt.get('paging', 'page 1 of 1'),
+                        'questions': individual_questions
                     })
+            elif stmt.get('memory_decision_applied', False):
+                # This statement was automatically resolved by memory system
+                memory_applied_count += 1
+        
+        # Calculate total individual questions count
+        total_questions = sum(len(company['questions']) for company in companies_requiring_review)
+        
+        logger.info(f"[MEMORY] Memory system automatically resolved {memory_applied_count} company decisions")
+        logger.info(f"[QUESTIONS] {total_questions} questions remaining after memory filtering")
         
         # Store real results
         sessions[session_id]['statements'] = statements
-        sessions[session_id]['questions'] = questions
+        sessions[session_id]['companies_requiring_review'] = companies_requiring_review
         sessions[session_id]['status'] = 'processed'
         
         # Save updated sessions
         save_sessions()
         
-        print(f"[RESULTS] REAL RESULTS: {len(statements)} statements, {len(questions)} questions")
+        print(f"[RESULTS] REAL RESULTS: {len(statements)} statements, {len(companies_requiring_review)} companies, {total_questions} individual questions")
         
         return jsonify({
             'status': 'success',
             'message': 'Processing completed',
             'total_statements': len(statements),
-            'questions_needed': len(questions)
+            'companies_to_review': len(companies_requiring_review),
+            'total_questions': total_questions
         })
         
     except Exception as e:
@@ -311,12 +332,15 @@ def get_questions(session_id):
         return jsonify({'error': 'Session not found'}), 404
     
     session_data = sessions[session_id]
+    companies_requiring_review = session_data.get('companies_requiring_review', [])
+    total_questions = sum(len(company['questions']) for company in companies_requiring_review)
     
     return jsonify({
         'status': 'success',
-        'questions': session_data.get('questions', []),
-        'total_statements': len(session_data.get('statements', [])),
-        'processing_type': 'REAL QUESTIONS FROM YOUR PDF'
+        'companies_requiring_review': companies_requiring_review,
+        'total_questions': total_questions,
+        'total_companies_to_review': len(companies_requiring_review),
+        'processing_type': 'INDIVIDUAL COMPANY QUESTIONS FROM YOUR PDF'
     })
 
 @app.route('/api/statement-processor/<session_id>/answers', methods=['POST'])
@@ -338,10 +362,43 @@ def submit_answers(session_id):
     
     logger.info(f"[INFO] Received {len(answers)} answers for session {session_id}")
     
-    # Apply answers to real statements - Updated for new format
+    # Apply answers to real statements AND store in memory system
     session_data = sessions[session_id]
     statements = session_data.get('statements', [])
+    companies_requiring_review = session_data.get('companies_requiring_review', [])
     
+    # Store answers in memory system for future use
+    stored_count = 0
+    try:
+        for company in companies_requiring_review:
+            extracted_company = company.get('extracted_company', '')
+            for question in company.get('questions', []):
+                question_id = question.get('question_id', '')
+                if question_id in answers:
+                    answer = answers[question_id]
+                    if answer in ['yes', 'no']:  # Skip 'skip' answers
+                        dnm_company = question.get('dnm_company', '')
+                        similarity_percentage = float(question.get('similarity_percentage', '0').replace('%', ''))
+                        user_decision = (answer == 'yes')
+                        
+                        # Store in memory system
+                        success = memory_manager.store_answer(
+                            extracted_company=extracted_company,
+                            dnm_company=dnm_company,
+                            similarity_percentage=similarity_percentage,
+                            user_decision=user_decision,
+                            session_id=session_id
+                        )
+                        if success:
+                            stored_count += 1
+                            logger.info(f"[MEMORY] Stored: {extracted_company} vs {dnm_company} = {answer}")
+        
+        logger.info(f"[MEMORY] Successfully stored {stored_count} answers in memory system")
+        
+    except Exception as e:
+        logger.error(f"[MEMORY] Error storing answers in memory: {e}")
+    
+    # Apply answers to statements (existing logic)
     for stmt in statements:
         company_name = stmt.get('company_name', '')
         if company_name in answers:
@@ -359,8 +416,9 @@ def submit_answers(session_id):
     
     return jsonify({
         'status': 'success',
-        'message': 'Real answers applied to real statements!',
-        'answers_count': len(answers)
+        'message': 'Answers applied and stored in memory system!',
+        'answers_count': len(answers),
+        'stored_in_memory': stored_count
     })
 
 @app.route('/api/statement-processor/<session_id>/download', methods=['GET'])
@@ -510,6 +568,167 @@ def get_session_status(session_id):
             'questions_count': len(session_data.get('questions', []))
         }
     })
+
+# ===== COMPANY MEMORY MANAGEMENT API =====
+
+@app.route('/api/company-memory/stats', methods=['GET'])
+def get_memory_stats():
+    """Get system-wide company memory statistics."""
+    try:
+        stats = memory_manager.get_system_stats()
+        logger.info("[MEMORY] Memory stats requested")
+        return jsonify({'status': 'success', **stats})
+    except Exception as e:
+        logger.error(f"[MEMORY] Error getting stats: {e}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/company-memory/companies', methods=['GET'])
+def get_all_companies():
+    """Get all companies with their equivalence data."""
+    try:
+        companies = memory_manager.get_all_companies()
+        logger.info(f"[MEMORY] Retrieved {len(companies)} companies from memory")
+        return jsonify({'status': 'success', 'companies': companies})
+    except Exception as e:
+        logger.error(f"[MEMORY] Error getting companies: {e}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/company-memory/update', methods=['POST'])
+def update_company_equivalences():
+    """Update equivalences for a specific company."""
+    try:
+        data = request.json
+        extracted_company = data.get('extracted_company')
+        equivalences = data.get('equivalences', [])
+        
+        if not extracted_company or not equivalences:
+            return jsonify({'status': 'error', 'message': 'Missing extracted_company or equivalences'}), 400
+        
+        success = memory_manager.update_company_equivalences(extracted_company, equivalences)
+        if success:
+            logger.info(f"[MEMORY] Updated equivalences for {extracted_company}")
+            return jsonify({'status': 'success', 'message': 'Equivalences updated successfully'})
+        else:
+            return jsonify({'status': 'error', 'message': 'Failed to update equivalences'}), 500
+            
+    except Exception as e:
+        logger.error(f"[MEMORY] Error updating equivalences: {e}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/company-memory/delete/<path:company_name>', methods=['DELETE'])
+def delete_company_memory(company_name):
+    """Delete all memory data for a specific company."""
+    try:
+        success = memory_manager.delete_company(company_name)
+        if success:
+            logger.info(f"[MEMORY] Deleted company: {company_name}")
+            return jsonify({'status': 'success', 'message': 'Company deleted successfully'})
+        else:
+            return jsonify({'status': 'error', 'message': 'Failed to delete company'}), 500
+            
+    except Exception as e:
+        logger.error(f"[MEMORY] Error deleting company: {e}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/company-memory/check', methods=['POST'])
+def check_previous_answer():
+    """Check if a company pair has been answered before."""
+    try:
+        data = request.json
+        extracted_company = data.get('extracted_company')
+        dnm_company = data.get('dnm_company')
+        
+        if not extracted_company or not dnm_company:
+            return jsonify({'status': 'error', 'message': 'Missing company names'}), 400
+        
+        result = memory_manager.check_previous_answer(extracted_company, dnm_company)
+        return jsonify({'status': 'success', **result})
+        
+    except Exception as e:
+        logger.error(f"[MEMORY] Error checking previous answer: {e}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/company-memory/store', methods=['POST'])
+def store_company_answer():
+    """Store a user's answer about company equivalence."""
+    try:
+        data = request.json
+        extracted_company = data.get('extracted_company')
+        dnm_company = data.get('dnm_company')
+        similarity_percentage = data.get('similarity_percentage')
+        user_decision = data.get('user_decision')
+        
+        # Optional fields
+        session_id = data.get('session_id')
+        statement_id = data.get('statement_id')
+        page_info = data.get('page_info')
+        destination = data.get('destination')
+        
+        if not all([extracted_company, dnm_company, similarity_percentage is not None, user_decision is not None]):
+            return jsonify({'status': 'error', 'message': 'Missing required fields'}), 400
+        
+        success = memory_manager.store_answer(
+            extracted_company, dnm_company, similarity_percentage, user_decision,
+            session_id, statement_id, page_info, destination
+        )
+        
+        if success:
+            logger.info(f"[MEMORY] Stored answer: {extracted_company} vs {dnm_company} = {user_decision}")
+            return jsonify({'status': 'success', 'message': 'Answer stored successfully'})
+        else:
+            return jsonify({'status': 'error', 'message': 'Failed to store answer'}), 500
+            
+    except Exception as e:
+        logger.error(f"[MEMORY] Error storing answer: {e}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/company-memory/export', methods=['GET'])
+def export_memory_data():
+    """Export all memory data for backup."""
+    try:
+        data = memory_manager.export_data()
+        logger.info(f"[MEMORY] Exported {data['total_records']} records")
+        
+        return Response(
+            json.dumps(data, indent=2, ensure_ascii=False),
+            mimetype='application/json',
+            headers={
+                'Content-Disposition': f'attachment; filename=company_memory_backup_{datetime.now().strftime("%Y%m%d_%H%M%S")}.json'
+            }
+        )
+        
+    except Exception as e:
+        logger.error(f"[MEMORY] Error exporting data: {e}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/company-memory/import', methods=['POST'])
+def import_memory_data():
+    """Import memory data from backup."""
+    try:
+        if 'file' not in request.files:
+            return jsonify({'status': 'error', 'message': 'No file provided'}), 400
+        
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'status': 'error', 'message': 'No file selected'}), 400
+        
+        data = json.loads(file.read().decode('utf-8'))
+        success = memory_manager.import_data(data)
+        
+        if success:
+            logger.info(f"[MEMORY] Imported {len(data.get('equivalences', []))} records")
+            return jsonify({'status': 'success', 'message': 'Data imported successfully'})
+        else:
+            return jsonify({'status': 'error', 'message': 'Failed to import data'}), 500
+            
+    except Exception as e:
+        logger.error(f"[MEMORY] Error importing data: {e}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+# Add OPTIONS handlers for memory endpoints
+@app.route('/api/company-memory/<path:endpoint>', methods=['OPTIONS'])
+def handle_memory_options(endpoint):
+    return '', 200
 
 # For Gunicorn deployment
 def create_app():

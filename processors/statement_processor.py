@@ -23,6 +23,14 @@ from openpyxl import load_workbook
 from typing import Dict, List, Tuple, Optional, Set, Any
 from collections import OrderedDict
 
+# Import the memory manager
+try:
+    from company_memory import memory_manager
+    MEMORY_AVAILABLE = True
+except ImportError:
+    MEMORY_AVAILABLE = False
+    memory_manager = None
+
 
 class StatementProcessor:
     """
@@ -47,7 +55,7 @@ class StatementProcessor:
     SKIP_LINES = {"Statement Date:", "Total Due:", "www.unitedcorporate.com", "Amount", "Invoice Number", "Description", "Invoice Date", "Invoice Number Description Invoice Date Amount"}
     
     def __init__(self, pdf_path: str, excel_path: str):
-        """Initialize processor with file paths and pre-compile patterns for O(n) performance."""
+        """Initialize processor with file paths, memory system, and pre-compile patterns for O(n) performance."""
         self.pdf_path = Path(pdf_path)
         self.excel_path = Path(excel_path)
         self.logger = logging.getLogger(self.__class__.__name__)
@@ -64,9 +72,11 @@ class StatementProcessor:
         # Load and pre-process DNM companies for O(1) lookups
         self.dnm_companies, self.normalized_company_map = self._load_dnm_companies()
         
+        # Load company memory for O(1) decision lookups
+        self.company_memory = self._load_company_memory()
+        
         # Cache for processed pages to avoid reprocessing
         self._processed_pages: Set[int] = set()
-        
         
         # Memory optimization: Clear unused references
         gc.collect()
@@ -225,8 +235,36 @@ class StatementProcessor:
         except Exception as e:
             raise RuntimeError(f"Failed to load DNM companies: {e}")
     
+    def _load_company_memory(self) -> Dict[str, Dict[str, bool]]:
+        """Load company memory for O(1) decision lookups during processing."""
+        if not MEMORY_AVAILABLE or not memory_manager:
+            self.logger.info("Company memory system not available, processing without memory")
+            return {}
+        
+        try:
+            # Get all companies with their equivalences
+            companies_data = memory_manager.get_all_companies()
+            
+            # Create a nested dictionary: {extracted_company: {dnm_company: user_decision}}
+            memory_lookup = {}
+            for company in companies_data:
+                extracted_company = company['extracted_company']
+                memory_lookup[extracted_company] = {}
+                
+                for equivalence in company['equivalences']:
+                    dnm_company = equivalence['dnm_company']
+                    user_decision = equivalence['user_decision']
+                    memory_lookup[extracted_company][dnm_company] = user_decision
+            
+            self.logger.info(f"Loaded memory for {len(memory_lookup)} companies with {sum(len(eqs) for eqs in memory_lookup.values())} total decisions")
+            return memory_lookup
+            
+        except Exception as e:
+            self.logger.error(f"Failed to load company memory: {e}")
+            return {}
+    
     def _find_company_match(self, company_name: str) -> Tuple[Optional[str], List[Dict[str, str]]]:
-        """Find company match with O(1) exact match and enhanced fuzzy matching like minimal version."""
+        """Find company match with O(1) exact match, memory-enhanced matching, and fuzzy matching."""
         # O(1) exact match check
         if company_name in self.dnm_companies:
             return company_name, []
@@ -236,12 +274,30 @@ class StatementProcessor:
         if normalized in self.normalized_company_map:
             return self.normalized_company_map[normalized], []
         
+        # MEMORY ENHANCEMENT: Check if we have stored decisions for this company
+        stored_decisions = self.company_memory.get(company_name, {})
+        
         # Enhanced fuzzy matching: Check ALL companies above 50% threshold
         similar_matches = []
+        confirmed_match = None
+        
         if normalized:
             for norm_company, original_company in self.normalized_company_map.items():
                 similarity_score = SequenceMatcher(None, normalized, norm_company).ratio() * 100
                 if similarity_score >= 50.0:
+                    
+                    # Check if we have a stored decision for this company pair
+                    if original_company in stored_decisions:
+                        user_decision = stored_decisions[original_company]
+                        if user_decision:  # User previously said "yes" - same company
+                            confirmed_match = original_company
+                            self.logger.info(f"Memory: Auto-confirmed {company_name} = {original_company} (previously answered: yes)")
+                            break  # Found a confirmed match, no need to continue
+                        else:  # User previously said "no" - different company
+                            self.logger.info(f"Memory: Auto-rejected {company_name} ≠ {original_company} (previously answered: no)")
+                            continue  # Skip this match, user already said it's different
+                    
+                    # No stored decision - add to questions
                     similar_matches.append({
                         "company_name": original_company,
                         "percentage": f"{round(similarity_score, 1)}%"
@@ -250,7 +306,41 @@ class StatementProcessor:
             # Sort by similarity score (highest first)
             similar_matches.sort(key=lambda x: float(x["percentage"].replace('%', '')), reverse=True)
         
+        # If we found a confirmed match from memory, return it
+        if confirmed_match:
+            return confirmed_match, []
+        
         return None, similar_matches
+    
+    def _store_user_answer(self, extracted_company: str, dnm_company: str, similarity_percentage: float, 
+                          user_decision: bool, session_id: str = None) -> bool:
+        """Store user's answer in the memory system for future use."""
+        if not MEMORY_AVAILABLE or not memory_manager:
+            self.logger.warning("Cannot store answer: memory system not available")
+            return False
+        
+        try:
+            success = memory_manager.store_answer(
+                extracted_company=extracted_company,
+                dnm_company=dnm_company,
+                similarity_percentage=similarity_percentage,
+                user_decision=user_decision,
+                session_id=session_id
+            )
+            
+            if success:
+                # Update local memory cache for immediate use
+                if extracted_company not in self.company_memory:
+                    self.company_memory[extracted_company] = {}
+                self.company_memory[extracted_company][dnm_company] = user_decision
+                
+                self.logger.info(f"Stored answer in memory: {extracted_company} vs {dnm_company} = {user_decision}")
+            
+            return success
+            
+        except Exception as e:
+            self.logger.error(f"Failed to store answer in memory: {e}")
+            return False
     
     def _detect_location(self, text: str) -> str:
         """Detect location using optimized state detection - O(k) where k = 50 states."""
@@ -354,6 +444,11 @@ class StatementProcessor:
         else:
             destination = "Natio Single" if total_pages == 1 else "Natio Multi"
         
+        # Check if this was an automatic match from memory system
+        memory_decision_applied = (exact_match is not None and 
+                                  company in self.company_memory and 
+                                  any(decision for decision in self.company_memory[company].values()))
+        
         # CRITICAL FIX: Use OrderedDict with exact field ordering like minimal
         result = OrderedDict()
         result["company_name"] = company
@@ -363,6 +458,7 @@ class StatementProcessor:
         result["similar_matches"] = similar_matches
         result["manual_required"] = manual_required
         result["ask_question"] = ask_question
+        result["memory_decision_applied"] = memory_decision_applied  # Track memory usage
         result["rest_of_lines"] = rest_text
         result["location"] = location
         result["paging"] = f"page {current_page} of {total_pages}"

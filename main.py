@@ -15,6 +15,7 @@ from datetime import datetime
 from processors.statement_processor import StatementProcessor
 from processors.invoice_processor import invoice_processor_bp
 from processors.credit_card_batch_processor import credit_card_batch_bp
+from processors.excel_formatter_processor import excel_formatter_bp
 from company_memory import memory_manager
 
 app = Flask(__name__)
@@ -22,6 +23,7 @@ app = Flask(__name__)
 # Register blueprints
 app.register_blueprint(invoice_processor_bp, url_prefix='/api/invoice-processor')
 app.register_blueprint(credit_card_batch_bp, url_prefix='/api/credit-card-batch')
+app.register_blueprint(excel_formatter_bp, url_prefix='/api/excel-formatter')
 
 # Also register credit card batch with alternative URL pattern for compatibility
 app.register_blueprint(credit_card_batch_bp, url_prefix='/cc_batch', name='cc_batch_alt')
@@ -126,7 +128,7 @@ def health():
         'sessions': len(sessions),
         'timestamp': datetime.now().isoformat(),
         'active_sessions': list(sessions.keys())[:5] if sessions else [],
-        'services': ['statement_processing', 'invoice_processing', 'credit_card_batch']
+        'services': ['statement_processing', 'invoice_processing', 'credit_card_batch', 'excel_formatting']
     })
 
 @app.route('/', methods=['GET'])
@@ -138,13 +140,15 @@ def root():
         'services': {
             'statement_processing': 'PDF statement analysis with DNM matching',
             'invoice_processing': 'Invoice number extraction and splitting',
-            'credit_card_batch': 'Credit card batch automation code generation'
+            'credit_card_batch': 'Credit card batch automation code generation',
+            'excel_formatting': 'Excel column header detection and formatting'
         },
         'endpoints': {
             'health': '/health',
             'statement_api': '/api/statement-processor',
             'invoice_api': '/api/invoice-processor',
-            'credit_card_batch_api': '/api/credit-card-batch'
+            'credit_card_batch_api': '/api/credit-card-batch',
+            'excel_formatter_api': '/api/excel-formatter'
         },
         'documentation': 'See API_DOCUMENTATION.md for complete integration guide'
     })

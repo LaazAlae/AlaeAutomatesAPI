@@ -1,12 +1,13 @@
 # Core Flask dependencies
 Flask==2.3.3
 
-# PDF processing 
+# PDF processing
 PyMuPDF==1.23.5
 PyPDF2==3.0.1
 
-# Excel file reading
+# Excel file reading and processing
 openpyxl==3.1.2
+pandas==2.1.1
 
 # String matching for statement processor
 thefuzz==0.19.0

@@ -13,6 +13,9 @@ Extracts invoice numbers from PDF files and splits them into separate documents 
 ### Credit Card Batch Processing
 Processes Excel files with credit card data and generates enhanced JavaScript automation code for Legacy Edge browsers. Automatically cleans data, removes headers and totals, and creates robust automation scripts with safety checks.
 
+### Excel Formatter
+Automatically detects and formats Excel column headers using intelligent fuzzy matching algorithms. Standardizes business data formats by recognizing header variations and applying professional formatting with proper data types, fonts, and styling.
+
 ### Company Memory System
 Intelligent company recognition system that remembers user decisions permanently. Once you decide whether two companies are the same or different, the system never asks again. This reduces manual review from thousands of questions to just a few dozen on repeat uploads, saving hours of time.
 
@@ -2370,6 +2373,302 @@ const csvData = await fetch(exportUrl).then(r => r.blob());
 - Check browser popup blockers
 - Verify session is finalized
 
+# Excel Formatter API Documentation
+
+## **Overview**
+
+The Excel Formatter API automatically detects and formats Excel column headers using intelligent fuzzy matching algorithms. It standardizes business data formats by recognizing header variations and applying professional formatting with proper data types, fonts, and styling.
+
+## **Key Features**
+
+- **Intelligent Header Detection**: Advanced algorithms match column headers regardless of naming variations
+- **Smart Formatting**: Professional styling with proper fonts, alignment, and data types
+- **Standardized Output**: Consistently formatted Excel files with standardized column names
+- **Data Validation**: Automatic formatting of dates, numbers, and text fields
+- **Flexible Matching**: Handles variations like "Corp Name" vs "CorpName" vs "Corporation Name"
+
+## **Required Columns**
+
+The system attempts to detect and format these 16 standardized columns:
+
+- `GroupName` - Group or organization name
+- `CorpName` - Corporation/company name
+- `Amount_To_Apply` - Monetary amounts (formatted as currency)
+- `ReceiptType` - Type of receipt
+- `ReceiptNumber` - Receipt number (formatted as integer)
+- `RecBatchName` - Receipt batch name
+- `ReceiptCreateDate` - Receipt creation date (formatted as mm-dd-yy)
+- `ReceiptsID` - Receipt ID
+- `CorpID` - Corporation ID
+- `GroupID` - Group ID
+- `RecBatchID` - Receipt batch ID
+- `PostDate` - Posting date (formatted as mm-dd-yy)
+- `SourceName` - Source name
+- `Notes` - Notes (wider column width)
+- `Date Last Change` - Last modification date (formatted as mm-dd-yy)
+- `User Last Change` - User who made last change
+
+## **API Endpoints**
+
+### **GET /api/excel-formatter**
+Get service information and supported formats.
+
+**Response:**
+```json
+{
+  "service": "Excel Formatter API",
+  "description": "Upload Excel files to automatically detect and format columns",
+  "supported_formats": ["xlsx", "xls"],
+  "required_columns": ["GroupName", "CorpName", "Amount_To_Apply", ...]
+}
+```
+
+### **POST /api/excel-formatter/process**
+Upload and process Excel file for formatting.
+
+**Request:**
+```
+Content-Type: multipart/form-data
+file: [Excel file (.xlsx/.xls)]
+```
+
+**Response (Success):**
+```json
+{
+  "success": true,
+  "message": "Successfully processed Excel file with 12 columns",
+  "columns_found": 12,
+  "rows_processed": 150,
+  "columns_matched": ["GroupName", "CorpName", "Amount_To_Apply", ...],
+  "columns_missing": ["Notes"],
+  "processing_log": {
+    "timestamp": "2024-01-15T10:30:00Z",
+    "file": "/tmp/input.xlsx",
+    "steps": [
+      {
+        "step": 1,
+        "action": "Loaded Excel",
+        "result": "150 data rows (total 152 including empty)"
+      },
+      {
+        "step": 2,
+        "action": "Found headers",
+        "result": "12/16 columns",
+        "details": [
+          "GroupName: Group at R1C1 (score: 100)",
+          "CorpName: Corporation Name at R1C2 (score: 95)"
+        ]
+      },
+      {
+        "step": 3,
+        "action": "SUCCESS",
+        "result": "Created formatted Excel with 12 columns and 150 rows"
+      }
+    ],
+    "status": "SUCCESS"
+  },
+  "download_ready": true
+}
+```
+
+**Response (Error):**
+```json
+{
+  "success": false,
+  "error": "Too few columns found (minimum 5 required)",
+  "processing_log": {...},
+  "columns_found": 3
+}
+```
+
+### **POST /api/excel-formatter/download**
+Download the formatted Excel file.
+
+**Request:**
+```json
+{
+  "file_path": "/path/to/formatted/file.xlsx"
+}
+```
+
+**Response:**
+```
+Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+Content-Disposition: attachment; filename="formatted_excel_file.xlsx"
+[Binary Excel file data]
+```
+
+### **POST /api/excel-formatter/clear_results**
+Clear temporary result files.
+
+**Response:**
+```json
+{
+  "status": "success",
+  "message": "Temporary files cleared"
+}
+```
+
+## **Integration Examples**
+
+### **JavaScript/Fetch API**
+```javascript
+// Upload and process Excel file
+const formData = new FormData();
+formData.append('file', excelFile);
+
+const response = await fetch('${API_BASE_URL}/api/excel-formatter/process', {
+    method: 'POST',
+    body: formData
+});
+
+const result = await response.json();
+if (result.success) {
+    console.log(`Processed ${result.columns_found} columns`);
+    console.log('Matched columns:', result.columns_matched);
+    console.log('Missing columns:', result.columns_missing);
+
+    // File is ready for download
+    if (result.download_ready) {
+        // Implement download logic
+    }
+}
+```
+
+### **Python/Requests**
+```python
+import requests
+
+# Upload Excel file
+with open('your_file.xlsx', 'rb') as f:
+    files = {'file': f}
+    response = requests.post(
+        'http://api-url/api/excel-formatter/process',
+        files=files
+    )
+
+result = response.json()
+if result['success']:
+    print(f"Processed {result['columns_found']} columns")
+    print(f"Matched: {result['columns_matched']}")
+    print(f"Missing: {result['columns_missing']}")
+
+    # Download formatted file
+    download_response = requests.post(
+        'http://api-url/api/excel-formatter/download',
+        json={'file_path': result['output_file']}
+    )
+
+    with open('formatted_output.xlsx', 'wb') as f:
+        f.write(download_response.content)
+```
+
+### **cURL**
+```bash
+# Upload Excel file for processing
+curl -X POST \
+  http://api-url/api/excel-formatter/process \
+  -H 'Content-Type: multipart/form-data' \
+  -F 'file=@your_file.xlsx'
+```
+
+## **Header Matching Algorithm**
+
+The system uses sophisticated fuzzy matching to detect column headers:
+
+### **Matching Priority**
+1. **Exact normalized match** (100 points) - Perfect match after normalization
+2. **Pattern-specific matches** (95 points) - Known patterns like "Receipt ID" → "ReceiptsID"
+3. **Word-based matching** (75-99 points) - 70%+ word matches
+4. **Partial matching** (40-74 points) - 40-69% word matches
+5. **No match** (0 points) - Less than 40% word match
+
+### **Word Variations Dictionary**
+The system recognizes common variations:
+- `corp` → `corporation`, `company`, `corporate`
+- `receipt` → `rec`, `rcpt`
+- `amount` → `amt`, `total`
+- `number` → `num`, `no`, `#`
+- `date` → `dt`, `time`
+- `create` → `creation`, `created`
+
+### **Normalization Process**
+Text is normalized by:
+- Converting to lowercase
+- Removing spaces, underscores, hyphens, parentheses
+- Splitting into individual words for comparison
+
+## **Formatting Applied**
+
+### **Header Row**
+- **Font**: Calibri, 11pt, Bold
+- **Background**: Light gray (D9D9D9)
+- **Alignment**: Center horizontal and vertical
+- **Freeze Panes**: Row 2 (headers always visible)
+
+### **Data Formatting**
+- **Amount_To_Apply**: Currency format `"$"#,##0.00_);("$"#,##0.00)`
+- **Date columns**: Short date format `mm-dd-yy`
+- **ReceiptNumber**: Integer formatting (removes decimals from valid numbers)
+- **Notes column**: Wider column width (25 characters max)
+- **All columns**: Auto-width based on content (max 50 characters)
+
+### **Data Types**
+- **Dates**: Converted to Excel date format with error handling
+- **Numbers**: Validated and converted to proper numeric types
+- **Text**: Preserved as-is with proper formatting
+
+## **Error Handling**
+
+### **Common Errors**
+- **File not found**: Invalid file path
+- **Unsupported format**: Only .xlsx and .xls files accepted
+- **Too few columns**: Minimum 5 columns must be detected
+- **Processing failure**: Excel file corruption or format issues
+
+### **Error Response Format**
+```json
+{
+  "success": false,
+  "error": "Error description",
+  "processing_log": {
+    "timestamp": "2024-01-15T10:30:00Z",
+    "steps": [...],
+    "status": "FAILED"
+  },
+  "columns_found": 0
+}
+```
+
+## **Best Practices**
+
+### **File Preparation**
+- Ensure column headers are in the first 100 rows
+- Use descriptive column names that match expected formats
+- Keep file size under 10MB for optimal performance
+- Ensure Excel file is not password protected
+
+### **Integration Tips**
+- Validate file type before upload
+- Handle errors gracefully with proper user feedback
+- Implement progress indicators for large files
+- Check `download_ready` flag before attempting download
+- Use proper timeout handling (recommend 30-60 seconds)
+
+### **Performance Optimization**
+- Process files during off-peak hours for large datasets
+- Implement client-side file validation
+- Use compression for file transfers
+- Cache results appropriately
+
+## **Security & Privacy**
+
+- **Temporary Processing**: Files are processed in secure temporary directories
+- **Automatic Cleanup**: All temporary files are automatically removed after processing
+- **No Permanent Storage**: No data is stored permanently on the server
+- **File Validation**: Strict file type and structure validation
+- **Memory Processing**: Processing happens in memory with immediate cleanup
+
 ---
 
-**This API is production-ready and optimized for Railway's free tier with enterprise-grade features and complete documentation for seamless integration! **
+**This API is production-ready and optimized for Railway's free tier with enterprise-grade features and complete documentation for seamless integration!**

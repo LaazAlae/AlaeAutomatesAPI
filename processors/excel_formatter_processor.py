@@ -16,8 +16,25 @@ excel_formatter_bp = Blueprint('excel_formatter', __name__)
 ALLOWED_EXTENSIONS = {'xlsx', 'xls'}
 REQUIRED_COLUMN_NAMES = ['GroupName', 'CorpName', 'Amount_To_Apply', 'ReceiptType', 'ReceiptNumber', 'RecBatchName', 'ReceiptCreateDate', 'ReceiptsID', 'CorpID', 'GroupID', 'RecBatchID', 'PostDate', 'SourceName', 'Notes', 'Date Last Change', 'User Last Change']
 
-# Simple file storage for processed files
-processed_files = {}
+# Create a persistent directory for processed files
+PROCESSED_FILES_DIR = os.path.join(tempfile.gettempdir(), 'excel_formatter_files')
+os.makedirs(PROCESSED_FILES_DIR, exist_ok=True)
+
+def cleanup_old_files():
+    """Clean up files older than 1 hour to prevent disk space issues"""
+    try:
+        current_time = datetime.now()
+        for filename in os.listdir(PROCESSED_FILES_DIR):
+            if filename.endswith('_formatted.xlsx'):
+                file_path = os.path.join(PROCESSED_FILES_DIR, filename)
+                # Get file modification time
+                file_mtime = datetime.fromtimestamp(os.path.getmtime(file_path))
+                # Remove files older than 1 hour
+                if (current_time - file_mtime).total_seconds() > 3600:  # 1 hour
+                    os.remove(file_path)
+                    logging.info(f"Cleaned up old file: {filename}")
+    except Exception as e:
+        logging.error(f"Cleanup error: {e}")
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -214,9 +231,12 @@ def process_excel_and_fix_formatting(excel_file_path):
                         formatted_numbers.append(value)
             normalized_data['ReceiptNumber'] = formatted_numbers
 
-        # Create output file in temp directory
-        with tempfile.NamedTemporaryFile(delete=False, suffix='_FORMATTED.xlsx') as tmp_file:
-            output_file_path = tmp_file.name
+        # Generate unique file ID first
+        import uuid
+        file_id = str(uuid.uuid4())
+
+        # Create output file with the file ID as the name in our persistent directory
+        output_file_path = os.path.join(PROCESSED_FILES_DIR, f'{file_id}_formatted.xlsx')
 
         new_excel_workbook = openpyxl.Workbook()
         new_worksheet = new_excel_workbook.active
@@ -276,18 +296,7 @@ def process_excel_and_fix_formatting(excel_file_path):
         processing_log['steps'].append({'step': 3, 'action': 'SUCCESS', 'result': f'Created formatted Excel with {len(successfully_found_columns)} columns and {maximum_data_length} rows'})
         processing_log['status'] = 'SUCCESS'
 
-        logging.info(f"Success! Created formatted Excel file")
-
-        # Generate a unique file ID for this processed file
-        import uuid
-        file_id = str(uuid.uuid4())
-
-        # Store the file path with the file ID
-        processed_files[file_id] = {
-            'file_path': output_file_path,
-            'original_name': 'formatted_excel_file.xlsx',
-            'created_at': datetime.now().isoformat()
-        }
+        logging.info(f"Success! Created formatted Excel file: {output_file_path}")
 
         return {
             'success': True,
@@ -326,6 +335,9 @@ def get_service_info():
 def process_excel_file():
     """Process Excel file and format columns"""
     logging.info("Excel formatter processing request received")
+
+    # Clean up old files before processing
+    cleanup_old_files()
 
     try:
         # Check if file is uploaded
@@ -394,15 +406,18 @@ def process_excel_file():
 def download_formatted_file(file_id):
     """Download the formatted Excel file using file ID"""
     try:
-        # Check if file ID exists
-        if file_id not in processed_files:
-            return jsonify({'error': 'File not found or expired'}), 404
+        # Validate file_id format (UUID)
+        import uuid
+        try:
+            uuid.UUID(file_id)
+        except ValueError:
+            return jsonify({'error': 'Invalid file ID format'}), 400
 
-        file_info = processed_files[file_id]
-        file_path = file_info['file_path']
+        # Construct file path based on file ID
+        file_path = os.path.join(PROCESSED_FILES_DIR, f'{file_id}_formatted.xlsx')
 
         if not os.path.exists(file_path):
-            return jsonify({'error': 'File not found on disk'}), 404
+            return jsonify({'error': 'File not found or expired. Files are automatically cleaned up after some time.'}), 404
 
         # Generate a filename with timestamp
         current_date = datetime.now()

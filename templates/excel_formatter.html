@@ -207,37 +207,25 @@ Content-Disposition: attachment; filename="formatted_excel_file.xlsx"
                     <div id="workflow" class="tab-content">
                         <h3>Integration Workflow</h3>
 
-                        <div class="workflow-steps">
-                            <div class="workflow-step">
-                                <div class="step-number">1</div>
-                                <div class="step-content">
-                                    <h4>Upload Excel File</h4>
-                                    <p>Send Excel file (.xlsx/.xls) via POST to <code>/api/excel-formatter/process</code></p>
-                                </div>
+                        <div class="integration-steps">
+                            <div class="integration-step">
+                                <h4>Upload Excel File</h4>
+                                <p>Send Excel file (.xlsx/.xls) via POST to <code>/api/excel-formatter/process</code></p>
                             </div>
 
-                            <div class="workflow-step">
-                                <div class="step-number">2</div>
-                                <div class="step-content">
-                                    <h4>Header Detection</h4>
-                                    <p>System analyzes first 100 rows to detect column headers using fuzzy matching</p>
-                                </div>
+                            <div class="integration-step">
+                                <h4>Header Detection</h4>
+                                <p>System analyzes first 100 rows to detect column headers using fuzzy matching</p>
                             </div>
 
-                            <div class="workflow-step">
-                                <div class="step-number">3</div>
-                                <div class="step-content">
-                                    <h4>Data Processing</h4>
-                                    <p>Formats dates, numbers, and applies professional styling to the Excel file</p>
-                                </div>
+                            <div class="integration-step">
+                                <h4>Data Processing</h4>
+                                <p>Formats dates, numbers, and applies professional styling to the Excel file</p>
                             </div>
 
-                            <div class="workflow-step">
-                                <div class="step-number">4</div>
-                                <div class="step-content">
-                                    <h4>Download Results</h4>
-                                    <p>Receive formatted Excel file with standardized headers and professional styling</p>
-                                </div>
+                            <div class="integration-step">
+                                <h4>Download Results</h4>
+                                <p>Receive formatted Excel file with standardized headers and professional styling</p>
                             </div>
                         </div>
                     </div>
@@ -409,7 +397,7 @@ curl -X POST \
         // Global API configuration
         window.API_BASE_URL = '{{ api_url }}';
         let selectedFile = null;
-        let processedFilePath = null;
+        let processedFileId = null;
 
         // Mobile navigation toggle
         function toggleMobileNav() {
@@ -507,7 +495,7 @@ curl -X POST \
 
         function clearFile() {
             selectedFile = null;
-            processedFilePath = null;
+            processedFileId = null;
             document.getElementById('fileInput').value = '';
 
             // Reset upload area
@@ -556,7 +544,7 @@ curl -X POST \
                 if (result.success) {
                     // Show results
                     showResults(result);
-                    processedFilePath = result.output_file; // This would need to be handled differently in production
+                    processedFileId = result.file_id; // Store file ID for download
                 } else {
                     showError(result.error);
                 }
@@ -579,11 +567,11 @@ curl -X POST \
                 <div class="result-summary">
                     <div class="summary-item">
                         <span class="summary-label">Columns Found:</span>
-                        <span class="summary-value">${result.columns_found}</span>
+                        <span class="summary-value success">${result.columns_found}</span>
                     </div>
                     <div class="summary-item">
                         <span class="summary-label">Rows Processed:</span>
-                        <span class="summary-value">${result.rows_processed}</span>
+                        <span class="summary-value success">${result.rows_processed}</span>
                     </div>
                 </div>
 
@@ -605,7 +593,7 @@ curl -X POST \
             resultsSection.style.display = 'block';
 
             // Show download section if processing was successful
-            if (result.download_ready) {
+            if (result.success) {
                 document.getElementById('downloadSection').style.display = 'block';
             }
         }
@@ -625,9 +613,21 @@ curl -X POST \
         }
 
         function downloadFile() {
-            // In a real implementation, this would use the actual file path from the processing result
-            // For now, we'll show a placeholder message
-            alert('Download functionality would be implemented here with the actual file path from the processing result.');
+            if (!processedFileId) {
+                alert('No file available for download. Please process a file first.');
+                return;
+            }
+
+            // Create download URL using the file ID
+            const downloadUrl = `${window.API_BASE_URL}/api/excel-formatter/download/${processedFileId}`;
+
+            // Create a temporary link and trigger download
+            const link = document.createElement('a');
+            link.href = downloadUrl;
+            link.download = 'formatted_excel_file.xlsx';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         }
 
         // Initialize page

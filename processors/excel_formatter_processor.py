@@ -16,6 +16,9 @@ excel_formatter_bp = Blueprint('excel_formatter', __name__)
 ALLOWED_EXTENSIONS = {'xlsx', 'xls'}
 REQUIRED_COLUMN_NAMES = ['GroupName', 'CorpName', 'Amount_To_Apply', 'ReceiptType', 'ReceiptNumber', 'RecBatchName', 'ReceiptCreateDate', 'ReceiptsID', 'CorpID', 'GroupID', 'RecBatchID', 'PostDate', 'SourceName', 'Notes', 'Date Last Change', 'User Last Change']
 
+# Simple file storage for processed files
+processed_files = {}
+
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
@@ -274,9 +277,22 @@ def process_excel_and_fix_formatting(excel_file_path):
         processing_log['status'] = 'SUCCESS'
 
         logging.info(f"Success! Created formatted Excel file")
+
+        # Generate a unique file ID for this processed file
+        import uuid
+        file_id = str(uuid.uuid4())
+
+        # Store the file path with the file ID
+        processed_files[file_id] = {
+            'file_path': output_file_path,
+            'original_name': 'formatted_excel_file.xlsx',
+            'created_at': datetime.now().isoformat()
+        }
+
         return {
             'success': True,
             'output_file': output_file_path,
+            'file_id': file_id,  # Add file ID for download
             'log': processing_log,
             'columns_found': len(successfully_found_columns),
             'rows_processed': maximum_data_length,
@@ -373,25 +389,28 @@ def process_excel_file():
             'error': f'Processing failed: {str(e)}'
         }), 500
 
-@excel_formatter_bp.route('/download', methods=['POST'])
-def download_formatted_file():
-    """Download the formatted Excel file"""
+@excel_formatter_bp.route('/download/<file_id>', methods=['GET'])
+def download_formatted_file(file_id):
+    """Download the formatted Excel file using file ID"""
     try:
-        # Get the most recent formatted file from the session/temp
-        # In a production environment, you'd want to store this in session or database
-        # For now, we'll expect the file path to be passed in the request
-        data = request.get_json()
-        if not data or 'file_path' not in data:
-            return jsonify({'error': 'No file path provided'}), 400
+        # Check if file ID exists
+        if file_id not in processed_files:
+            return jsonify({'error': 'File not found or expired'}), 404
 
-        file_path = data['file_path']
+        file_info = processed_files[file_id]
+        file_path = file_info['file_path']
+
         if not os.path.exists(file_path):
-            return jsonify({'error': 'File not found'}), 404
+            return jsonify({'error': 'File not found on disk'}), 404
+
+        # Generate a filename with timestamp
+        current_date = datetime.now()
+        filename = f'formatted_excel_{current_date.strftime("%Y%m%d_%H%M%S")}.xlsx'
 
         return send_file(
             file_path,
             as_attachment=True,
-            download_name='formatted_excel_file.xlsx',
+            download_name=filename,
             mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         )
 

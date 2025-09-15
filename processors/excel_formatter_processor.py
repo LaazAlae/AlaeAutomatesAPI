@@ -369,6 +369,7 @@ def process_excel_file():
             return jsonify({
                 'success': True,
                 'message': f'Successfully processed Excel file with {result["columns_found"]} columns',
+                'file_id': result['file_id'],  # Include the file_id for download
                 'columns_found': result['columns_found'],
                 'rows_processed': result['rows_processed'],
                 'columns_matched': result['columns_matched'],

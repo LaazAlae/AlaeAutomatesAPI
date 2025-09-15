@@ -1,5 +1,4 @@
 from flask import Blueprint, request, jsonify, send_file
-import pandas as pd
 import openpyxl
 import json
 import logging
@@ -155,17 +154,62 @@ def process_excel_and_fix_formatting(excel_file_path):
             processing_log['status'] = 'FAILED'
             return {'error': 'Too few columns found (minimum 5 required)', 'log': processing_log, 'columns_found': len(successfully_found_columns)}
 
+        # Get the maximum data length to normalize all columns
         maximum_data_length = max(len(column_info['data']) for column_info in successfully_found_columns.values())
-        unified_dataframe = pd.DataFrame({column_name: column_info['data'] + [None]*(maximum_data_length-len(column_info['data'])) for column_name, column_info in successfully_found_columns.items()})
 
-        # Format date columns
+        # Normalize all column data to the same length
+        normalized_data = {}
+        for column_name, column_info in successfully_found_columns.items():
+            data = column_info['data']
+            # Pad with None values to match maximum length
+            padded_data = data + [None] * (maximum_data_length - len(data))
+            normalized_data[column_name] = padded_data
+
+        # Format date columns - convert strings to datetime objects where possible
         for date_column_name in ['ReceiptCreateDate', 'PostDate', 'Date Last Change']:
-            if date_column_name in unified_dataframe.columns:
-                unified_dataframe[date_column_name] = pd.to_datetime(unified_dataframe[date_column_name], errors='coerce')
+            if date_column_name in normalized_data:
+                formatted_dates = []
+                for value in normalized_data[date_column_name]:
+                    if value is None or str(value).strip() == '':
+                        formatted_dates.append(None)
+                    else:
+                        try:
+                            # Try to parse the date
+                            from datetime import datetime as dt
+                            if isinstance(value, str):
+                                # Try common date formats
+                                for fmt in ['%m/%d/%Y', '%m-%d-%Y', '%Y-%m-%d', '%m/%d/%y', '%m-%d-%y']:
+                                    try:
+                                        parsed_date = dt.strptime(value.strip(), fmt)
+                                        formatted_dates.append(parsed_date)
+                                        break
+                                    except ValueError:
+                                        continue
+                                else:
+                                    # If no format worked, keep original
+                                    formatted_dates.append(value)
+                            else:
+                                formatted_dates.append(value)
+                        except:
+                            formatted_dates.append(value)
+                normalized_data[date_column_name] = formatted_dates
 
-        # Format receipt numbers
-        if 'ReceiptNumber' in unified_dataframe.columns:
-            unified_dataframe['ReceiptNumber'] = unified_dataframe['ReceiptNumber'].apply(lambda x: int(x) if pd.notna(x) and str(x).strip().lstrip('-').replace('.', '').isdigit() and not any(c.isalpha() for c in str(x)) else x)
+        # Format receipt numbers - convert to integers where possible
+        if 'ReceiptNumber' in normalized_data:
+            formatted_numbers = []
+            for value in normalized_data['ReceiptNumber']:
+                if value is None:
+                    formatted_numbers.append(None)
+                else:
+                    try:
+                        value_str = str(value).strip().lstrip('-').replace('.', '')
+                        if value_str.isdigit() and not any(c.isalpha() for c in str(value)):
+                            formatted_numbers.append(int(value_str))
+                        else:
+                            formatted_numbers.append(value)
+                    except:
+                        formatted_numbers.append(value)
+            normalized_data['ReceiptNumber'] = formatted_numbers
 
         # Create output file in temp directory
         with tempfile.NamedTemporaryFile(delete=False, suffix='_FORMATTED.xlsx') as tmp_file:
@@ -173,10 +217,20 @@ def process_excel_and_fix_formatting(excel_file_path):
 
         new_excel_workbook = openpyxl.Workbook()
         new_worksheet = new_excel_workbook.active
-        new_worksheet.append(unified_dataframe.columns.tolist())
 
-        for data_row in unified_dataframe.values:
-            new_worksheet.append(data_row.tolist())
+        # Write headers
+        headers = list(normalized_data.keys())
+        new_worksheet.append(headers)
+
+        # Write data rows
+        for row_index in range(maximum_data_length):
+            row_data = []
+            for column_name in headers:
+                if row_index < len(normalized_data[column_name]):
+                    row_data.append(normalized_data[column_name][row_index])
+                else:
+                    row_data.append(None)
+            new_worksheet.append(row_data)
 
         # Apply styling
         header_font_style = Font(name="Calibri", size=11, bold=True)
@@ -184,9 +238,10 @@ def process_excel_and_fix_formatting(excel_file_path):
         header_alignment = Alignment(horizontal='center', vertical='center')
         data_font_style = Font(name="Calibri", size=11)
 
-        amount_column_position = unified_dataframe.columns.get_loc('Amount_To_Apply') + 1 if 'Amount_To_Apply' in unified_dataframe.columns else 0
-        date_column_positions = [unified_dataframe.columns.get_loc(date_col_name) + 1 for date_col_name in ['ReceiptCreateDate', 'PostDate', 'Date Last Change'] if date_col_name in unified_dataframe.columns]
-        notes_column_position = unified_dataframe.columns.get_loc('Notes') + 1 if 'Notes' in unified_dataframe.columns else 0
+        # Find column positions for special formatting
+        amount_column_position = headers.index('Amount_To_Apply') + 1 if 'Amount_To_Apply' in headers else 0
+        date_column_positions = [headers.index(date_col_name) + 1 for date_col_name in ['ReceiptCreateDate', 'PostDate', 'Date Last Change'] if date_col_name in headers]
+        notes_column_position = headers.index('Notes') + 1 if 'Notes' in headers else 0
 
         column_width_settings = {}
         for row_number, excel_row in enumerate(new_worksheet.rows, 1):
@@ -215,7 +270,7 @@ def process_excel_and_fix_formatting(excel_file_path):
         new_worksheet.freeze_panes = 'A2'
         new_excel_workbook.save(output_file_path)
 
-        processing_log['steps'].append({'step': 3, 'action': 'SUCCESS', 'result': f'Created formatted Excel with {len(successfully_found_columns)} columns and {len(unified_dataframe)} rows'})
+        processing_log['steps'].append({'step': 3, 'action': 'SUCCESS', 'result': f'Created formatted Excel with {len(successfully_found_columns)} columns and {maximum_data_length} rows'})
         processing_log['status'] = 'SUCCESS'
 
         logging.info(f"Success! Created formatted Excel file")
@@ -224,7 +279,7 @@ def process_excel_and_fix_formatting(excel_file_path):
             'output_file': output_file_path,
             'log': processing_log,
             'columns_found': len(successfully_found_columns),
-            'rows_processed': len(unified_dataframe),
+            'rows_processed': maximum_data_length,
             'columns_matched': list(successfully_found_columns.keys()),
             'columns_missing': [col['target'] for col in columns_not_found]
         }

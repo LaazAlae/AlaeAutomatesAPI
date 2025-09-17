@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Excel Formatter - Integration Hub</title>
+    <title>Excel Comparison - Integration Hub</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 </head>
 <body>
@@ -16,8 +16,8 @@
                 <a href="/monthly-statements" class="nav-link">Monthly Statements</a>
                 <a href="/invoice-separator" class="nav-link">Invoice Separator</a>
                 <a href="/credit-card-batch" class="nav-link">Credit Card Batch</a>
-                <a href="/excel-formatter" class="nav-link active">Excel Formatter</a>
-                <a href="/excel-comparison" class="nav-link">Excel Comparison</a>
+                <a href="/excel-formatter" class="nav-link">Excel Formatter</a>
+                <a href="/excel-comparison" class="nav-link active">Excel Comparison</a>
             </div>
             <button class="mobile-nav-toggle" onclick="toggleMobileNav()" aria-label="Toggle navigation">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -32,8 +32,8 @@
     <div class="container">
         <!-- Page Header -->
         <div class="page-header">
-            <h1 class="page-title">Excel Formatter</h1>
-            <p class="page-subtitle">Professional Integration Hub for Excel Column Header Detection and Formatting</p>
+            <h1 class="page-title">Excel Comparison</h1>
+            <p class="page-subtitle">Professional Integration Hub for Month-to-Month Excel File Comparison and Analysis</p>
 
             <div class="mode-toggle">
                 <span class="mode-label" id="simLabel">Documentation</span>
@@ -95,29 +95,38 @@
 
                     <div id="overview" class="tab-content active">
                         <h3>Overview</h3>
-                        <p class="overview-description">Automatically detects and formats Excel column headers using intelligent fuzzy matching to standardize business data formats.</p>
+                        <p class="overview-description">Compare two Excel files month-to-month to identify records with amount changes, records unique to each month, and apply date filtering for comprehensive analysis.</p>
 
                         <div class="feature-grid">
                             <div class="feature-item">
-                                <h4>Intelligent Header Detection</h4>
-                                <p>Uses advanced algorithms to match column headers regardless of naming variations</p>
+                                <h4>Intelligent Comparison</h4>
+                                <p>Uses advanced fuzzy matching to identify similar records across different months</p>
                             </div>
                             <div class="feature-item">
-                                <h4>Smart Formatting</h4>
-                                <p>Applies professional formatting with proper fonts, alignment, and data types</p>
+                                <h4>Amount Change Detection</h4>
+                                <p>Identifies records with identical data but different amounts between months</p>
                             </div>
                             <div class="feature-item">
-                                <h4>Standardized Output</h4>
-                                <p>Produces consistently formatted Excel files with standardized column names</p>
+                                <h4>Date Filtering</h4>
+                                <p>Filters out records from specified month/year and after for accurate comparisons</p>
                             </div>
                             <div class="feature-item">
-                                <h4>Data Validation</h4>
-                                <p>Validates and formats dates, numbers, and text fields automatically</p>
+                                <h4>Comprehensive Results</h4>
+                                <p>Provides detailed Excel reports with amount changes, month-specific records, and summary statistics</p>
                             </div>
                         </div>
 
                         <div class="required-columns">
-                            <h4>Required Columns Detected</h4>
+                            <h4>Required Input Parameters</h4>
+                            <div class="columns-grid">
+                                <span class="column-tag">Month 1 Excel File</span>
+                                <span class="column-tag">Month 2 Excel File</span>
+                                <span class="column-tag">Cutoff Month (MM/YYYY)</span>
+                            </div>
+                        </div>
+
+                        <div class="required-columns">
+                            <h4>Expected Excel Columns</h4>
                             <div class="columns-grid">
                                 <span class="column-tag">GroupName</span>
                                 <span class="column-tag">CorpName</span>
@@ -133,8 +142,6 @@
                                 <span class="column-tag">PostDate</span>
                                 <span class="column-tag">SourceName</span>
                                 <span class="column-tag">Notes</span>
-                                <span class="column-tag">Date Last Change</span>
-                                <span class="column-tag">User Last Change</span>
                             </div>
                         </div>
                     </div>
@@ -145,63 +152,73 @@
                         <div class="endpoint-card">
                             <div class="endpoint-header">
                                 <span class="method get">GET</span>
-                                <span class="endpoint-path">/api/excel-formatter</span>
+                                <span class="endpoint-path">/api/excel-comparison</span>
                             </div>
-                            <p class="endpoint-description">Get service information and supported formats</p>
+                            <p class="endpoint-description">Get service information and comparison capabilities</p>
 
                             <h4>Response</h4>
                             <pre class="code-block"><code>{
-  "service": "Excel Formatter API",
-  "description": "Upload Excel files to automatically detect and format columns",
+  "service": "Excel Comparison API",
+  "description": "Compare two Excel files month-to-month and identify differences",
   "supported_formats": ["xlsx", "xls"],
-  "required_columns": ["GroupName", "CorpName", "Amount_To_Apply", ...]
+  "required_inputs": {
+    "month1_file": "Excel file for first month",
+    "month2_file": "Excel file for second month",
+    "cutoff_month": "Month/Year to filter (e.g., '08/2025')"
+  },
+  "outputs": {
+    "amount_changes": "Records with same data but different amounts",
+    "month1_only": "Records only found in month 1",
+    "month2_only": "Records only found in month 2"
+  }
 }</code></pre>
                         </div>
 
                         <div class="endpoint-card">
                             <div class="endpoint-header">
                                 <span class="method post">POST</span>
-                                <span class="endpoint-path">/api/excel-formatter/process</span>
+                                <span class="endpoint-path">/api/excel-comparison/process</span>
                             </div>
-                            <p class="endpoint-description">Upload and process Excel file for formatting</p>
+                            <p class="endpoint-description">Process comparison between two Excel files with date filtering</p>
 
                             <h4>Request</h4>
                             <pre class="code-block"><code>Content-Type: multipart/form-data
 
-file: [Excel file (.xlsx/.xls)]</code></pre>
+month1_file: [Excel file for month 1]
+month2_file: [Excel file for month 2]
+cutoff_month: "08/2025"</code></pre>
 
                             <h4>Response</h4>
                             <pre class="code-block"><code>{
   "success": true,
-  "message": "Successfully processed Excel file with 12 columns",
-  "columns_found": 12,
-  "rows_processed": 150,
-  "columns_matched": ["GroupName", "CorpName", "Amount_To_Apply", ...],
-  "columns_missing": ["Notes"],
-  "processing_log": {...},
+  "message": "Excel comparison completed successfully",
+  "file_id": "uuid-string-for-download",
+  "summary": {
+    "month1_total": 150,
+    "month2_total": 142,
+    "month2_after_date_filter": 128,
+    "removed_by_date_filter": 14,
+    "amount_changes": 23,
+    "month1_only": 12,
+    "month2_only": 8
+  },
+  "cutoff_month": "08/2025",
   "download_ready": true
 }</code></pre>
                         </div>
 
                         <div class="endpoint-card">
                             <div class="endpoint-header">
-                                <span class="method post">POST</span>
-                                <span class="endpoint-path">/api/excel-formatter/download</span>
+                                <span class="method get">GET</span>
+                                <span class="endpoint-path">/api/excel-comparison/download/&lt;file_id&gt;</span>
                             </div>
-                            <p class="endpoint-description">Download the formatted Excel file</p>
-
-                            <h4>Request</h4>
-                            <pre class="code-block"><code>Content-Type: application/json
-
-{
-  "file_path": "/path/to/formatted/file.xlsx"
-}</code></pre>
+                            <p class="endpoint-description">Download the comparison results Excel file</p>
 
                             <h4>Response</h4>
                             <pre class="code-block"><code>Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
-Content-Disposition: attachment; filename="formatted_excel_file.xlsx"
+Content-Disposition: attachment; filename="excel_comparison_results_20241215_143022.xlsx"
 
-[Binary Excel file data]</code></pre>
+[Binary Excel file with comparison results]</code></pre>
                         </div>
                     </div>
 
@@ -210,23 +227,33 @@ Content-Disposition: attachment; filename="formatted_excel_file.xlsx"
 
                         <div class="integration-steps">
                             <div class="integration-step">
-                                <h4>Upload Excel File</h4>
-                                <p>Send Excel file (.xlsx/.xls) via POST to <code>/api/excel-formatter/process</code></p>
+                                <h4>Upload Files and Parameters</h4>
+                                <p>Send two Excel files and cutoff month via POST to <code>/api/excel-comparison/process</code></p>
                             </div>
 
                             <div class="integration-step">
-                                <h4>Header Detection</h4>
-                                <p>System analyzes first 100 rows to detect column headers using fuzzy matching</p>
+                                <h4>Automatic Header Detection</h4>
+                                <p>System analyzes both Excel files to detect and match column headers using fuzzy matching</p>
                             </div>
 
                             <div class="integration-step">
-                                <h4>Data Processing</h4>
-                                <p>Formats dates, numbers, and applies professional styling to the Excel file</p>
+                                <h4>Date Filtering</h4>
+                                <p>Filters out records from month 2 that are from the specified cutoff month and after</p>
+                            </div>
+
+                            <div class="integration-step">
+                                <h4>Record Comparison</h4>
+                                <p>Performs exact and fuzzy matching to identify identical records, amount changes, and unique records</p>
+                            </div>
+
+                            <div class="integration-step">
+                                <h4>Generate Results</h4>
+                                <p>Creates comprehensive Excel report with separate sections for amount changes, month 1 only, and month 2 only records</p>
                             </div>
 
                             <div class="integration-step">
                                 <h4>Download Results</h4>
-                                <p>Receive formatted Excel file with standardized headers and professional styling</p>
+                                <p>Receive formatted Excel file with detailed comparison results and analysis</p>
                             </div>
                         </div>
                     </div>
@@ -236,20 +263,27 @@ Content-Disposition: attachment; filename="formatted_excel_file.xlsx"
 
                         <div class="example-section">
                             <h4>JavaScript/Fetch API</h4>
-                            <pre class="code-block"><code>// Upload and process Excel file
+                            <pre class="code-block"><code>// Compare two Excel files with date filtering
 const formData = new FormData();
-formData.append('file', excelFile);
+formData.append('month1_file', month1ExcelFile);
+formData.append('month2_file', month2ExcelFile);
+formData.append('cutoff_month', '08/2025');
 
-const response = await fetch('${API_BASE_URL}/api/excel-formatter/process', {
+const response = await fetch('${API_BASE_URL}/api/excel-comparison/process', {
     method: 'POST',
     body: formData
 });
 
 const result = await response.json();
 if (result.success) {
-    console.log(`Processed ${result.columns_found} columns`);
-    console.log('Matched columns:', result.columns_matched);
-    console.log('Missing columns:', result.columns_missing);
+    console.log('Comparison completed!');
+    console.log(`Amount changes: ${result.summary.amount_changes}`);
+    console.log(`Month 1 only: ${result.summary.month1_only}`);
+    console.log(`Month 2 only: ${result.summary.month2_only}`);
+
+    // Download results
+    const downloadUrl = `${API_BASE_URL}/api/excel-comparison/download/${result.file_id}`;
+    window.open(downloadUrl);
 }</code></pre>
                         </div>
 
@@ -257,28 +291,44 @@ if (result.success) {
                             <h4>Python/Requests</h4>
                             <pre class="code-block"><code>import requests
 
-# Upload Excel file
-with open('your_file.xlsx', 'rb') as f:
-    files = {'file': f}
+# Compare Excel files
+with open('month1.xlsx', 'rb') as f1, open('month2.xlsx', 'rb') as f2:
+    files = {
+        'month1_file': f1,
+        'month2_file': f2
+    }
+    data = {
+        'cutoff_month': '08/2025'
+    }
+
     response = requests.post(
-        'http://api-url/api/excel-formatter/process',
-        files=files
+        'http://api-url/api/excel-comparison/process',
+        files=files,
+        data=data
     )
 
 result = response.json()
 if result['success']:
-    print(f"Processed {result['columns_found']} columns")
-    print(f"Matched: {result['columns_matched']}")
-    print(f"Missing: {result['columns_missing']}")</code></pre>
+    print(f"Amount changes: {result['summary']['amount_changes']}")
+    print(f"Month 1 only: {result['summary']['month1_only']}")
+    print(f"Month 2 only: {result['summary']['month2_only']}")
+
+    # Download results
+    file_id = result['file_id']
+    download_response = requests.get(f'http://api-url/api/excel-comparison/download/{file_id}')
+    with open('comparison_results.xlsx', 'wb') as f:
+        f.write(download_response.content)</code></pre>
                         </div>
 
                         <div class="example-section">
                             <h4>cURL</h4>
-                            <pre class="code-block"><code># Upload Excel file for processing
+                            <pre class="code-block"><code># Compare Excel files with date filtering
 curl -X POST \
-  http://api-url/api/excel-formatter/process \
+  http://api-url/api/excel-comparison/process \
   -H 'Content-Type: multipart/form-data' \
-  -F 'file=@your_file.xlsx'</code></pre>
+  -F 'month1_file=@month1.xlsx' \
+  -F 'month2_file=@month2.xlsx' \
+  -F 'cutoff_month=08/2025'</code></pre>
                         </div>
                     </div>
 
@@ -292,26 +342,27 @@ curl -X POST \
                             </div>
                             <div class="security-item">
                                 <h4>Temporary Storage</h4>
-                                <p>Files are processed in secure temporary directories and automatically cleaned up.</p>
+                                <p>Files are processed in secure temporary directories and automatically cleaned up after processing.</p>
                             </div>
                             <div class="security-item">
                                 <h4>Data Processing</h4>
-                                <p>No data is permanently stored. Processing happens in memory with immediate cleanup.</p>
+                                <p>Comparison happens in memory with immediate cleanup. No data is permanently stored.</p>
                             </div>
                             <div class="security-item">
-                                <h4>Error Handling</h4>
-                                <p>Comprehensive error handling with detailed logging for debugging purposes.</p>
+                                <h4>Input Validation</h4>
+                                <p>Cutoff month format is validated and sanitized to prevent injection attacks.</p>
                             </div>
                         </div>
 
                         <div class="best-practices">
                             <h4>Best Practices</h4>
                             <ul>
-                                <li>Ensure Excel files have headers in the first 100 rows</li>
-                                <li>Use descriptive column names that match the required formats</li>
-                                <li>Validate file size before upload (recommended max: 10MB)</li>
+                                <li>Ensure both Excel files have consistent column structures</li>
+                                <li>Use MM/YYYY format for cutoff month (e.g., "08/2025")</li>
+                                <li>Validate file sizes before upload (recommended max: 10MB each)</li>
                                 <li>Handle errors gracefully and check response status codes</li>
-                                <li>Implement proper timeout handling for large files</li>
+                                <li>Implement proper timeout handling for large file comparisons</li>
+                                <li>Review results carefully as fuzzy matching may have edge cases</li>
                             </ul>
                         </div>
                     </div>
@@ -324,35 +375,61 @@ curl -X POST \
             <div class="content-section">
                 <h2 class="section-title">
                     <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                        <path d="M8 12h8"></path>
-                        <path d="M12 8v8"></path>
+                        <path d="M9 17H7A5 5 0 0 1 7 7h2M15 7h2a5 5 0 1 1 0 10h-2M11 9l4 4-4 4"></path>
                     </svg>
-                    Live Excel Formatter Testing
+                    Live Excel Comparison Testing
                 </h2>
 
                 <div class="upload-section">
                     <div class="upload-card">
-                        <h3>Upload Excel File</h3>
-                        <p>Upload an Excel file (.xlsx/.xls) to automatically detect and format column headers</p>
+                        <h3>Upload Excel Files for Comparison</h3>
+                        <p>Upload two Excel files and specify the cutoff month to compare month-to-month data and identify differences</p>
 
-                        <div class="file-upload-area" id="fileUploadArea" onclick="document.getElementById('fileInput').click()">
-                            <div class="upload-icon">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="48" height="48">
-                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                                    <path d="M8 12h8"></path>
-                                    <path d="M12 8v8"></path>
-                                </svg>
+                        <!-- Month 1 File Upload -->
+                        <div class="file-upload-section">
+                            <h4>Month 1 Excel File</h4>
+                            <div class="file-upload-area" id="month1UploadArea" onclick="document.getElementById('month1Input').click()">
+                                <div class="upload-icon">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="48" height="48">
+                                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                        <path d="M8 12h8"></path>
+                                        <path d="M12 8v8"></path>
+                                    </svg>
+                                </div>
+                                <p class="upload-text">Click to upload Month 1 Excel file</p>
+                                <p class="upload-subtext">Supports .xlsx and .xls files</p>
                             </div>
-                            <p class="upload-text">Click to upload Excel file or drag and drop</p>
-                            <p class="upload-subtext">Supports .xlsx and .xls files</p>
+                            <input type="file" id="month1Input" accept=".xlsx,.xls" style="display: none;" onchange="handleMonth1Select(event)">
                         </div>
 
-                        <input type="file" id="fileInput" accept=".xlsx,.xls" style="display: none;" onchange="handleFileSelect(event)">
+                        <!-- Month 2 File Upload -->
+                        <div class="file-upload-section">
+                            <h4>Month 2 Excel File</h4>
+                            <div class="file-upload-area" id="month2UploadArea" onclick="document.getElementById('month2Input').click()">
+                                <div class="upload-icon">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="48" height="48">
+                                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                        <path d="M8 12h8"></path>
+                                        <path d="M12 8v8"></path>
+                                    </svg>
+                                </div>
+                                <p class="upload-text">Click to upload Month 2 Excel file</p>
+                                <p class="upload-subtext">Supports .xlsx and .xls files</p>
+                            </div>
+                            <input type="file" id="month2Input" accept=".xlsx,.xls" style="display: none;" onchange="handleMonth2Select(event)">
+                        </div>
+
+                        <!-- Cutoff Month Input -->
+                        <div class="cutoff-section">
+                            <h4>Cutoff Month</h4>
+                            <p>Records from this month and after will be filtered out from Month 2</p>
+                            <input type="text" id="cutoffMonthInput" placeholder="MM/YYYY (e.g., 08/2025)" class="cutoff-input">
+                            <p class="cutoff-help">Format: MM/YYYY - Records from this month onwards will be removed from Month 2 before comparison</p>
+                        </div>
 
                         <div class="upload-controls" style="display: none;" id="uploadControls">
-                            <button class="btn-primary" onclick="processFile()" id="processBtn">
-                                <span class="btn-text">Format Excel File</span>
+                            <button class="btn-primary" onclick="processComparison()" id="processBtn">
+                                <span class="btn-text">Compare Excel Files</span>
                                 <span class="btn-loading" style="display: none;">
                                     <svg class="spinner" viewBox="0 0 24 24">
                                         <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-dasharray="32" stroke-dashoffset="32">
@@ -363,7 +440,7 @@ curl -X POST \
                                     Processing...
                                 </span>
                             </button>
-                            <button class="btn-secondary" onclick="clearFile()" id="clearBtn">Clear</button>
+                            <button class="btn-secondary" onclick="clearFiles()" id="clearBtn">Clear All</button>
                         </div>
                     </div>
                 </div>
@@ -371,7 +448,7 @@ curl -X POST \
                 <!-- Results Section -->
                 <div class="results-section" id="resultsSection" style="display: none;">
                     <div class="results-card">
-                        <h3>Processing Results</h3>
+                        <h3>Comparison Results</h3>
                         <div id="resultsContent"></div>
                     </div>
                 </div>
@@ -379,13 +456,13 @@ curl -X POST \
                 <!-- Download Section -->
                 <div class="download-section" id="downloadSection" style="display: none;">
                     <div class="download-card">
-                        <h3>Download Formatted File</h3>
-                        <p>Your Excel file has been successfully formatted with standardized headers and professional styling.</p>
+                        <h3>Download Comparison Results</h3>
+                        <p>Your Excel comparison has been completed successfully. The results include amount changes, month-specific records, and detailed analysis.</p>
                         <button class="btn-success" onclick="downloadFile()" id="downloadBtn">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
                                 <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/>
                             </svg>
-                            Download Formatted Excel
+                            Download Comparison Results
                         </button>
                     </div>
                 </div>
@@ -396,7 +473,8 @@ curl -X POST \
     <script>
         // Global API configuration
         window.API_BASE_URL = '{{ api_url }}';
-        let selectedFile = null;
+        let month1File = null;
+        let month2File = null;
         let processedFileId = null;
 
         // Mobile navigation toggle
@@ -466,40 +544,71 @@ curl -X POST \
         }
 
         // File handling functions
-        function handleFileSelect(event) {
+        function handleMonth1Select(event) {
             const file = event.target.files[0];
             if (file) {
-                selectedFile = file;
-
-                // Update upload area
-                const uploadArea = document.getElementById('fileUploadArea');
-                uploadArea.innerHTML = `
-                    <div class="upload-icon">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="48" height="48">
-                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                            <path d="M9 12l2 2 4-4"></path>
-                        </svg>
-                    </div>
-                    <p class="upload-text">File selected: ${file.name}</p>
-                    <p class="upload-subtext">Size: ${(file.size / 1024 / 1024).toFixed(2)} MB</p>
-                `;
-
-                // Show controls
-                document.getElementById('uploadControls').style.display = 'block';
-
-                // Hide previous results
-                document.getElementById('resultsSection').style.display = 'none';
-                document.getElementById('downloadSection').style.display = 'none';
+                month1File = file;
+                updateUploadArea('month1UploadArea', file, 'Month 1');
+                checkAllFilesSelected();
             }
         }
 
-        function clearFile() {
-            selectedFile = null;
-            processedFileId = null;
-            document.getElementById('fileInput').value = '';
+        function handleMonth2Select(event) {
+            const file = event.target.files[0];
+            if (file) {
+                month2File = file;
+                updateUploadArea('month2UploadArea', file, 'Month 2');
+                checkAllFilesSelected();
+            }
+        }
 
-            // Reset upload area
-            const uploadArea = document.getElementById('fileUploadArea');
+        function updateUploadArea(areaId, file, monthLabel) {
+            const uploadArea = document.getElementById(areaId);
+            uploadArea.innerHTML = `
+                <div class="upload-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="48" height="48">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                        <path d="M9 12l2 2 4-4"></path>
+                    </svg>
+                </div>
+                <p class="upload-text">${monthLabel} file selected: ${file.name}</p>
+                <p class="upload-subtext">Size: ${(file.size / 1024 / 1024).toFixed(2)} MB</p>
+            `;
+        }
+
+        function checkAllFilesSelected() {
+            const cutoffMonth = document.getElementById('cutoffMonthInput').value.trim();
+            if (month1File && month2File && cutoffMonth) {
+                document.getElementById('uploadControls').style.display = 'block';
+            }
+        }
+
+        // Add event listener for cutoff month input
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('cutoffMonthInput').addEventListener('input', checkAllFilesSelected);
+        });
+
+        function clearFiles() {
+            month1File = null;
+            month2File = null;
+            processedFileId = null;
+
+            document.getElementById('month1Input').value = '';
+            document.getElementById('month2Input').value = '';
+            document.getElementById('cutoffMonthInput').value = '';
+
+            // Reset upload areas
+            resetUploadArea('month1UploadArea', 'Click to upload Month 1 Excel file');
+            resetUploadArea('month2UploadArea', 'Click to upload Month 2 Excel file');
+
+            // Hide controls and results
+            document.getElementById('uploadControls').style.display = 'none';
+            document.getElementById('resultsSection').style.display = 'none';
+            document.getElementById('downloadSection').style.display = 'none';
+        }
+
+        function resetUploadArea(areaId, text) {
+            const uploadArea = document.getElementById(areaId);
             uploadArea.innerHTML = `
                 <div class="upload-icon">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="48" height="48">
@@ -508,18 +617,25 @@ curl -X POST \
                         <path d="M12 8v8"></path>
                     </svg>
                 </div>
-                <p class="upload-text">Click to upload Excel file or drag and drop</p>
+                <p class="upload-text">${text}</p>
                 <p class="upload-subtext">Supports .xlsx and .xls files</p>
             `;
-
-            // Hide controls and results
-            document.getElementById('uploadControls').style.display = 'none';
-            document.getElementById('resultsSection').style.display = 'none';
-            document.getElementById('downloadSection').style.display = 'none';
         }
 
-        async function processFile() {
-            if (!selectedFile) return;
+        async function processComparison() {
+            if (!month1File || !month2File) return;
+
+            const cutoffMonth = document.getElementById('cutoffMonthInput').value.trim();
+            if (!cutoffMonth) {
+                alert('Please enter a cutoff month in MM/YYYY format');
+                return;
+            }
+
+            // Validate cutoff month format
+            if (!/^\d{2}\/\d{4}$/.test(cutoffMonth)) {
+                alert('Please enter cutoff month in MM/YYYY format (e.g., 08/2025)');
+                return;
+            }
 
             const processBtn = document.getElementById('processBtn');
             const btnText = processBtn.querySelector('.btn-text');
@@ -532,9 +648,11 @@ curl -X POST \
 
             try {
                 const formData = new FormData();
-                formData.append('file', selectedFile);
+                formData.append('month1_file', month1File);
+                formData.append('month2_file', month2File);
+                formData.append('cutoff_month', cutoffMonth);
 
-                const response = await fetch(`${window.API_BASE_URL}/api/excel-formatter/process`, {
+                const response = await fetch(`${window.API_BASE_URL}/api/excel-comparison/process`, {
                     method: 'POST',
                     body: formData
                 });
@@ -544,7 +662,7 @@ curl -X POST \
                 if (result.success) {
                     // Show results
                     showResults(result);
-                    processedFileId = result.file_id; // Store file ID for download
+                    processedFileId = result.file_id;
                 } else {
                     showError(result.error);
                 }
@@ -566,27 +684,35 @@ curl -X POST \
             resultsContent.innerHTML = `
                 <div class="result-summary">
                     <div class="summary-item">
-                        <span class="summary-label">Columns Found:</span>
-                        <span class="summary-value success">${result.columns_found}</span>
+                        <span class="summary-label">Month 1 Records:</span>
+                        <span class="summary-value">${result.summary.month1_total}</span>
                     </div>
                     <div class="summary-item">
-                        <span class="summary-label">Rows Processed:</span>
-                        <span class="summary-value success">${result.rows_processed}</span>
+                        <span class="summary-label">Month 2 Records (Before Filter):</span>
+                        <span class="summary-value">${result.summary.month2_total}</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Month 2 Records (After Filter):</span>
+                        <span class="summary-value">${result.summary.month2_after_date_filter}</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Removed by Date Filter:</span>
+                        <span class="summary-value warning">${result.summary.removed_by_date_filter}</span>
                     </div>
                 </div>
 
-                <div class="columns-status">
-                    <h4>Matched Columns</h4>
+                <div class="comparison-results">
+                    <h4>Comparison Results</h4>
                     <div class="columns-grid">
-                        ${result.columns_matched.map(col => `<span class="column-tag success">${col}</span>`).join('')}
+                        <span class="column-tag success">Amount Changes: ${result.summary.amount_changes}</span>
+                        <span class="column-tag warning">Month 1 Only: ${result.summary.month1_only}</span>
+                        <span class="column-tag warning">Month 2 Only: ${result.summary.month2_only}</span>
                     </div>
 
-                    ${result.columns_missing && result.columns_missing.length > 0 ? `
-                        <h4>Missing Columns</h4>
-                        <div class="columns-grid">
-                            ${result.columns_missing.map(col => `<span class="column-tag warning">${col}</span>`).join('')}
-                        </div>
-                    ` : ''}
+                    <div class="cutoff-info">
+                        <p><strong>Cutoff Month Applied:</strong> ${result.cutoff_month}</p>
+                        <p class="cutoff-explanation">Records from ${result.cutoff_month} and after were filtered out from Month 2 before comparison.</p>
+                    </div>
                 </div>
             `;
 
@@ -614,17 +740,17 @@ curl -X POST \
 
         function downloadFile() {
             if (!processedFileId) {
-                alert('No file available for download. Please process a file first.');
+                alert('No file available for download. Please process files first.');
                 return;
             }
 
             // Create download URL using the file ID
-            const downloadUrl = `${window.API_BASE_URL}/api/excel-formatter/download/${processedFileId}`;
+            const downloadUrl = `${window.API_BASE_URL}/api/excel-comparison/download/${processedFileId}`;
 
             // Create a temporary link and trigger download
             const link = document.createElement('a');
             link.href = downloadUrl;
-            link.download = 'formatted_excel_file.xlsx';
+            link.download = 'excel_comparison_results.xlsx';
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
@@ -644,36 +770,102 @@ curl -X POST \
                     navLinks.classList.remove('open');
                 }
             });
-
-            // Drag and drop functionality
-            const uploadArea = document.getElementById('fileUploadArea');
-
-            uploadArea.addEventListener('dragover', function(e) {
-                e.preventDefault();
-                uploadArea.classList.add('drag-over');
-            });
-
-            uploadArea.addEventListener('dragleave', function(e) {
-                e.preventDefault();
-                uploadArea.classList.remove('drag-over');
-            });
-
-            uploadArea.addEventListener('drop', function(e) {
-                e.preventDefault();
-                uploadArea.classList.remove('drag-over');
-
-                const files = e.dataTransfer.files;
-                if (files.length > 0) {
-                    const file = files[0];
-                    if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
-                        document.getElementById('fileInput').files = files;
-                        handleFileSelect({ target: { files: files } });
-                    } else {
-                        alert('Please upload an Excel file (.xlsx or .xls)');
-                    }
-                }
-            });
         });
     </script>
+
+    <style>
+        .file-upload-section {
+            margin-bottom: 24px;
+        }
+
+        .file-upload-section h4 {
+            color: var(--primary-800);
+            margin-bottom: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .cutoff-section {
+            margin-bottom: 24px;
+            padding: 20px;
+            background: var(--surface-subtle);
+            border: 1px solid var(--primary-200);
+            border-radius: 8px;
+        }
+
+        .cutoff-section h4 {
+            color: var(--primary-800);
+            margin-bottom: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .cutoff-section p {
+            color: var(--primary-600);
+            margin-bottom: 12px;
+            font-size: 0.875rem;
+        }
+
+        .cutoff-input {
+            width: 100%;
+            max-width: 200px;
+            padding: 12px 16px;
+            border: 2px solid var(--primary-300);
+            border-radius: 6px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+            transition: border-color 0.2s ease;
+        }
+
+        .cutoff-input:focus {
+            outline: none;
+            border-color: var(--accent-500);
+        }
+
+        .cutoff-help {
+            color: var(--primary-500);
+            font-size: 0.8125rem;
+            margin-top: 8px;
+            font-style: italic;
+        }
+
+        .comparison-results {
+            margin-top: 24px;
+        }
+
+        .comparison-results h4 {
+            color: var(--primary-800);
+            margin-bottom: 12px;
+            font-size: 0.9375rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .cutoff-info {
+            margin-top: 16px;
+            padding: 16px;
+            background: var(--accent-50);
+            border: 1px solid var(--accent-200);
+            border-radius: 6px;
+        }
+
+        .cutoff-info p {
+            margin: 0;
+            font-size: 0.875rem;
+        }
+
+        .cutoff-info p:first-child {
+            font-weight: 600;
+            color: var(--primary-800);
+            margin-bottom: 4px;
+        }
+
+        .cutoff-explanation {
+            color: var(--primary-600);
+            font-style: italic;
+        }
+    </style>
 </body>
 </html>

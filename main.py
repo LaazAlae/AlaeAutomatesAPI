@@ -16,6 +16,7 @@ from processors.statement_processor import StatementProcessor
 from processors.invoice_processor import invoice_processor_bp
 from processors.credit_card_batch_processor import credit_card_batch_bp
 from processors.excel_formatter_processor import excel_formatter_bp
+from processors.excel_comparison_processor import excel_comparison_bp
 from company_memory import memory_manager
 
 app = Flask(__name__)
@@ -24,6 +25,7 @@ app = Flask(__name__)
 app.register_blueprint(invoice_processor_bp, url_prefix='/api/invoice-processor')
 app.register_blueprint(credit_card_batch_bp, url_prefix='/api/credit-card-batch')
 app.register_blueprint(excel_formatter_bp, url_prefix='/api/excel-formatter')
+app.register_blueprint(excel_comparison_bp, url_prefix='/api/excel-comparison')
 
 # Also register credit card batch with alternative URL pattern for compatibility
 app.register_blueprint(credit_card_batch_bp, url_prefix='/cc_batch', name='cc_batch_alt')
@@ -128,7 +130,7 @@ def health():
         'sessions': len(sessions),
         'timestamp': datetime.now().isoformat(),
         'active_sessions': list(sessions.keys())[:5] if sessions else [],
-        'services': ['statement_processing', 'invoice_processing', 'credit_card_batch', 'excel_formatting']
+        'services': ['statement_processing', 'invoice_processing', 'credit_card_batch', 'excel_formatting', 'excel_comparison']
     })
 
 @app.route('/', methods=['GET'])

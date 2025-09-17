@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify, send_file
+from flask import Blueprint, request, jsonify, send_file, render_template
 import pandas as pd
 import openpyxl
 import json
@@ -521,7 +521,14 @@ def create_comparison_excel(matches, month1_only, month2_only, output_path):
 
 @excel_comparison_bp.route('/', methods=['GET'])
 def get_service_info():
-    """Get Excel Comparison service information"""
+    """Get Excel Comparison service information or render template"""
+    # Check if this is a browser request by looking at Accept header
+    accept_header = request.headers.get('Accept', '')
+    if 'text/html' in accept_header and 'application/json' not in accept_header:
+        # Return the HTML template for browsers
+        return render_template('excel_comparison.html')
+
+    # Return JSON for API calls
     return jsonify({
         'service': 'Excel Comparison API',
         'description': 'Compare two Excel files month-to-month and identify differences in amounts and records',
